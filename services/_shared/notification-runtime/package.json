@@ -1,0 +1,13 @@
+{
+  "name": "@freshmart/notification-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@freshmart/shared": "file:../../../packages/shared",
+    "@aws-sdk/lib-dynamodb": "^3.1076.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}

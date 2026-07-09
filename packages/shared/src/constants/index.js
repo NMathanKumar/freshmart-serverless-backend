@@ -1,0 +1,52 @@
+const ROLES = Object.freeze({
+  CUSTOMER: 'CUSTOMER',
+  STAFF: 'STAFF',
+  ADMIN: 'ADMIN',
+});
+
+const ORDER_STATUS = Object.freeze({
+  PLACED: 'PLACED',
+  ACCEPTED: 'ACCEPTED',
+  PREPARING: 'PREPARING',
+  READY: 'READY',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
+});
+
+const CUSTOMER_CANCELLABLE_STATUSES = Object.freeze([ORDER_STATUS.PLACED, ORDER_STATUS.ACCEPTED]);
+
+const PAYMENT_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED',
+});
+
+const PAYMENT_METHOD = Object.freeze({
+  CARD: 'CARD',
+  UPI: 'UPI',
+  WALLET: 'WALLET',
+  CASH: 'CASH',
+  DUMMY: 'DUMMY',
+});
+
+const PAGINATION = Object.freeze({
+  DEFAULT_LIMIT: 20,
+  MAX_LIMIT: 100,
+  MIN_LIMIT: 1,
+});
+
+const CART = Object.freeze({
+  MAX_ITEM_QUANTITY: 50,
+  MIN_ITEM_QUANTITY: 1,
+});
+
+module.exports = {
+  ROLES,
+  ORDER_STATUS,
+  CUSTOMER_CANCELLABLE_STATUSES,
+  PAYMENT_STATUS,
+  PAYMENT_METHOD,
+  PAGINATION,
+  CART,
+};

@@ -1,0 +1,1 @@
+# Cognito module scaffold.

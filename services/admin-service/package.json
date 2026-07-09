@@ -1,0 +1,38 @@
+{
+  "name": "@freshmart/admin-service",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/lambda.js",
+  "scripts": {
+    "start": "node src/lambda.js",
+    "postinstall": "node ../_shared/materialize-local-deps.js"
+  },
+  "dependencies": {
+    "@freshmart/shared": "file:../../packages/shared",
+    "@freshmart/service-shared": "file:../_shared",
+    "@aws-sdk/client-dynamodb": "^3.1076.0",
+    "@aws-sdk/client-eventbridge": "^3.1076.0",
+    "@aws-sdk/client-s3": "^3.1076.0",
+    "@aws-sdk/client-sns": "^3.1076.0",
+    "@aws-sdk/client-sqs": "^3.1076.0",
+    "@aws-sdk/lib-dynamodb": "^3.1076.0",
+    "@aws-sdk/s3-request-presigner": "^3.1076.0",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "serverless-http": "^3.2.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^9.0.1",
+    "winston": "^3.13.1"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}

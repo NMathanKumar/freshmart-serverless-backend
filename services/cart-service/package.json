@@ -1,0 +1,19 @@
+{
+  "name": "@freshmart/cart-service",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/lambda.js",
+  "scripts": {
+    "start": "node src/lambda.js",
+    "postinstall": "node ../_shared/materialize-local-deps.js"
+  },
+  "dependencies": {
+    "@freshmart/shared": "file:../../packages/shared",
+    "@freshmart/service-shared": "file:../_shared",
+    "@aws-sdk/lib-dynamodb": "^3.1076.0",
+    "joi": "^17.13.3"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
