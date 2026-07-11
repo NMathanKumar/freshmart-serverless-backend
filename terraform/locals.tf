@@ -17,5 +17,6 @@ locals {
     cognito     = "cognito"
     sns         = "sns"
     sqs         = "sqs"
+    s3          = "s3"
   }
 }

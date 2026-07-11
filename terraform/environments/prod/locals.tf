@@ -316,7 +316,7 @@ locals {
   }
 
   # Lambda packaging lives outside the module so the ZIP path stays configurable.
-  lambda_package_root     = coalesce(var.lambda_package_root, abspath("${path.root}/../../services"))
+  lambda_package_root     = coalesce(var.lambda_package_root, abspath("${path.root}/../../../services"))
   lambda_package_filename = var.lambda_package_filename
 
   # Common runtime settings keep the per-service Lambda definitions concise.
@@ -338,7 +338,6 @@ locals {
 
   lambda_common_environment = {
     NODE_ENV    = var.environment
-    AWS_REGION  = var.aws_region
     LOG_LEVEL   = var.lambda_log_level
     API_VERSION = "v1"
     JWT_SECRET  = var.jwt_secret

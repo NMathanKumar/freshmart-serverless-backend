@@ -32,12 +32,11 @@ const sanitizeUser = (user) => ({
 });
 
 const logStep = (label, details = {}) => {
-  // Temporary trace logs for Lambda/CloudWatch step-by-step register debugging.
-  console.log(label, details);
+  logger.debug(label, details);
 };
 
 const logStepError = (label, error, details = {}) => {
-  console.error(label, {
+  logger.error(label, {
     ...details,
     errorName: error?.name || null,
     errorMessage: error?.message || null,
@@ -161,15 +160,14 @@ const register = async ({ name, email, password, phone }, context = {}) => {
 
   let existing;
   try {
-    logStep('STEP 3 - findByEmail start', { requestId, email });
+    logStep('STEP 3 - findByEmail start', { requestId });
     existing = await authRepository.findByEmail(email);
     logStep('STEP 3 - findByEmail success', {
       requestId,
-      email,
       found: Boolean(existing),
     });
   } catch (error) {
-    logStepError('STEP 3 - findByEmail failed', error, { requestId, email });
+    logStepError('STEP 3 - findByEmail failed', error, { requestId });
     throw error;
   }
 
@@ -214,7 +212,6 @@ const register = async ({ name, email, password, phone }, context = {}) => {
       requestId,
       tableName: config.dynamodb.tables.authUsers,
       userId,
-      email,
     });
     user = await authRepository.createUser({
       userId,
@@ -234,7 +231,6 @@ const register = async ({ name, email, password, phone }, context = {}) => {
       requestId,
       tableName: config.dynamodb.tables.authUsers,
       userId,
-      email,
     });
     if (error?.code === 'CONFLICT' || error?.name === 'ConditionalCheckFailedException') {
       throw new ConflictError('An account with this email already exists');

@@ -8,7 +8,7 @@ locals {
     Region      = var.aws_region
   }
 
-  merged_tags = merge(local.base_tags, var.tags)
+  merged_tags = var.enable_tags ? merge(local.base_tags, var.tags) : {}
 
   # Optional DLQ is created in-module so target failure handling stays reusable.
   dlq_name = coalesce(var.dlq_name, "${var.bus_name}-dlq")
@@ -105,7 +105,7 @@ resource "aws_cloudwatch_event_rule" "this" {
   description    = each.value.description
   event_bus_name = aws_cloudwatch_event_bus.this.name
   event_pattern  = local.rule_patterns[each.key]
-  is_enabled     = each.value.enabled
+  state          = each.value.enabled ? "ENABLED" : "DISABLED"
   tags           = local.merged_tags
 }
 
@@ -113,9 +113,10 @@ resource "aws_cloudwatch_event_rule" "this" {
 resource "aws_cloudwatch_event_target" "this" {
   for_each = local.rule_target_pairs
 
-  rule      = aws_cloudwatch_event_rule.this[each.value.rule_key].name
-  arn       = var.lambda_targets[each.value.target_key].function_arn
-  target_id = "${each.value.rule_key}-${each.value.target_key}"
+  event_bus_name = aws_cloudwatch_event_bus.this.name
+  rule           = aws_cloudwatch_event_rule.this[each.value.rule_key].name
+  arn            = var.lambda_targets[each.value.target_key].function_arn
+  target_id      = "${each.value.rule_key}-${each.value.target_key}"
 
   retry_policy {
     maximum_event_age_in_seconds = var.retry_policy.maximum_event_age_in_seconds

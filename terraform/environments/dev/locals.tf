@@ -26,6 +26,28 @@ locals {
 
   # FreshMart DynamoDB topology for the dev environment.
   dynamodb_tables = {
+    auth_users = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-auth-users"
+      partition_key = "PK"
+      sort_key      = "SK"
+      ttl_enabled   = true
+      ttl_attribute = "ttl"
+      global_secondary_indexes = [
+        {
+          name            = "EmailIndex"
+          partition_key   = "GSI1PK"
+          sort_key        = "GSI1SK"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    user_profiles = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-user-profiles"
+      partition_key = "pk"
+      sort_key      = "sk"
+    })
+
     products = merge(local.dynamodb_table_defaults, {
       table_name    = "${var.project_name}-${local.environment_name}-products"
       partition_key = "productId"
@@ -43,6 +65,46 @@ locals {
         {
           name            = "status-index"
           partition_key   = "status"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    catalog_items = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-catalog-items"
+      partition_key = "PK"
+      sort_key      = "SK"
+      global_secondary_indexes = [
+        {
+          name            = "CategoryIndex"
+          partition_key   = "CategoryPK"
+          sort_key        = "CategorySK"
+          projection_type = "ALL"
+        },
+        {
+          name            = "AvailabilityIndex"
+          partition_key   = "AvailabilityPK"
+          sort_key        = "AvailabilitySK"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    admin = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-admin"
+      partition_key = "pk"
+      sort_key      = "sk"
+      global_secondary_indexes = [
+        {
+          name            = "gsi1"
+          partition_key   = "gsi1pk"
+          sort_key        = "gsi1sk"
+          projection_type = "ALL"
+        },
+        {
+          name            = "gsi2"
+          partition_key   = "gsi2pk"
+          sort_key        = "gsi2sk"
           projection_type = "ALL"
         },
       ]
@@ -162,6 +224,7 @@ locals {
     "dynamodb:PutItem",
     "dynamodb:Query",
     "dynamodb:Scan",
+    "dynamodb:TransactWriteItems",
     "dynamodb:UpdateItem",
   ]
 
@@ -173,10 +236,25 @@ locals {
     "dynamodb:Scan",
   ]
 
-  iam_eventbridge_bus_name = "${var.project_name}-${local.environment_name}-domain-events"
+  iam_eventbridge_bus_name = local.eventbridge_bus_name
 
   # IAM role matrix for all FreshMart services in this environment.
   iam_roles = {
+    auth = {
+      service_name = "auth-service"
+      tags         = { Service = "Auth Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["auth_users"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+    }
+
     product = {
       service_name = "product-service"
       tags         = { Service = "Product Service" }
@@ -297,6 +375,23 @@ locals {
       sns_topic_arns                 = [module.sns.topic_arns["notification"]]
       allow_sqs_send_message         = true
       sqs_queue_arns                 = [module.sqs.queue_arn["notification"]]
+      allow_s3_object_access         = true
+      s3_object_arns                 = [module.s3.object_arn]
+    }
+
+    menu = {
+      service_name = "menu-service"
+      tags         = { Service = "Menu Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["catalog_items"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
     }
 
     analytics = {
@@ -313,10 +408,42 @@ locals {
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
     }
+
+    admin = {
+      service_name = "admin-service"
+      tags         = { Service = "Admin Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["admin"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+      allow_s3_object_access         = true
+      s3_object_arns                 = [module.s3.object_arn]
+    }
+
+    user = {
+      service_name = "user-service"
+      tags         = { Service = "User Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = false
+      eventbridge_bus_names          = []
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+    }
   }
 
   # Lambda packaging lives outside the module so the ZIP path stays configurable.
-  lambda_package_root     = coalesce(var.lambda_package_root, abspath("${path.root}/../../services"))
+  lambda_package_root     = coalesce(var.lambda_package_root, abspath("${path.root}/../../../services"))
   lambda_package_filename = var.lambda_package_filename
 
   # Common runtime settings keep the per-service Lambda definitions concise.
@@ -338,7 +465,6 @@ locals {
 
   lambda_common_environment = {
     NODE_ENV    = var.environment
-    AWS_REGION  = var.aws_region
     LOG_LEVEL   = var.lambda_log_level
     API_VERSION = "v1"
     JWT_SECRET  = var.jwt_secret
@@ -346,6 +472,25 @@ locals {
 
   # FreshMart Lambda topology for the dev environment.
   lambda_functions = {
+    auth = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-auth-service"
+      service_name  = "auth-service"
+      description   = "FreshMart auth service Lambda."
+      filename      = "${local.lambda_package_root}/auth-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["auth"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME           = "auth-service"
+        AWS_EVENT_BUS_NAME     = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE       = "auth-service"
+        DDB_TABLE_AUTH_USERS   = module.dynamodb["auth_users"].table_name
+        JWT_REFRESH_SECRET     = var.jwt_refresh_secret
+        JWT_EXPIRES_IN         = "1d"
+        JWT_REFRESH_EXPIRES_IN = "7d"
+        BCRYPT_SALT_ROUNDS     = "10"
+      })
+    })
+
     product = merge(local.lambda_common_settings, {
       function_name = "${var.project_name}-${local.environment_name}-product-service"
       service_name  = "product-service"
@@ -358,6 +503,21 @@ locals {
         AWS_EVENT_BUS_NAME = local.eventbridge_bus_name
         AWS_EVENT_SOURCE   = "product-service"
         DDB_TABLE_PRODUCTS = module.dynamodb["products"].table_name
+      })
+    })
+
+    menu = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-menu-service"
+      service_name  = "menu-service"
+      description   = "FreshMart menu service Lambda."
+      filename      = "${local.lambda_package_root}/menu-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["menu"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME            = "menu-service"
+        AWS_EVENT_BUS_NAME      = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE        = "menu-service"
+        DDB_TABLE_CATALOG_ITEMS = module.dynamodb["catalog_items"].table_name
       })
     })
 
@@ -392,6 +552,34 @@ locals {
         DDB_TABLE_CARTS     = module.dynamodb["carts"].table_name
         DDB_TABLE_PRODUCTS  = module.dynamodb["products"].table_name
         DDB_TABLE_INVENTORY = module.dynamodb["inventory"].table_name
+      })
+    })
+
+    admin = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-admin-service"
+      service_name  = "admin-service"
+      description   = "FreshMart admin service Lambda."
+      filename      = "${local.lambda_package_root}/admin-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["admin"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME       = "admin-service"
+        AWS_EVENT_BUS_NAME = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE   = "admin-service"
+        DDB_TABLE_ADMIN    = module.dynamodb["admin"].table_name
+      })
+    })
+
+    user = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-user-service"
+      service_name  = "user-service"
+      description   = "FreshMart user service Lambda."
+      filename      = "${local.lambda_package_root}/user-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["user"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME            = "user-service"
+        DDB_TABLE_USER_PROFILES = module.dynamodb["user_profiles"].table_name
       })
     })
 
@@ -441,6 +629,7 @@ locals {
         AWS_EVENT_BUS_NAME             = local.eventbridge_bus_name
         AWS_EVENT_SOURCE               = "notification-service"
         DDB_TABLE_NOTIFICATIONS        = module.dynamodb["notifications"].table_name
+        AWS_S3_BUCKET                  = module.s3.bucket_name
         AWS_SNS_NOTIFICATION_TOPIC_ARN = module.sns.topic_arns["notification"]
         AWS_SQS_NOTIFICATION_QUEUE_URL = module.sqs.queue_url["notification"]
         AWS_SQS_NOTIFICATION_DLQ_URL   = module.sqs.dlq_url["notification"]
@@ -459,6 +648,7 @@ locals {
         AWS_EVENT_BUS_NAME  = local.eventbridge_bus_name
         AWS_EVENT_SOURCE    = "analytics-service"
         DDB_TABLE_ANALYTICS = module.dynamodb["analytics"].table_name
+        AWS_S3_BUCKET       = module.s3.bucket_name
       })
     })
   }
@@ -476,6 +666,32 @@ locals {
 
   # Route definitions are centralized once and reused by the HTTP API module.
   api_gateway_routes = {
+    auth_register = {
+      method     = "POST"
+      path       = "/auth/register"
+      lambda_key = "auth"
+    }
+    auth_login = {
+      method     = "POST"
+      path       = "/auth/login"
+      lambda_key = "auth"
+    }
+    auth_refresh = {
+      method     = "POST"
+      path       = "/auth/refresh"
+      lambda_key = "auth"
+    }
+    auth_logout = {
+      method     = "POST"
+      path       = "/auth/logout"
+      lambda_key = "auth"
+    }
+    auth_me = {
+      method     = "GET"
+      path       = "/auth/me"
+      lambda_key = "auth"
+    }
+
     products_list = {
       method     = "GET"
       path       = "/products"
@@ -501,6 +717,43 @@ locals {
       path       = "/products/{id}"
       lambda_key = "product"
     }
+
+    menu_search = {
+      method     = "GET"
+      path       = "/menu/search"
+      lambda_key = "menu"
+    }
+    menu_list = {
+      method     = "GET"
+      path       = "/menu"
+      lambda_key = "menu"
+    }
+    menu_get = {
+      method     = "GET"
+      path       = "/menu/{id}"
+      lambda_key = "menu"
+    }
+    menu_create = {
+      method     = "POST"
+      path       = "/menu"
+      lambda_key = "menu"
+    }
+    menu_update = {
+      method     = "PATCH"
+      path       = "/menu/{id}"
+      lambda_key = "menu"
+    }
+    menu_availability = {
+      method     = "PATCH"
+      path       = "/menu/{id}/availability"
+      lambda_key = "menu"
+    }
+    menu_delete = {
+      method     = "DELETE"
+      path       = "/menu/{id}"
+      lambda_key = "menu"
+    }
+
     inventory_list = {
       method     = "GET"
       path       = "/inventory"
@@ -551,6 +804,32 @@ locals {
       path       = "/payments/{paymentId}"
       lambda_key = "payment"
     }
+
+    admin_health = {
+      method     = "GET"
+      path       = "/admin/health"
+      lambda_key = "admin"
+    }
+    admin_dashboard = {
+      method     = "GET"
+      path       = "/admin/dashboard"
+      lambda_key = "admin"
+    }
+    admin_config_get = {
+      method     = "GET"
+      path       = "/admin/config"
+      lambda_key = "admin"
+    }
+    admin_config_put = {
+      method     = "PUT"
+      path       = "/admin/config"
+      lambda_key = "admin"
+    }
+    admin_audit = {
+      method     = "GET"
+      path       = "/admin/audit"
+      lambda_key = "admin"
+    }
   }
 
   # EventBridge wiring keeps the shared bus, rules, and consumers centralized.
@@ -568,29 +847,52 @@ locals {
   }
 
   eventbridge_rules = {
+    auth = {
+      description          = "Match FreshMart auth domain events."
+      sources              = ["auth-service"]
+      detail_type_prefixes = ["UserRegistered"]
+      target_lambda_keys   = ["notification", "analytics"]
+    }
     product = {
       description          = "Match FreshMart product domain events."
+      sources              = ["product-service"]
       detail_type_prefixes = ["Product"]
+      target_lambda_keys   = ["notification", "analytics"]
+    }
+    menu = {
+      description          = "Match FreshMart menu domain events."
+      sources              = ["menu-service"]
+      detail_type_prefixes = ["Food"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     inventory = {
       description          = "Match FreshMart inventory domain events."
+      sources              = ["inventory-service"]
       detail_type_prefixes = ["Inventory"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     cart = {
       description          = "Match FreshMart cart domain events."
+      sources              = ["cart-service"]
       detail_type_prefixes = ["Cart"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     order = {
       description          = "Match FreshMart order domain events."
+      sources              = ["order-service"]
       detail_type_prefixes = ["Order"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     payment = {
       description          = "Match FreshMart payment domain events."
+      sources              = ["payment-service"]
       detail_type_prefixes = ["Payment"]
+      target_lambda_keys   = ["notification", "analytics"]
+    }
+    admin = {
+      description          = "Match FreshMart admin domain events."
+      sources              = ["admin-service"]
+      detail_type_prefixes = ["Admin"]
       target_lambda_keys   = ["notification", "analytics"]
     }
   }

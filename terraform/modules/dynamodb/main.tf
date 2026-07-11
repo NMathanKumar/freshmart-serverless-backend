@@ -9,6 +9,18 @@ locals {
   }
 
   table_tags = merge(local.base_tags, var.tags)
+
+  # DynamoDB requires every key attribute used by the table or any GSI to be declared once.
+  attribute_names = distinct(compact(concat(
+    [var.partition_key],
+    var.sort_key == null ? [] : [var.sort_key],
+    flatten([
+      for index in var.global_secondary_indexes : compact([
+        index.partition_key,
+        try(index.sort_key, null),
+      ])
+    ])
+  )))
 }
 
 # DynamoDB table with on-demand capacity, encryption, PITR, and optional TTL/GSIs.
@@ -30,6 +42,15 @@ resource "aws_dynamodb_table" "this" {
   # Keep historical table versions available for recovery and rollback.
   point_in_time_recovery {
     enabled = var.point_in_time_recovery
+  }
+
+  dynamic "attribute" {
+    for_each = toset(local.attribute_names)
+
+    content {
+      name = attribute.value
+      type = "S"
+    }
   }
 
   # Enable TTL only when the caller requests it.

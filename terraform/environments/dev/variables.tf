@@ -13,7 +13,7 @@ variable "project_name" {
 variable "aws_region" {
   description = "AWS region used by the provider."
   type        = string
-  default     = "ap-south-1"
+  default     = "ap-southeast-1"
 }
 
 variable "owner" {
@@ -54,6 +54,12 @@ variable "lambda_log_level" {
 
 variable "jwt_secret" {
   description = "JWT signing secret injected into authenticated Lambda services."
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_refresh_secret" {
+  description = "Refresh-token signing secret injected into the auth Lambda."
   type        = string
   sensitive   = true
 }

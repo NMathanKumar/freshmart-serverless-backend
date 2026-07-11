@@ -115,3 +115,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_tags" {
+  description = "Whether to apply tags to EventBridge resources."
+  type        = bool
+  default     = true
+}

@@ -75,7 +75,7 @@ const config = {
   },
 
   aws: {
-    region: process.env.AWS_REGION || 'ap-south-1',
+    region: process.env.AWS_REGION || 'ap-southeast-1',
     eventBridge: {
       busName: process.env.AWS_EVENT_BUS_NAME || '',
       source: process.env.AWS_EVENT_SOURCE || '',

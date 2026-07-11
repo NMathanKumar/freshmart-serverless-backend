@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 # Instantiate one reusable Lambda module per FreshMart service.
 module "lambda" {
   for_each = local.lambda_functions
@@ -81,15 +83,26 @@ module "iam" {
   aws_region                     = var.aws_region
   service_name                   = each.value.service_name
   dynamodb_table_permissions     = each.value.dynamodb_table_permissions
-  allow_sns_publish              = each.value.allow_sns_publish
-  sns_topic_arns                 = each.value.sns_topic_arns
-  allow_sqs_send_message         = each.value.allow_sqs_send_message
-  sqs_queue_arns                 = each.value.sqs_queue_arns
+  allow_sns_publish              = try(each.value.allow_sns_publish, null)
+  sns_topic_arns                 = try(each.value.sns_topic_arns, null)
+  allow_sqs_send_message         = try(each.value.allow_sqs_send_message, null)
+  sqs_queue_arns                 = try(each.value.sqs_queue_arns, null)
   allow_eventbridge_put_events   = each.value.allow_eventbridge_put_events
   eventbridge_bus_names          = each.value.eventbridge_bus_names
   allow_eventbridge_read         = each.value.allow_eventbridge_read
   eventbridge_rule_name_prefixes = each.value.eventbridge_rule_name_prefixes
   tags                           = merge(local.common_tags, var.tags, each.value.tags)
+}
+
+module "s3" {
+  source = "../../modules/s3"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  aws_region         = var.aws_region
+  bucket_name        = "${var.project_name}-${var.environment}-assets-${data.aws_caller_identity.current.account_id}"
+  versioning_enabled = true
+  tags               = local.common_tags
 }
 
 module "cloudwatch" {
@@ -117,6 +130,7 @@ module "eventbridge" {
   bus_name       = local.eventbridge_bus_name
   rules          = local.eventbridge_rules
   lambda_targets = local.eventbridge_lambda_targets
+  enable_tags    = false
   tags           = local.common_tags
 }
 

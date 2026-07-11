@@ -2,7 +2,7 @@ terraform {
   backend "s3" {
     bucket         = "freshmart-terraform-state"
     key            = "freshmart/terraform.tfstate"
-    region         = "ap-south-1"
+    region         = "ap-southeast-1"
     dynamodb_table = "freshmart-terraform-locks"
     encrypt        = true
   }

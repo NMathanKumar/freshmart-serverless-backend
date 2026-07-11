@@ -2,6 +2,17 @@
 
 Production-ready backend for a grocery and daily essentials e-commerce platform built as independent AWS-ready microservices.
 
+## Documentation
+
+- **Project Overview:** [README.md](README.md)
+- **Deployment Guide:** [DEPLOYMENT.md](DEPLOYMENT.md)
+
+The complete deployment guide covering Terraform, AWS infrastructure, Lambda packaging, deployment verification, troubleshooting, and operational best practices.
+
+## Getting Started
+
+Before deploying the infrastructure, please read [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Business Domain
 
 FreshMart is a Grocery & Daily Essentials E-Commerce Platform covering:

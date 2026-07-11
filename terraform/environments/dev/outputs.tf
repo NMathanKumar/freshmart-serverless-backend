@@ -76,6 +76,15 @@ output "sns" {
   }
 }
 
+output "s3" {
+  description = "Provisioned S3 details."
+  value = {
+    bucket_name = module.s3.bucket_name
+    bucket_arn  = module.s3.bucket_arn
+    object_arn  = module.s3.object_arn
+  }
+}
+
 output "sqs" {
   description = "Provisioned SQS details."
   value = {

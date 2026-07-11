@@ -22,9 +22,9 @@ const buildSampleEvent = (detailType, detail) => ({
 const sampleEvents = [
   buildSampleEvent(EVENT_TYPES.S3_OBJECT_CREATED, {
     foodId: 'FOOD_sample',
-    bucket: 'canteen-food-images',
+    bucket: 'freshmart-media-bucket',
     key: 'food-images/FOOD_sample/original.jpg',
-    imageUrl: 'https://canteen-food-images.s3.ap-south-1.amazonaws.com/food-images/FOOD_sample/original.jpg',
+    imageUrl: 'https://freshmart-media-bucket.s3.ap-southeast-1.amazonaws.com/food-images/FOOD_sample/original.jpg',
     contentType: 'image/jpeg',
     size: 124500,
     uploadedBy: 'USER_admin',

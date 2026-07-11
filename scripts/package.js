@@ -27,11 +27,16 @@ const installProductionDependencies = (serviceDir) => {
   const lockFileExists = fs.existsSync(path.join(serviceDir, 'package-lock.json'));
   const nodeModulesExists = fs.existsSync(path.join(serviceDir, 'node_modules'));
   if (lockFileExists && nodeModulesExists) {
-    execFileSync('node', [path.join(serviceDir, '..', '_shared', 'materialize-local-deps.js')], {
-      cwd: serviceDir,
-      stdio: 'inherit',
-    });
-    return;
+    try {
+      execFileSync('node', [path.join(serviceDir, '..', '_shared', 'materialize-local-deps.js')], {
+        cwd: serviceDir,
+        stdio: 'inherit',
+      });
+      return;
+    } catch (error) {
+      // A stale or partially materialized local dependency tree can leave broken links behind.
+      // Fall through to a clean reinstall so packaging can recover deterministically.
+    }
   }
 
   const installWithFallback = () => {
@@ -81,19 +86,51 @@ const removeTypeScriptFiles = (dirPath) => {
   }
 };
 
-const removeZipArtifacts = (dirPath) => {
+const retryWithBackoff = (operation, { attempts = 5, initialDelayMs = 250 } = {}) => {
+  let delayMs = initialDelayMs;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return operation();
+    } catch (error) {
+      const retryable = error.code === 'EPERM' || error.code === 'EBUSY';
+      if (!retryable || attempt === attempts) {
+        throw error;
+      }
+
+      execFileSync('powershell', ['-NoProfile', '-Command', `Start-Sleep -Milliseconds ${delayMs}`], {
+        stdio: 'ignore',
+      });
+      delayMs *= 2;
+    }
+  }
+
+  return null;
+};
+
+const removeFileIfExists = (filePath) => {
+  if (!fs.existsSync(filePath)) return;
+  retryWithBackoff(() => fs.rmSync(filePath, { force: true }));
+};
+
+const removeZipFiles = (dirPath) => {
   if (!fs.existsSync(dirPath)) return;
 
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     const entryPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
-      removeZipArtifacts(entryPath);
+      removeZipFiles(entryPath);
       continue;
     }
+
     if (entry.name.endsWith('.zip')) {
-      fs.rmSync(entryPath, { force: true });
+      removeFileIfExists(entryPath);
     }
   }
+};
+
+const copyFileWithRetry = (sourcePath, targetPath) => {
+  retryWithBackoff(() => fs.copyFileSync(sourcePath, targetPath));
 };
 
 const createZip = (serviceDir, zipPath) => {
@@ -145,6 +182,7 @@ const stagePackage = (serviceName) => {
   const serviceDir = path.join(rootDir, service.dir);
   const distZipPath = path.join(distDir, service.zip);
   const lambdaZipPath = path.join(serviceDir, 'lambda.zip');
+  const tempZipPath = path.join(distDir, `${serviceName}.staging.zip`);
 
   if (!fs.existsSync(serviceDir)) {
     throw new Error(`Missing service directory: ${serviceDir}`);
@@ -152,17 +190,22 @@ const stagePackage = (serviceName) => {
 
   ensureDir(distDir);
   removeTypeScriptFiles(serviceDir);
-  removeZipArtifacts(serviceDir);
+  removeZipFiles(serviceDir);
   installProductionDependencies(serviceDir);
-  createZip(serviceDir, lambdaZipPath);
+  removeFileIfExists(tempZipPath);
+  createZip(serviceDir, tempZipPath);
 
   try {
-    fs.copyFileSync(lambdaZipPath, distZipPath);
+    copyFileWithRetry(tempZipPath, lambdaZipPath);
+    copyFileWithRetry(tempZipPath, distZipPath);
   } catch (error) {
     // The deployable artifact is the service-local ZIP; dist/ is a convenience copy.
-    if (error.code !== 'EBUSY') {
+    if (error.code !== 'EBUSY' && error.code !== 'EPERM') {
       throw error;
     }
+    throw error;
+  } finally {
+    removeFileIfExists(tempZipPath);
   }
 
   return lambdaZipPath;

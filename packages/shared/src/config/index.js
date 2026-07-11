@@ -73,7 +73,7 @@ const buildConfig = (env = process.env) => ({
     taxPercentage: parseFloat(env.TAX_PERCENTAGE || '5'),
   },
   aws: {
-    region: env.AWS_REGION || 'ap-south-1',
+    region: env.AWS_REGION || 'ap-southeast-1',
     eventBusName: env.AWS_EVENT_BUS_NAME || '',
     eventSource: env.AWS_EVENT_SOURCE || '',
     s3Bucket: env.AWS_S3_BUCKET || '',

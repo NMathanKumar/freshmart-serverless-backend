@@ -36,8 +36,12 @@ locals {
     "arn:${data.aws_partition.current.partition}:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/${rule_name_prefix}*"
   ]
 
-  sns_topic_resources = var.sns_topic_arns
-  sqs_queue_resources = var.sqs_queue_arns
+  sns_publish_enabled      = coalesce(var.allow_sns_publish, false)
+  sns_topic_resources      = coalesce(var.sns_topic_arns, [])
+  sqs_send_message_enabled = coalesce(var.allow_sqs_send_message, false)
+  sqs_queue_resources      = coalesce(var.sqs_queue_arns, [])
+  s3_object_access_enabled = coalesce(var.allow_s3_object_access, false)
+  s3_object_resources      = coalesce(var.s3_object_arns, [])
 
 }
 
@@ -102,7 +106,7 @@ data "aws_iam_policy_document" "permissions" {
   }
 
   dynamic "statement" {
-    for_each = var.allow_sns_publish ? [1] : []
+    for_each = local.sns_publish_enabled ? [1] : []
 
     content {
       sid = "SNSPublish"
@@ -114,7 +118,7 @@ data "aws_iam_policy_document" "permissions" {
   }
 
   dynamic "statement" {
-    for_each = var.allow_sqs_send_message ? [1] : []
+    for_each = local.sqs_send_message_enabled ? [1] : []
 
     content {
       sid = "SQSSendMessage"
@@ -122,6 +126,21 @@ data "aws_iam_policy_document" "permissions" {
       actions = ["sqs:SendMessage"]
 
       resources = local.sqs_queue_resources
+    }
+  }
+
+  dynamic "statement" {
+    for_each = local.s3_object_access_enabled ? [1] : []
+
+    content {
+      sid = "S3ObjectAccess"
+
+      actions = [
+        "s3:PutObject",
+        "s3:DeleteObject",
+      ]
+
+      resources = local.s3_object_resources
     }
   }
 
@@ -184,13 +203,18 @@ resource "aws_iam_role" "this" {
     }
 
     precondition {
-      condition     = !var.allow_sns_publish || length(var.sns_topic_arns) > 0
+      condition     = !local.sns_publish_enabled || length(local.sns_topic_resources) > 0
       error_message = "sns_topic_arns must be provided when allow_sns_publish is true."
     }
 
     precondition {
-      condition     = !var.allow_sqs_send_message || length(var.sqs_queue_arns) > 0
+      condition     = !local.sqs_send_message_enabled || length(local.sqs_queue_resources) > 0
       error_message = "sqs_queue_arns must be provided when allow_sqs_send_message is true."
+    }
+
+    precondition {
+      condition     = !local.s3_object_access_enabled || length(local.s3_object_resources) > 0
+      error_message = "s3_object_arns must be provided when allow_s3_object_access is true."
     }
 
     precondition {

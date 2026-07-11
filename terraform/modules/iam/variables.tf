@@ -81,6 +81,18 @@ variable "sqs_queue_arns" {
   default     = []
 }
 
+variable "allow_s3_object_access" {
+  description = "Whether to grant S3 object write/delete permissions."
+  type        = bool
+  default     = false
+}
+
+variable "s3_object_arns" {
+  description = "S3 object ARNs that PutObject/DeleteObject may target."
+  type        = list(string)
+  default     = []
+}
+
 variable "allow_eventbridge_put_events" {
   description = "Whether to grant EventBridge PutEvents permissions."
   type        = bool

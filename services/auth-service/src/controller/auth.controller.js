@@ -1,14 +1,14 @@
 const asyncHandler = require('@freshmart/shared').utils.asyncHandler;
 const { success, created, noContent } = require('@freshmart/shared').response;
+const logger = require('@freshmart/shared').logger;
 const authService = require('../service/auth.service');
 
 const logStep = (label, details = {}) => {
-  // Temporary trace logs for Lambda/CloudWatch step-by-step register debugging.
-  console.log(label, details);
+  logger.debug(label, details);
 };
 
 const logStepError = (label, error, details = {}) => {
-  console.error(label, {
+  logger.error(label, {
     ...details,
     errorName: error?.name || null,
     errorMessage: error?.message || null,
