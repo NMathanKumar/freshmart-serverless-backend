@@ -5,7 +5,7 @@ const {
   UpdateCommand,
   DeleteCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const getTableName = (tableName = config.dynamodb.tables.notifications) => {
   if (!tableName) throw new Error('Missing DDB_TABLE_NOTIFICATIONS');
@@ -48,9 +48,10 @@ const toDomain = (item) => {
 
 const createNotificationRepository = ({
   client = documentClient,
-  tableName = getTableName(),
+  tableName = null,
   now = () => new Date(),
 } = {}) => {
+  const resolveTableName = () => getTableName(tableName);
   const isConditionalFailure = (error) =>
     error?.name === 'ConditionalCheckFailedException' ||
     error?.Code === 'ConditionalCheckFailedException' ||
@@ -100,7 +101,7 @@ const createNotificationRepository = ({
     try {
       await client.send(
         new PutCommand({
-          TableName: tableName,
+          TableName: resolveTableName(),
           Item: item,
           ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
         })
@@ -120,7 +121,7 @@ const createNotificationRepository = ({
   const findById = async (notificationId) => {
     const result = await client.send(
       new GetCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         Key: key(notificationId),
       })
     );
@@ -130,7 +131,7 @@ const createNotificationRepository = ({
   const listByUser = async (userId) => {
     const result = await client.send(
       new QueryCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         IndexName: 'gsi1',
         KeyConditionExpression: 'gsi1pk = :pk',
         ExpressionAttributeValues: {
@@ -145,7 +146,7 @@ const createNotificationRepository = ({
   const listByStatus = async (status) => {
     const result = await client.send(
       new QueryCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         IndexName: 'gsi2',
         KeyConditionExpression: 'gsi2pk = :pk',
         ExpressionAttributeValues: {
@@ -191,7 +192,7 @@ const createNotificationRepository = ({
 
     const result = await client.send(
       new UpdateCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         Key: key(notificationId),
         UpdateExpression: updateParts.join(', '),
         ConditionExpression: '#version = :expectedVersion',
@@ -210,7 +211,7 @@ const createNotificationRepository = ({
   const remove = async (notificationId) => {
     await client.send(
       new DeleteCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         Key: key(notificationId),
       })
     );

@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/food/{{foodId}}"
+method: PUT
+headers:
+  Authorization: Bearer {{adminToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "price": 120
+    }
+order: 6000

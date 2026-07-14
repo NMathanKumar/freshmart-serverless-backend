@@ -36,12 +36,14 @@ locals {
     "arn:${data.aws_partition.current.partition}:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/${rule_name_prefix}*"
   ]
 
-  sns_publish_enabled      = coalesce(var.allow_sns_publish, false)
-  sns_topic_resources      = coalesce(var.sns_topic_arns, [])
-  sqs_send_message_enabled = coalesce(var.allow_sqs_send_message, false)
-  sqs_queue_resources      = coalesce(var.sqs_queue_arns, [])
-  s3_object_access_enabled = coalesce(var.allow_s3_object_access, false)
-  s3_object_resources      = coalesce(var.s3_object_arns, [])
+  sns_publish_enabled         = coalesce(var.allow_sns_publish, false)
+  sns_topic_resources         = coalesce(var.sns_topic_arns, [])
+  sqs_send_message_enabled    = coalesce(var.allow_sqs_send_message, false)
+  sqs_queue_resources         = coalesce(var.sqs_queue_arns, [])
+  s3_object_access_enabled    = coalesce(var.allow_s3_object_access, false)
+  s3_object_resources         = coalesce(var.s3_object_arns, [])
+  cognito_user_pool_enabled   = coalesce(var.allow_cognito_user_pool_access, false)
+  cognito_user_pool_resources = coalesce(var.cognito_user_pool_arns, [])
 
 }
 
@@ -157,6 +159,39 @@ data "aws_iam_policy_document" "permissions" {
   }
 
   dynamic "statement" {
+    for_each = local.cognito_user_pool_enabled ? [1] : []
+
+    content {
+      sid = "CognitoUserPoolAccess"
+
+      actions = [
+        "cognito-idp:AdminAddUserToGroup",
+        "cognito-idp:AdminCreateUser",
+        "cognito-idp:AdminDeleteUser",
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:AdminSetUserMFAPreference",
+        "cognito-idp:AdminSetUserPassword",
+        "cognito-idp:AssociateSoftwareToken",
+        "cognito-idp:ChangePassword",
+        "cognito-idp:ConfirmForgotPassword",
+        "cognito-idp:ForgotPassword",
+        "cognito-idp:GlobalSignOut",
+        "cognito-idp:GetUser",
+        "cognito-idp:GetUserAttributeVerificationCode",
+        "cognito-idp:InitiateAuth",
+        "cognito-idp:ListUsers",
+        "cognito-idp:RevokeToken",
+        "cognito-idp:RespondToAuthChallenge",
+        "cognito-idp:SetUserMFAPreference",
+        "cognito-idp:VerifySoftwareToken",
+        "cognito-idp:VerifyUserAttribute",
+      ]
+
+      resources = local.cognito_user_pool_resources
+    }
+  }
+
+  dynamic "statement" {
     for_each = var.allow_eventbridge_read ? [1] : []
 
     content {
@@ -218,6 +253,11 @@ resource "aws_iam_role" "this" {
     }
 
     precondition {
+      condition     = !local.cognito_user_pool_enabled || length(local.cognito_user_pool_resources) > 0
+      error_message = "cognito_user_pool_arns must be provided when allow_cognito_user_pool_access is true."
+    }
+
+    precondition {
       condition     = alltrue([for permission in var.dynamodb_table_permissions : length(permission.actions) > 0])
       error_message = "Each DynamoDB permission block must include at least one action."
     }
@@ -234,4 +274,11 @@ resource "aws_iam_policy" "this" {
 resource "aws_iam_role_policy_attachment" "this" {
   role       = aws_iam_role.this.name
   policy_arn = aws_iam_policy.this.arn
+}
+
+resource "aws_iam_role_policy_attachment" "vpc_access" {
+  count = var.enable_vpc_access ? 1 : 0
+
+  role       = aws_iam_role.this.name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }

@@ -7,6 +7,7 @@ const logAwsRequest = ({ service, operation, requestId, request, response }) => 
     requestId: requestId || null,
     request,
     response,
+    ...logger.captureMemory(),
   });
 };
 
@@ -18,6 +19,7 @@ const logAwsFailure = ({ service, operation, requestId, request, error }) => {
     request,
     failureReason: error.message,
     awsErrorName: error.name,
+    ...logger.captureMemory(),
   });
 };
 

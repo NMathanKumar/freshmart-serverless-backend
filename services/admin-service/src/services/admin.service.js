@@ -1,6 +1,6 @@
-const { genId } = require('@freshmart/shared').utils.id;
-const { BadRequestError, NotFoundError } = require('@freshmart/shared').errors;
-const sharedLogger = require('@freshmart/shared').logger;
+const { genId } = require('@freshmart/service-shared').utils.id;
+const { BadRequestError, NotFoundError } = require('@freshmart/service-shared').errors;
+const sharedLogger = require('@freshmart/service-shared').logger;
 const adminRepository = require('../repositories/admin.repository');
 const {
   publishAdminConfigUpdated,

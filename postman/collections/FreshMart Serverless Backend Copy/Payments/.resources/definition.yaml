@@ -1,0 +1,3 @@
+$kind: collection
+description: Payments routes exposed by the API Gateway.
+order: 10000

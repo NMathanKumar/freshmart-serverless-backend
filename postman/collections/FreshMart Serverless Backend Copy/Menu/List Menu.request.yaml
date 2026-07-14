@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/menu?limit=20&cursor="
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+queryParams:
+  limit: "20"
+  cursor: ""
+order: 2000

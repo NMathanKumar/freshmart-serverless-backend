@@ -1,0 +1,3 @@
+$kind: collection
+description: Product routes exposed by the API Gateway.
+order: 4000

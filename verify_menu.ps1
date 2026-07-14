@@ -1,5 +1,5 @@
 $base = 'http://localhost:4000/api/v1'
-$token = (Invoke-RestMethod -Uri "$base/auth/login" -Method POST -ContentType 'application/json' -Body '{"email":"admin@canteen.com","password":"Test@1234"}').data.accessToken
+$token = (Invoke-RestMethod -Uri "$base/auth/login" -Method POST -ContentType 'application/json' -Body '{"email":"admin@freshmart.com","password":"Test@1234"}').data.accessToken
 $h = @{ Authorization = "Bearer $token" }
 
 Write-Output "=== 1. CREATE FOOD ==="

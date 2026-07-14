@@ -63,6 +63,7 @@ resource "aws_sqs_queue" "dlq" {
   name                       = local.dlq_name
   message_retention_seconds  = var.dlq_message_retention_seconds
   visibility_timeout_seconds = var.dlq_visibility_timeout_seconds
+  sqs_managed_sse_enabled    = true
   tags                       = local.merged_tags
 }
 

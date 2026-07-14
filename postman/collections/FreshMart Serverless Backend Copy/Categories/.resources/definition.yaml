@@ -1,0 +1,3 @@
+$kind: collection
+description: No standalone /categories routes are exposed. Category values are modeled as product/menu metadata.
+order: 6000

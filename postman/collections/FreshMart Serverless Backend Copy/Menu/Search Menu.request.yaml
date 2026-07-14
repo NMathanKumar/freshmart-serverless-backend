@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/menu/search?q=milk&limit=20"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+queryParams:
+  q: milk
+  limit: "20"
+order: 1000

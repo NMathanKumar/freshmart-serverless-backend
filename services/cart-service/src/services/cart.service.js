@@ -1,7 +1,7 @@
-const config = require('@freshmart/shared').config;
-const { genId } = require('@freshmart/shared').utils.id;
-const { NotFoundError, BadRequestError } = require('@freshmart/shared').errors;
-const sharedLogger = require('@freshmart/shared').logger;
+const config = require('@freshmart/service-shared').config;
+const { genId } = require('@freshmart/service-shared').utils.id;
+const { NotFoundError, BadRequestError } = require('@freshmart/service-shared').errors;
+const sharedLogger = require('@freshmart/service-shared').logger;
 const cartRepository = require('../repositories/cart.repository');
 const {
   publishCartItemAdded,
@@ -144,7 +144,6 @@ const clearCart = async (userId, context = {}) => {
 
 // Event handlers consumed by Lambda event consumers.
 const handleInventoryUpdated = async (payload = {}, context = {}) => {
-  // TODO: Remove after Order Service migration.
   const inventory = payload.inventory || payload;
   const id = inventory?.productId || inventory?.foodId;
   if (!inventory || !id) {
@@ -173,7 +172,6 @@ const handleInventoryUpdated = async (payload = {}, context = {}) => {
 
 const handleProductAvailabilityChanged = async (payload = {}, context = {}) => {
   const product = payload.product || payload;
-  // TODO: Remove after Order Service migration.
   const id = product?.productId || product?.foodId;
   if (!product || !id) {
     throw new BadRequestError("Invalid payload for 'ProductAvailabilityChanged'. Missing required field: product.productId");
@@ -198,7 +196,6 @@ const handleProductAvailabilityChanged = async (payload = {}, context = {}) => {
 };
 
 const handleProductDeleted = async (payload = {}, context = {}) => {
-  // TODO: Remove after Order Service migration.
   const productId = payload.productId || payload.product?.productId || payload.foodId;
   if (!productId) {
     throw new BadRequestError("Invalid payload for 'ProductDeleted'. Missing required field: productId");
@@ -238,8 +235,6 @@ module.exports = {
   handleInventoryUpdated,
   handleProductAvailabilityChanged,
   handleProductDeleted,
-  // TODO: Remove after Order Service migration.
   handleFoodAvailabilityChanged: handleProductAvailabilityChanged,
-  // TODO: Remove after Order Service migration.
   handleFoodDeleted: handleProductDeleted,
 };

@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/cart/items"
+method: POST
+headers:
+  Authorization: Bearer {{customerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "foodId": "{{foodId}}",
+      "quantity": 2
+    }
+order: 2000

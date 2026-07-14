@@ -1,8 +1,6 @@
 const logger = require('../core/utils/logger');
 const { BadRequestError } = require('../core/errors/ApiError');
 const config = require('../core/config');
-const menuService = require('../../services/menu-service/src/service/menu.service');
-const inventoryRepository = require('../../services/inventory-service/src/repositories/inventory.repository');
 const {
   publishImageProcessed,
   publishInvoiceUploaded,
@@ -12,6 +10,7 @@ const {
 const s3Service = require('../integrations/s3/s3.service');
 const snsService = require('../integrations/sns/sns.service');
 const sqsService = require('../integrations/sqs/sqs.service');
+const menuService = require('@freshmart/service-shared').integrations.menu;
 
 const buildS3ObjectUrl = (bucket, key) => {
   const region = config.aws.region;
@@ -76,7 +75,7 @@ const extractMetadataPlaceholder = (payload) => ({
 const buildInvoiceBody = (payment, invoice) =>
   Buffer.from(
     [
-      'Canteen Invoice',
+      'FreshMart Invoice',
       `Invoice ID: ${invoice.invoiceId}`,
       `Payment ID: ${payment.paymentId}`,
       `Order ID: ${payment.orderId}`,
@@ -158,37 +157,14 @@ const processOrderPlaced = async (payload, context = {}) => {
   if (!items.length) {
     throw new BadRequestError(`Invalid payload for 'OrderPlaced'. Missing required field: order.items`);
   }
-  const inventorySnapshots = [];
 
-  for (const item of items) {
-    if (!item.foodId) {
-      throw new BadRequestError(`Invalid payload for 'OrderPlaced'. Missing required field: order.items.foodId`);
-    }
-    // Inventory deduction already happens inside the transactional order flow.
-    // The workflow consumes the event after the fact to fan out notifications
-    // and analytics using the post-deduction state.
-    // eslint-disable-next-line no-await-in-loop
-    let inventory;
-    try {
-      inventory = await inventoryRepository.findByFoodId(item.foodId);
-    } catch (error) {
-      if (!isDatabaseUnavailableError(error)) throw error;
-      logger.warn('Falling back to mock inventory snapshot during order workflow', {
-        foodId: item.foodId,
-        error: error.message,
-      });
-    }
-    if (!inventory) {
-      inventory = {
-        inventoryId: `MOCK_INV_${item.foodId}`,
-        foodId: item.foodId,
-        currentStock: null,
-        minimumStock: null,
-        mocked: true,
-      };
-    }
-    inventorySnapshots.push(inventory);
-  }
+  const inventorySnapshots = items.map((item) => ({
+    inventoryId: item.inventoryId || null,
+    foodId: item.foodId || item.productId || null,
+    currentStock: item.currentStock ?? null,
+    minimumStock: item.minimumStock ?? null,
+    mocked: item.inventoryId ? false : true,
+  }));
 
   await snsService.publishOrderPlacedNotification({
     orderId: order.orderId,

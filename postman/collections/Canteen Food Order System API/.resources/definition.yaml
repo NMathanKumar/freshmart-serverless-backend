@@ -1,0 +1,2 @@
+$kind: collection
+description: Full collection for Auth, Menu, Cart, Order, and Payment modules. Import this alongside canteen-backend.postman_environment.json.

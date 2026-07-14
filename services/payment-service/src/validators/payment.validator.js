@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const { PAYMENT_METHOD } = require('@freshmart/shared').constants;
+const { PAYMENT_METHOD } = require('@freshmart/service-shared').constants;
 
 const PAYMENT_METHOD_VALUES = Object.values(PAYMENT_METHOD);
 

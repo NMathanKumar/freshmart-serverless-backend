@@ -24,6 +24,13 @@ const parseList = (value = '') =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const parseBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return defaultValue;
+  }
+  return String(value).toLowerCase() === 'true';
+};
+
 const buildConfig = (env = process.env) => ({
   env: env.NODE_ENV || 'development',
   isProduction: env.NODE_ENV === 'production',
@@ -44,18 +51,22 @@ const buildConfig = (env = process.env) => ({
     allowedOrigins: parseList(env.CORS_ALLOWED_ORIGINS || ''),
     allowCredentials: String(env.CORS_ALLOW_CREDENTIALS || 'true') === 'true',
   },
-  jwt: {
-    secret: env.JWT_SECRET || '',
-    expiresIn: env.JWT_EXPIRES_IN || '1d',
-    refreshSecret: env.JWT_REFRESH_SECRET || '',
-    refreshExpiresIn: env.JWT_REFRESH_EXPIRES_IN || '7d',
-  },
   auth: {
-    jwtSecret: env.JWT_SECRET || '',
-    jwtRefreshSecret: env.JWT_REFRESH_SECRET || '',
-    jwtExpiresIn: env.JWT_EXPIRES_IN || '1d',
-    jwtRefreshExpiresIn: env.JWT_REFRESH_EXPIRES_IN || '7d',
-    bcryptSaltRounds: parseInt(env.BCRYPT_SALT_ROUNDS || '10', 10),
+    cognito: {
+      region: env.COGNITO_REGION || env.AWS_REGION || '',
+      userPoolId: env.COGNITO_USER_POOL_ID || '',
+      userPoolClientId: env.COGNITO_USER_POOL_CLIENT_ID || '',
+      issuer: env.COGNITO_USER_POOL_ISSUER || '',
+      jwksUrl: env.COGNITO_JWKS_URL || '',
+      hostedUiDomain: env.COGNITO_HOSTED_UI_DOMAIN || '',
+      groups: {
+        admins: env.COGNITO_GROUP_ADMINS || 'admins',
+        staff: env.COGNITO_GROUP_STAFF || 'staff',
+        customers: env.COGNITO_GROUP_CUSTOMERS || 'customers',
+      },
+      mfaConfiguration: env.COGNITO_MFA_CONFIGURATION || 'OPTIONAL',
+      refreshTokenRotationEnabled: parseBoolean(env.COGNITO_REFRESH_TOKEN_ROTATION_ENABLED, true),
+    },
   },
   db: {
     host: env.DB_HOST || '127.0.0.1',
@@ -76,6 +87,8 @@ const buildConfig = (env = process.env) => ({
     region: env.AWS_REGION || 'ap-southeast-1',
     eventBusName: env.AWS_EVENT_BUS_NAME || '',
     eventSource: env.AWS_EVENT_SOURCE || '',
+    menuServiceBaseUrl: env.MENU_SERVICE_URL || env.MENU_SERVICE_BASE_URL || '',
+    internalServiceToken: env.MENU_INTERNAL_TOKEN || env.INTERNAL_SERVICE_TOKEN || '',
     s3Bucket: env.AWS_S3_BUCKET || '',
     sns: {
       lowStockTopicArn: env.AWS_SNS_LOW_STOCK_TOPIC_ARN || '',
@@ -105,6 +118,7 @@ const buildConfig = (env = process.env) => ({
       authUsers: env.DDB_TABLE_AUTH_USERS || '',
       userProfiles: env.DDB_TABLE_USER_PROFILES || '',
       products: env.DDB_TABLE_PRODUCTS || '',
+      catalogItems: env.DDB_TABLE_CATALOG_ITEMS || '',
       carts: env.DDB_TABLE_CARTS || '',
       orders: env.DDB_TABLE_ORDERS || '',
       payments: env.DDB_TABLE_PAYMENTS || '',
@@ -122,5 +136,6 @@ module.exports = Object.assign(config, {
   required: (name, env = process.env) => required(env, name),
   assertStrongSecret,
   parseList,
+  parseBoolean,
   buildConfig,
 });

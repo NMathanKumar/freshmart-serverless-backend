@@ -6,13 +6,12 @@ const {
   QueryCommand,
   TransactWriteCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
 
-const TABLE_NAME = (() => {
-  const name = config.dynamodb.tables.products;
-  if (!name) throw new Error('Missing DDB_TABLE_PRODUCTS');
-  return name;
-})();
+const getTableName = (tableName = config.dynamodb.tables.products) => {
+  if (!tableName) throw new Error('Missing DDB_TABLE_PRODUCTS');
+  return tableName;
+};
 
 const MAIN_SK = 'META';
 const LIST_SK = 'LIST';
@@ -100,8 +99,8 @@ const buildTokenItem = (mainItem, token) => ({
   entityType: 'PRODUCT_SEARCH_INDEX',
 });
 
-const buildUpdateParams = (item, currentVersion) => ({
-  TableName: TABLE_NAME,
+const buildUpdateParams = (item, currentVersion, tableName) => ({
+  TableName: tableName,
   Key: { PK: item.PK, SK: item.SK },
   UpdateExpression: `
     SET #productName = :productName,
@@ -170,10 +169,11 @@ const buildUpdateParams = (item, currentVersion) => ({
   },
 });
 
-const createProductRepository = ({ client = documentClient, now = () => new Date() } = {}) => {
+const createProductRepository = ({ client = documentClient, tableName = null, now = () => new Date() } = {}) => {
+  const resolveTableName = () => getTableName(tableName);
   const getMain = async (productId) => {
     const result = await client.send(
-      new GetCommand({ TableName: TABLE_NAME, Key: key(productId) })
+      new GetCommand({ TableName: resolveTableName(), Key: key(productId) })
     );
     return result.Item || null;
   };
@@ -182,7 +182,7 @@ const createProductRepository = ({ client = documentClient, now = () => new Date
 
   const findAll = async ({ limit = 20, cursor, category } = {}) => {
     const params = {
-      TableName: TABLE_NAME,
+      TableName: resolveTableName(),
       IndexName: 'CategoryIndex',
       KeyConditionExpression: 'CategoryPK = :pk',
       ExpressionAttributeValues: {
@@ -210,7 +210,7 @@ const createProductRepository = ({ client = documentClient, now = () => new Date
     const results = await Promise.all(
       tokens.map((token, index) => {
         const params = {
-          TableName: TABLE_NAME,
+          TableName: resolveTableName(),
           IndexName: 'AvailabilityIndex',
           KeyConditionExpression: 'AvailabilityPK = :pk',
           ExpressionAttributeValues: { ':pk': `NAME#${token}` },
@@ -252,13 +252,13 @@ const createProductRepository = ({ client = documentClient, now = () => new Date
     const transactItems = [
       {
         Put: {
-          TableName: TABLE_NAME,
+          TableName: resolveTableName(),
           Item: mainItem,
           ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
         },
       },
-      { Put: { TableName: TABLE_NAME, Item: listItem } },
-      ...tokenItems.map((item) => ({ Put: { TableName: TABLE_NAME, Item: item } })),
+      { Put: { TableName: resolveTableName(), Item: listItem } },
+      ...tokenItems.map((item) => ({ Put: { TableName: resolveTableName(), Item: item } })),
     ];
 
     await client.send(new TransactWriteCommand({ TransactItems: transactItems }));
@@ -289,13 +289,13 @@ const createProductRepository = ({ client = documentClient, now = () => new Date
     const staleTokenDeletes = oldTokens
       .filter((t) => !newTokenSet.has(t))
       .map((token) => ({
-        Delete: { TableName: TABLE_NAME, Key: key(productId, tokenSk(token)) },
+        Delete: { TableName: resolveTableName(), Key: key(productId, tokenSk(token)) },
       }));
 
     const transactItems = [
-      { Update: { ...buildUpdateParams(next, currentVersion) } },
-      { Update: { ...buildUpdateParams(nextList) } },
-      ...nextTokenItems.map((item) => ({ Put: { TableName: TABLE_NAME, Item: item } })),
+      { Update: { ...buildUpdateParams(next, currentVersion, resolveTableName()) } },
+      { Update: { ...buildUpdateParams(nextList, undefined, resolveTableName()) } },
+      ...nextTokenItems.map((item) => ({ Put: { TableName: resolveTableName(), Item: item } })),
       ...staleTokenDeletes,
     ];
 
@@ -323,9 +323,9 @@ const createProductRepository = ({ client = documentClient, now = () => new Date
     const tokenItems = next.searchTokens.map((token) => buildTokenItem(next, token));
 
     const transactItems = [
-      { Update: { ...buildUpdateParams(next, currentVersion) } },
-      { Update: { ...buildUpdateParams(nextList) } },
-      ...tokenItems.map((item) => ({ Put: { TableName: TABLE_NAME, Item: item } })),
+      { Update: { ...buildUpdateParams(next, currentVersion, resolveTableName()) } },
+      { Update: { ...buildUpdateParams(nextList, undefined, resolveTableName()) } },
+      ...tokenItems.map((item) => ({ Put: { TableName: resolveTableName(), Item: item } })),
     ];
 
     await client.send(new TransactWriteCommand({ TransactItems: transactItems }));
@@ -338,10 +338,10 @@ const createProductRepository = ({ client = documentClient, now = () => new Date
 
     const tokens = current.searchTokens || [];
     const transactItems = [
-      { Delete: { TableName: TABLE_NAME, Key: key(productId, MAIN_SK) } },
-      { Delete: { TableName: TABLE_NAME, Key: key(productId, LIST_SK) } },
+      { Delete: { TableName: resolveTableName(), Key: key(productId, MAIN_SK) } },
+      { Delete: { TableName: resolveTableName(), Key: key(productId, LIST_SK) } },
       ...tokens.map((token) => ({
-        Delete: { TableName: TABLE_NAME, Key: key(productId, tokenSk(token)) },
+        Delete: { TableName: resolveTableName(), Key: key(productId, tokenSk(token)) },
       })),
     ];
 

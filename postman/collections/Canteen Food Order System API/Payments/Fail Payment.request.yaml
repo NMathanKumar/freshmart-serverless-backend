@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/payments/{{paymentId}}/fail"
+method: PATCH
+headers:
+  Authorization: Bearer {{customerToken}}
+order: 3000

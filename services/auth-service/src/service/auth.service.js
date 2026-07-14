@@ -1,34 +1,50 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { genId } = require('@freshmart/shared').utils.id;
-const config = require('@freshmart/shared').config;
-const { ROLES } = require('@freshmart/shared').constants;
+const crypto = require('crypto');
+const shared = require('@freshmart/service-shared');
+const { genId } = shared.utils.id;
+const config = shared.config;
+const logger = shared.logger;
+const { ROLES } = shared.constants;
 const {
   ConflictError,
   UnauthorizedError,
   InternalServerError,
-} = require('@freshmart/shared').errors;
-const logger = require('@freshmart/shared').logger;
+} = shared.errors;
+const {
+  extractCognitoUser,
+  decodeCompleteJwt,
+} = shared.auth;
 const createAuthRepository = require('../repositories/auth.repository');
+const createCognitoIntegration = require('../integrations/cognito');
 const {
   publishUserRegistered,
   publishUserLoggedIn,
   publishUserLoggedOut,
+  publishPasswordChanged,
 } = require('../events/publisher');
 
-const authRepository = createAuthRepository();
+const defaultRepository = createAuthRepository();
+const defaultCognito = createCognitoIntegration();
+
+const getTimestamp = () => new Date().toISOString();
 
 const sanitizeUser = (user) => ({
   userId: user.userId,
-  name: user.name,
+  cognitoSub: user.cognitoSub || user.userId,
+  username: user.username || null,
+  name: user.name || null,
   email: user.email,
   role: user.role,
   phone: user.phone || null,
   status: user.status,
-  tokenVersion: Number(user.tokenVersion || 0),
+  provider: user.provider || 'COGNITO',
+  groups: Array.isArray(user.groups) ? user.groups : [],
+  emailVerified: Boolean(user.emailVerified),
+  phoneVerified: Boolean(user.phoneVerified),
+  mfaEnabled: Boolean(user.mfaEnabled),
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
   lastLoginAt: user.lastLoginAt || null,
+  lastAuthAt: user.lastAuthAt || null,
 });
 
 const logStep = (label, details = {}) => {
@@ -45,376 +61,77 @@ const logStepError = (label, error, details = {}) => {
   });
 };
 
-const assertRegisterConfig = () => {
-  const requiredVars = [
+const assertAuthConfig = () => {
+  const missing = [
     ['DDB_TABLE_AUTH_USERS', config.dynamodb.tables.authUsers],
-    ['JWT_SECRET', config.jwt.secret],
-    ['JWT_REFRESH_SECRET', config.jwt.refreshSecret],
-    ['BCRYPT_SALT_ROUNDS', config.auth.bcryptSaltRounds],
-  ];
-
-  const missing = requiredVars
+    ['COGNITO_USER_POOL_ID', config.auth.cognito.userPoolId],
+    ['COGNITO_USER_POOL_CLIENT_ID', config.auth.cognito.userPoolClientId],
+    ['COGNITO_USER_POOL_ISSUER', config.auth.cognito.issuer],
+  ]
     .filter(([, value]) => value === undefined || value === null || String(value).trim() === '')
     .map(([name]) => name);
 
   if (missing.length) {
-    throw new Error(`Missing required register configuration: ${missing.join(', ')}`);
+    throw new Error(`Missing required auth configuration: ${missing.join(', ')}`);
   }
 };
 
-const issueTokens = (user, { jti = null, traceLabel = null } = {}) => {
-  const nextJti = jti || genId('RT');
-  const tokenVersion = Number(user.tokenVersion || 0);
-  const payload = {
-    userId: user.userId,
-    role: user.role,
-    email: user.email,
-    tokenVersion,
+const decodeJwtPayload = (token) => {
+  const payloadPart = String(token || '').split('.')[1] || '';
+  if (!payloadPart) {
+    return {};
+  }
+
+  const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+  try {
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+  } catch (error) {
+    return {};
+  }
+};
+
+const buildProfilePayload = ({ claims = {}, fallback = {}, role = null }) => {
+  const cognitoUser = extractCognitoUser(claims);
+  const email = claims.email || fallback.email || null;
+  const userId = cognitoUser.userId || fallback.userId || email || genId('USER');
+  const groups = cognitoUser.groups.length ? cognitoUser.groups : fallback.groups || [];
+
+  return {
+    userId,
+    cognitoSub: cognitoUser.userId || userId,
+    username: cognitoUser.username || fallback.username || email,
+    name: claims.name || fallback.name || null,
+    email,
+    role: role || cognitoUser.role || fallback.role || ROLES.CUSTOMER,
+    phone: claims.phone_number || fallback.phone || null,
+    status: fallback.status || 'ACTIVE',
+    provider: 'COGNITO',
+    groups,
+    emailVerified: claims.email_verified === true || String(claims.email_verified) === 'true',
+    phoneVerified:
+      claims.phone_number_verified === true || String(claims.phone_number_verified) === 'true',
+    mfaEnabled: Boolean(fallback.mfaEnabled),
+    lastLoginAt: fallback.lastLoginAt || null,
+    lastAuthAt: fallback.lastAuthAt || null,
   };
-
-  let accessToken;
-  try {
-    if (traceLabel) {
-      logStep(`${traceLabel} - STEP 7 - JWT access token start`, {
-        userId: user.userId,
-        tokenVersion,
-      });
-    }
-    accessToken = jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
-    if (traceLabel) {
-      logStep(`${traceLabel} - STEP 7 - JWT access token success`, {
-        userId: user.userId,
-      });
-    }
-  } catch (error) {
-    if (traceLabel) {
-      logStepError(`${traceLabel} - STEP 7 - JWT access token failed`, error, {
-        userId: user.userId,
-      });
-    }
-    throw error;
-  }
-
-  let refreshToken;
-  try {
-    if (traceLabel) {
-      logStep(`${traceLabel} - STEP 8 - JWT refresh token start`, {
-        userId: user.userId,
-        jti: nextJti,
-      });
-    }
-    refreshToken = jwt.sign({ ...payload, jti: nextJti }, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn,
-    });
-    if (traceLabel) {
-      logStep(`${traceLabel} - STEP 8 - JWT refresh token success`, {
-        userId: user.userId,
-        jti: nextJti,
-      });
-    }
-  } catch (error) {
-    if (traceLabel) {
-      logStepError(`${traceLabel} - STEP 8 - JWT refresh token failed`, error, {
-        userId: user.userId,
-        jti: nextJti,
-      });
-    }
-    throw error;
-  }
-
-  return { accessToken, refreshToken, tokenVersion, jti: nextJti };
 };
 
-const logAuthEvent = (message, data = {}) => {
-  logger.info(message, data);
-};
-
-const logAuthError = (message, error, data = {}) => {
-  logger.error(message, {
-    ...data,
-    errorMessage: error?.message || null,
-    errorName: error?.name || null,
-    errorCode: error?.code || null,
-    stack: error?.stack || null,
-  });
-};
-
-const register = async ({ name, email, password, phone }, context = {}) => {
-  const requestId = context.requestId || null;
-
-  try {
-    logStep('STEP 2 - config verification start', { requestId });
-    assertRegisterConfig();
-    logStep('STEP 2 - config verification success', {
-      requestId,
-      tableName: config.dynamodb.tables.authUsers,
-      bcryptSaltRounds: config.auth.bcryptSaltRounds,
-      hasJwtSecret: Boolean(config.jwt.secret),
-      hasJwtRefreshSecret: Boolean(config.jwt.refreshSecret),
-      eventBridgeConfigured: Boolean(config.aws.eventBusName && config.aws.eventSource),
-    });
-  } catch (error) {
-    logStepError('STEP 2 - config verification failed', error, { requestId });
-    throw error;
+const getTokensFromAuthResult = (authResult = {}) => {
+  const result = authResult.AuthenticationResult || authResult || {};
+  if (!result.AccessToken) {
+    throw new UnauthorizedError('Cognito authentication did not return tokens');
   }
 
-  let existing;
-  try {
-    logStep('STEP 3 - findByEmail start', { requestId });
-    existing = await authRepository.findByEmail(email);
-    logStep('STEP 3 - findByEmail success', {
-      requestId,
-      found: Boolean(existing),
-    });
-  } catch (error) {
-    logStepError('STEP 3 - findByEmail failed', error, { requestId });
-    throw error;
-  }
-
-  if (existing) {
-    throw new ConflictError('An account with this email already exists');
-  }
-
-  let passwordHash;
-  try {
-    logStep('STEP 4 - bcrypt.hash start', {
-      requestId,
-      bcryptSaltRounds: config.auth.bcryptSaltRounds,
-      bcryptLoaded: typeof bcrypt?.hash === 'function',
-    });
-    passwordHash = await bcrypt.hash(password, config.auth.bcryptSaltRounds);
-    logStep('STEP 4 - bcrypt.hash success', {
-      requestId,
-      hashLength: passwordHash?.length || 0,
-    });
-  } catch (error) {
-    logStepError('STEP 4 - bcrypt.hash failed', error, {
-      requestId,
-      bcryptSaltRounds: config.auth.bcryptSaltRounds,
-    });
-    throw error;
-  }
-
-  let user;
-  let userId;
-
-  try {
-    logStep('STEP 5 - UUID generation start', { requestId });
-    userId = genId('USER');
-    logStep('STEP 5 - UUID generation success', { requestId, userId });
-  } catch (error) {
-    logStepError('STEP 5 - UUID generation failed', error, { requestId });
-    throw error;
-  }
-
-  try {
-    logStep('STEP 6 - AuthUsers write start', {
-      requestId,
-      tableName: config.dynamodb.tables.authUsers,
-      userId,
-    });
-    user = await authRepository.createUser({
-      userId,
-      name,
-      email,
-      passwordHash,
-      role: ROLES.CUSTOMER,
-      phone,
-    });
-    logStep('STEP 6 - AuthUsers write success', {
-      requestId,
-      tableName: config.dynamodb.tables.authUsers,
-      userId: user?.userId || userId,
-    });
-  } catch (error) {
-    logStepError('STEP 6 - AuthUsers write failed', error, {
-      requestId,
-      tableName: config.dynamodb.tables.authUsers,
-      userId,
-    });
-    if (error?.code === 'CONFLICT' || error?.name === 'ConditionalCheckFailedException') {
-      throw new ConflictError('An account with this email already exists');
-    }
-    throw error;
-  }
-
-  const tokens = issueTokens(user, { traceLabel: 'REGISTER' });
-
-  try {
-    logStep('STEP 9 - refresh session save start', {
-      requestId,
-      tableName: config.dynamodb.tables.authUsers,
-      userId: user.userId,
-      jti: tokens.jti,
-    });
-    await authRepository.createRefreshSession({
-      userId: user.userId,
-      jti: tokens.jti,
-      tokenVersion: tokens.tokenVersion,
-    });
-    logStep('STEP 9 - refresh session save success', {
-      requestId,
-      userId: user.userId,
-      jti: tokens.jti,
-    });
-  } catch (error) {
-    logStepError('STEP 9 - refresh session save failed', error, {
-      requestId,
-      tableName: config.dynamodb.tables.authUsers,
-      userId: user.userId,
-      jti: tokens.jti,
-    });
-    throw error;
-  }
-
-  const profile = sanitizeUser(user);
-  const result = { user: profile, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
-
-  try {
-    logStep('STEP 10 - EventBridge publish start', {
-      requestId,
-      eventType: 'UserRegistered.v1',
-      userId: user.userId,
-    });
-    await publishAuthEventSafely(
-      'STEP 10 - EventBridge publish',
-      publishUserRegistered,
-      { user: profile },
-      { ...context, source: 'auth-service' },
-      {
-        requestId,
-        eventType: 'UserRegistered.v1',
-        userId: user.userId,
-      }
-    );
-  } catch (error) {
-    logStepError('STEP 10 - EventBridge publish wrapper failed', error, {
-      requestId,
-      eventType: 'UserRegistered.v1',
-      userId: user.userId,
-    });
-  }
-
-  logAuthEvent('Auth register completed', {
-    eventType: 'UserRegistered.v1',
-    correlationId: context.correlationId || context.requestId || null,
-    requestId: context.requestId || null,
-    userId: user.userId,
-  });
-  return result;
-};
-
-const login = async ({ email, password }, context = {}) => {
-  const user = await authRepository.findByEmail(email);
-  if (!user) throw new UnauthorizedError('Invalid email or password');
-
-  const isMatch = await bcrypt.compare(password, user.passwordHash);
-  if (!isMatch) throw new UnauthorizedError('Invalid email or password');
-
-  const updatedUser = await authRepository.updateLoginMetadata(user.userId);
-  const tokens = issueTokens(updatedUser || user);
-  await authRepository.createRefreshSession({
-    userId: user.userId,
-    jti: tokens.jti,
-    tokenVersion: tokens.tokenVersion,
-  });
-
-  const profile = sanitizeUser(updatedUser || user);
-  const result = { user: profile, ...tokens };
-  await publishAuthEventSafely(
-    'LOGIN - EventBridge publish',
-    publishUserLoggedIn,
-    { user: profile },
-    { ...context, source: 'auth-service' },
-    { requestId: context.requestId || null, eventType: 'UserLoggedIn.v1', userId: user.userId }
-  );
-  logAuthEvent('Auth login completed', {
-    eventType: 'UserLoggedIn.v1',
-    correlationId: context.correlationId || context.requestId || null,
-    requestId: context.requestId || null,
-    userId: user.userId,
-  });
-  return result;
-};
-
-const verifyRefreshToken = (refreshToken) => {
-  try {
-    return jwt.verify(refreshToken, config.jwt.refreshSecret);
-  } catch (error) {
-    throw new UnauthorizedError('Invalid or expired refresh token');
-  }
-};
-
-const refresh = async (refreshToken) => {
-  const payload = verifyRefreshToken(refreshToken);
-  const user = await authRepository.findById(payload.userId);
-  if (!user) throw new UnauthorizedError('User no longer exists');
-
-  if (Number(payload.tokenVersion || 0) !== Number(user.tokenVersion || 0)) {
-    throw new UnauthorizedError('Refresh token has been revoked');
-  }
-
-  const session = await authRepository.findRefreshSession(payload.userId, payload.jti);
-  if (!session || session.revokedAt) {
-    throw new UnauthorizedError('Refresh token has been revoked');
-  }
-
-  const nextTokens = issueTokens(user);
-  await authRepository.revokeRefreshSession(payload.userId, payload.jti);
-  await authRepository.createRefreshSession({
-    userId: user.userId,
-    jti: nextTokens.jti,
-    tokenVersion: nextTokens.tokenVersion,
-  });
-  return nextTokens;
-};
-
-const logout = async (refreshToken, context = {}) => {
-  const payload = verifyRefreshToken(refreshToken);
-  const user = await authRepository.findById(payload.userId);
-  if (!user) throw new UnauthorizedError('User no longer exists');
-
-  try {
-    await authRepository.revokeRefreshSession(payload.userId, payload.jti);
-    const updatedUser = await authRepository.revokeAllRefreshSessions(payload.userId);
-    await publishAuthEventSafely(
-      'LOGOUT - EventBridge publish',
-      publishUserLoggedOut,
-      {
-        user: sanitizeUser(updatedUser || user),
-        revokedTokenJti: payload.jti,
-      },
-      { ...context, source: 'auth-service' },
-      {
-        requestId: context.requestId || null,
-        eventType: 'UserLoggedOut.v1',
-        userId: payload.userId,
-        jti: payload.jti,
-      }
-    );
-    logAuthEvent('Auth logout completed', {
-      eventType: 'UserLoggedOut.v1',
-      correlationId: context.correlationId || context.requestId || null,
-      requestId: context.requestId || null,
-      userId: payload.userId,
-      jti: payload.jti,
-    });
-    return { success: true };
-  } catch (error) {
-    logAuthError('Auth logout failed', error, {
-      correlationId: context.correlationId || context.requestId || null,
-      requestId: context.requestId || null,
-      userId: payload.userId,
-      jti: payload.jti,
-    });
-    throw new InternalServerError('Unable to process logout');
-  }
-};
-
-const getProfile = async (userId) => {
-  const user = await authRepository.findById(userId);
-  if (!user) throw new UnauthorizedError('User no longer exists');
-  return sanitizeUser(user);
+  return {
+    accessToken: result.AccessToken,
+    refreshToken: result.RefreshToken || null,
+    idToken: result.IdToken || null,
+    expiresIn: result.ExpiresIn || null,
+    tokenType: result.TokenType || null,
+    accessClaims: decodeJwtPayload(result.AccessToken),
+    idClaims: result.IdToken ? decodeJwtPayload(result.IdToken) : {},
+  };
 };
 
 const publishAuthEventSafely = async (label, publishFn, payload, context, details = {}) => {
@@ -428,12 +145,471 @@ const publishAuthEventSafely = async (label, publishFn, payload, context, detail
   }
 };
 
-module.exports = {
-  register,
-  login,
-  refresh,
-  logout,
-  getProfile,
-  sanitizeUser,
-  issueTokens,
+const createAuthService = ({
+  repository = defaultRepository,
+  cognito = defaultCognito,
+  eventPublisher = {
+    publishUserRegistered,
+    publishUserLoggedIn,
+    publishUserLoggedOut,
+    publishPasswordChanged,
+  },
+  now = getTimestamp,
+} = {}) => {
+  const createAccount = async ({
+    name,
+    email,
+    password,
+    phone = null,
+    role = ROLES.CUSTOMER,
+    groups = [],
+    signInAfterCreate = false,
+    context = {},
+  }) => {
+    assertAuthConfig();
+    const normalizedEmail = repository.normalizeEmail(email);
+    const existing = await repository.findByEmail(normalizedEmail);
+    if (existing) {
+      throw new ConflictError('An account with this email already exists');
+    }
+
+    const userGroups = Array.from(
+      new Set([...(groups || []), role === ROLES.ADMIN ? config.auth.cognito.groups.admins : null])
+    ).filter(Boolean);
+
+    await cognito.adminCreateUser({
+      username: normalizedEmail,
+      name,
+      email: normalizedEmail,
+      phone,
+      temporaryPassword: password,
+    });
+
+    try {
+      await cognito.adminSetUserPassword({
+        username: normalizedEmail,
+        password,
+        permanent: true,
+      });
+      await cognito.adminAddUserToGroups({
+        username: normalizedEmail,
+        groups: userGroups.length > 0 ? userGroups : [config.auth.cognito.groups.customers],
+      });
+
+      const authResult = signInAfterCreate
+        ? await cognito.initiateAuth({ username: normalizedEmail, password })
+        : null;
+
+      let profileClaims = {};
+      let tokens = null;
+
+      if (authResult) {
+        tokens = getTokensFromAuthResult(authResult);
+        profileClaims = tokens.idClaims || tokens.accessClaims || {};
+      } else {
+        const user = await cognito.adminGetUser(normalizedEmail);
+        profileClaims = (user?.UserAttributes || []).reduce((acc, attribute) => {
+          if (attribute?.Name) {
+            acc[attribute.Name] = attribute.Value;
+          }
+          return acc;
+        }, {});
+        profileClaims.sub = profileClaims.sub || normalizedEmail;
+        profileClaims['cognito:username'] = profileClaims['cognito:username'] || normalizedEmail;
+        profileClaims['cognito:groups'] = userGroups;
+      }
+
+      const profilePayload = buildProfilePayload({
+        claims: profileClaims,
+        fallback: {
+          userId: profileClaims.sub || normalizedEmail,
+          username: normalizedEmail,
+          name,
+          email: normalizedEmail,
+          phone,
+          role,
+          groups: userGroups,
+        },
+        role,
+      });
+
+      const profile = await repository.syncProfile(profilePayload);
+      return { profile, tokens };
+    } catch (error) {
+      try {
+        await cognito.adminDeleteUser(normalizedEmail);
+      } catch (cleanupError) {
+        logStepError('Cognito cleanup after account creation failure failed', cleanupError, {
+          email: normalizedEmail,
+        });
+      }
+      throw error;
+    }
+  };
+
+  const register = async ({ name, email, password, phone }, context = {}) => {
+    const requestId = context.requestId || null;
+    logStep('Auth register start', { requestId, email });
+
+    const { profile, tokens } = await createAccount({
+      name,
+      email,
+      password,
+      phone,
+      role: ROLES.CUSTOMER,
+      groups: [config.auth.cognito.groups.customers],
+      signInAfterCreate: true,
+      context,
+    });
+
+    const sanitized = sanitizeUser(profile);
+    const result = {
+      user: sanitized,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenVersion: Number(profile.version || 0),
+      jti: tokens.accessClaims?.jti || null,
+    };
+
+    await publishAuthEventSafely(
+      'REGISTER - EventBridge publish',
+      eventPublisher.publishUserRegistered,
+      { user: sanitized },
+      { ...context, source: 'auth-service' },
+      { requestId, eventType: 'UserRegistered.v1', userId: profile.userId }
+    );
+
+    logStep('Auth register completed', {
+      requestId,
+      userId: profile.userId,
+      eventType: 'UserRegistered.v1',
+    });
+    return result;
+  };
+
+  const login = async ({ email, password }, context = {}) => {
+    assertAuthConfig();
+    const requestId = context.requestId || null;
+    const authResult = await cognito.initiateAuth({ username: email, password });
+
+    if (authResult?.ChallengeName) {
+      return {
+        challengeName: authResult.ChallengeName,
+        session: authResult.Session || null,
+        challengeParameters: authResult.ChallengeParameters || {},
+      };
+    }
+
+    const tokens = getTokensFromAuthResult(authResult);
+    const claims = tokens.idClaims || tokens.accessClaims || {};
+    const profilePayload = buildProfilePayload({
+      claims,
+      fallback: {
+        username: claims['cognito:username'] || email,
+        email: claims.email || email,
+        name: claims.name || null,
+        phone: claims.phone_number || null,
+      },
+      role: null,
+    });
+
+    profilePayload.lastLoginAt = now();
+    profilePayload.lastAuthAt = now();
+
+    const profile = await repository.syncProfile(profilePayload);
+    const sanitized = sanitizeUser(profile);
+    const result = {
+      user: sanitized,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenVersion: Number(sanitized.version || 0),
+      jti: tokens.accessClaims?.jti || null,
+    };
+
+    await publishAuthEventSafely(
+      'LOGIN - EventBridge publish',
+      eventPublisher.publishUserLoggedIn,
+      { user: sanitized },
+      { ...context, source: 'auth-service' },
+      { requestId, eventType: 'UserLoggedIn.v1', userId: sanitized.userId }
+    );
+
+    logStep('Auth login completed', {
+      requestId,
+      userId: sanitized.userId,
+      eventType: 'UserLoggedIn.v1',
+    });
+    return result;
+  };
+
+  const completeChallenge = async ({ challengeName, session, challengeResponses }, context = {}) => {
+    assertAuthConfig();
+    const authResult = await cognito.respondToAuthChallenge({
+      challengeName,
+      session,
+      challengeResponses,
+    });
+
+    const tokens = getTokensFromAuthResult(authResult);
+    const claims = tokens.idClaims || tokens.accessClaims || {};
+    const profilePayload = buildProfilePayload({
+      claims,
+      fallback: {
+        username: claims['cognito:username'] || challengeResponses?.USERNAME || null,
+        email: claims.email || challengeResponses?.USERNAME || null,
+      },
+    });
+    profilePayload.lastLoginAt = now();
+    profilePayload.lastAuthAt = now();
+
+    const profile = await repository.syncProfile(profilePayload);
+    const sanitized = sanitizeUser(profile);
+    await publishAuthEventSafely(
+      'LOGIN - EventBridge publish',
+      eventPublisher.publishUserLoggedIn,
+      { user: sanitized },
+      { ...context, source: 'auth-service' },
+      { requestId: context.requestId || null, eventType: 'UserLoggedIn.v1', userId: sanitized.userId }
+    );
+
+    return {
+      user: sanitized,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenVersion: Number(sanitized.version || 0),
+      jti: tokens.accessClaims?.jti || null,
+    };
+  };
+
+  const refresh = async (refreshToken) => {
+    assertAuthConfig();
+    const tokens = await cognito.refreshAuth({ refreshToken });
+    const authTokens = getTokensFromAuthResult(tokens);
+    const claims = authTokens.idClaims || authTokens.accessClaims || {};
+    const profilePayload = buildProfilePayload({
+      claims,
+      fallback: {
+        username: claims['cognito:username'] || claims.username || null,
+        email: claims.email || null,
+      },
+    });
+
+    const profile = await repository.syncProfile(profilePayload);
+
+    return {
+      user: sanitizeUser(profile),
+      accessToken: authTokens.accessToken,
+      refreshToken: authTokens.refreshToken || refreshToken,
+      tokenVersion: Number(profile.version || 0),
+      jti: authTokens.accessClaims?.jti || null,
+    };
+  };
+
+  const logout = async ({ refreshToken = null, accessToken = null }, context = {}) => {
+    assertAuthConfig();
+    const requestId = context.requestId || null;
+    let claims = null;
+
+    if (accessToken) {
+      claims = decodeJwtPayload(accessToken);
+    }
+
+    try {
+      if (refreshToken) {
+        await cognito.revokeToken({ refreshToken });
+      }
+    } catch (error) {
+      logStepError('Cognito revokeToken failed', error, { requestId });
+      throw new InternalServerError('Unable to process logout');
+    }
+
+    if (accessToken) {
+      try {
+        await cognito.globalSignOut({ accessToken });
+      } catch (error) {
+        logStepError('Cognito globalSignOut failed', error, { requestId });
+      }
+    }
+
+    const userId = claims?.sub || null;
+    let profile = null;
+    if (userId) {
+      profile = await repository.findById(userId);
+      if (profile) {
+        await repository.markLogout(userId, { lastAuthAt: now() });
+      }
+    }
+
+    if (profile) {
+      await publishAuthEventSafely(
+        'LOGOUT - EventBridge publish',
+        eventPublisher.publishUserLoggedOut,
+        {
+          user: sanitizeUser(profile),
+          revokedTokenJti: claims?.jti || null,
+        },
+        { ...context, source: 'auth-service' },
+        {
+          requestId,
+          eventType: 'UserLoggedOut.v1',
+          userId: profile.userId,
+          jti: claims?.jti || null,
+        }
+      );
+    }
+
+    return { success: true };
+  };
+
+  const getProfile = async (userId) => {
+    const profile = await repository.findById(userId);
+    if (!profile) {
+      throw new UnauthorizedError('User no longer exists');
+    }
+    return sanitizeUser(profile);
+  };
+
+  const forgotPassword = async ({ email }) => {
+    await cognito.forgotPassword({ username: email });
+    return { success: true };
+  };
+
+  const confirmPasswordReset = async ({ email, code, password }, context = {}) => {
+    await cognito.confirmForgotPassword({
+      username: email,
+      code,
+      password,
+    });
+
+    const profile = await repository.findByEmail(email);
+    if (profile) {
+      await publishAuthEventSafely(
+        'PASSWORD RESET - EventBridge publish',
+        eventPublisher.publishPasswordChanged,
+        { user: sanitizeUser(profile), reason: 'RESET' },
+        { ...context, source: 'auth-service' },
+        {
+          requestId: context.requestId || null,
+          eventType: 'PasswordChanged.v1',
+          userId: profile.userId,
+        }
+      );
+    }
+
+    return { success: true };
+  };
+
+  const changePassword = async ({ accessToken, previousPassword, proposedPassword }, context = {}) => {
+    await cognito.changePassword({
+      accessToken,
+      previousPassword,
+      proposedPassword,
+    });
+
+    const claims = decodeJwtPayload(accessToken);
+    const profile = claims?.sub ? await repository.findById(claims.sub) : null;
+    if (profile) {
+      await repository.markLogout(profile.userId, { lastAuthAt: now() });
+      await publishAuthEventSafely(
+        'PASSWORD CHANGE - EventBridge publish',
+        eventPublisher.publishPasswordChanged,
+        { user: sanitizeUser(profile), reason: 'CHANGE' },
+        { ...context, source: 'auth-service' },
+        {
+          requestId: context.requestId || null,
+          eventType: 'PasswordChanged.v1',
+          userId: profile.userId,
+        }
+      );
+    }
+
+    return { success: true };
+  };
+
+  const sendVerificationCode = async ({ accessToken, attributeName }) =>
+    cognito.getVerificationCode({ accessToken, attributeName });
+
+  const verifyAttribute = async ({ accessToken, attributeName, code }, context = {}) => {
+    await cognito.verifyAttribute({ accessToken, attributeName, code });
+    const claims = decodeJwtPayload(accessToken);
+    const profile = claims?.sub ? await repository.findById(claims.sub) : null;
+    if (profile) {
+      const patch = {};
+      if (attributeName === 'email') {
+        patch.emailVerified = true;
+      }
+      if (attributeName === 'phone_number') {
+        patch.phoneVerified = true;
+      }
+      if (Object.keys(patch).length) {
+        await repository.updateProfile(profile.userId, patch);
+      }
+    }
+    return { success: true };
+  };
+
+  const setupMfa = async ({ accessToken }) => cognito.associateSoftwareToken({ accessToken });
+
+  const verifyMfa = async ({ accessToken, userCode, friendlyDeviceName }) =>
+    cognito.verifySoftwareToken({
+      accessToken,
+      userCode,
+      friendlyDeviceName,
+    });
+
+  const setMfaPreference = async ({ accessToken, preferredMfa, smsEnabled, softwareTokenEnabled }) =>
+    cognito.setMfaPreference({
+      accessToken,
+      preferredMfa,
+      smsEnabled,
+      softwareTokenEnabled,
+    });
+
+  const adminCreateUser = async ({ name, email, password, phone, role, groups = [] }, context = {}) => {
+    const selectedRole = role || ROLES.CUSTOMER;
+    const selectedGroups = groups.length > 0 ? groups : [config.auth.cognito.groups.customers];
+    const { profile } = await createAccount({
+      name,
+      email,
+      password,
+      phone,
+      role: selectedRole,
+      groups: selectedGroups,
+      signInAfterCreate: false,
+      context,
+    });
+
+    return {
+      user: sanitizeUser(profile),
+    };
+  };
+
+  const respondToMfaChallenge = async ({ challengeName, session, challengeResponses }, context = {}) =>
+    completeChallenge({ challengeName, session, challengeResponses }, context);
+
+  return {
+    register,
+    login,
+    completeChallenge,
+    refresh,
+    logout,
+    getProfile,
+    forgotPassword,
+    confirmPasswordReset,
+    sendVerificationCode,
+    verifyAttribute,
+    setupMfa,
+    verifyMfa,
+    setMfaPreference,
+    changePassword,
+    adminCreateUser,
+    respondToMfaChallenge,
+    sanitizeUser,
+    decodeJwtPayload,
+  };
 };
+
+module.exports = createAuthService();
+module.exports.createAuthService = createAuthService;
+module.exports.sanitizeUser = sanitizeUser;
+module.exports.decodeJwtPayload = decodeJwtPayload;

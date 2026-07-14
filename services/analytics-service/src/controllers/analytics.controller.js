@@ -1,5 +1,5 @@
-const asyncHandler = require('@freshmart/shared').utils.asyncHandler;
-const { success } = require('@freshmart/shared').response;
+const asyncHandler = require('@freshmart/service-shared').utils.asyncHandler;
+const { success } = require('@freshmart/service-shared').response;
 const analyticsService = require('../services/analytics.service');
 
 const getReportByTypeAndDate = asyncHandler(async (req, res) => {

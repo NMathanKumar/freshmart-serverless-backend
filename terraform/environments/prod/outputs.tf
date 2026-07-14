@@ -3,6 +3,45 @@ output "environment" {
   value       = local.environment_name
 }
 
+output "network" {
+  description = "Provisioned network and VPC attachment details."
+  value = {
+    vpc_id                     = module.network.vpc_id
+    vpc_arn                    = module.network.vpc_arn
+    public_subnet_ids          = module.network.public_subnet_ids
+    private_subnet_ids         = module.network.private_subnet_ids
+    lambda_security_group_id   = module.network.lambda_security_group_id
+    endpoint_security_group_id = module.network.endpoint_security_group_id
+    nat_gateway_id             = module.network.nat_gateway_id
+    internet_gateway_id        = module.network.internet_gateway_id
+    vpc_endpoint_ids           = module.network.vpc_endpoint_ids
+    interface_vpc_endpoint_ids = module.network.interface_vpc_endpoint_ids
+  }
+}
+
+output "secrets" {
+  description = "Provisioned secrets and parameter store references."
+  value = {
+    secret_arns    = module.secrets.secret_arns
+    secret_names   = module.secrets.secret_names
+    parameter_arns = module.secrets.parameter_arns
+  }
+}
+
+output "cognito" {
+  description = "Provisioned Cognito resources."
+  value = {
+    user_pool_id             = module.cognito.user_pool_id
+    user_pool_arn            = module.cognito.user_pool_arn
+    user_pool_client_id      = module.cognito.user_pool_client_id
+    user_pool_domain         = module.cognito.user_pool_domain
+    identity_pool_id         = module.cognito.identity_pool_id
+    authenticated_role_arn   = module.cognito.authenticated_role_arn
+    unauthenticated_role_arn = module.cognito.unauthenticated_role_arn
+    group_names              = module.cognito.group_names
+  }
+}
+
 output "dynamodb_tables" {
   description = "Provisioned DynamoDB tables and their key identifiers."
   value = {
@@ -73,6 +112,15 @@ output "sns" {
   value = {
     topic_arns  = module.sns.topic_arns
     topic_names = module.sns.topic_names
+  }
+}
+
+output "s3" {
+  description = "Provisioned S3 details."
+  value = {
+    bucket_name = module.s3.bucket_name
+    bucket_arn  = module.s3.bucket_arn
+    object_arn  = module.s3.object_arn
   }
 }
 

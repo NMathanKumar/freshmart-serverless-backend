@@ -1,0 +1,3 @@
+$kind: collection
+description: No top-level /health route is exposed through the current API Gateway. Use /admin/health instead.
+order: 1000

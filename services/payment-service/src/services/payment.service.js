@@ -1,7 +1,7 @@
-const { genId } = require('@freshmart/shared').utils.id;
-const { NotFoundError, BadRequestError, ForbiddenError } = require('@freshmart/shared').errors;
-const { PAYMENT_STATUS, PAYMENT_METHOD, ROLES } = require('@freshmart/shared').constants;
-const sharedLogger = require('@freshmart/shared').logger;
+const { genId } = require('@freshmart/service-shared').utils.id;
+const { NotFoundError, BadRequestError, ForbiddenError } = require('@freshmart/service-shared').errors;
+const { PAYMENT_STATUS, PAYMENT_METHOD, ROLES } = require('@freshmart/service-shared').constants;
+const sharedLogger = require('@freshmart/service-shared').logger;
 const paymentRepository = require('../repositories/payment.repository');
 const orderRepository = require('@freshmart/order-service/src/repositories/order.repository');
 const {

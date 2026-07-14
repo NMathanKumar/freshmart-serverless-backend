@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/menu/MENU_123"
+method: PATCH
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Veg Biryani",
+      "description": "Spiced rice with vegetables",
+      "category": "Main Course",
+      "price": 120,
+      "imageUrl": "https://example.com/menu/biryani.jpg",
+      "available": true,
+      "preparationTime": 18
+    }
+order: 5000

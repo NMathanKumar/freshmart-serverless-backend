@@ -5,7 +5,7 @@ const {
   UpdateCommand,
   DeleteCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const getTableName = (tableName = config.dynamodb.tables.admin) => {
   if (!tableName) throw new Error('Missing DDB_TABLE_ADMIN');

@@ -5,7 +5,7 @@ const {
   UpdateCommand,
   DeleteCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const getTableName = (tableName = config.dynamodb.tables.analytics) => {
   if (!tableName) throw new Error('Missing DDB_TABLE_ANALYTICS');
@@ -49,9 +49,10 @@ const toDomain = (item) => {
 
 const createAnalyticsRepository = ({
   client = documentClient,
-  tableName = getTableName(),
+  tableName = null,
   now = () => new Date(),
 } = {}) => {
+  const resolveTableName = () => getTableName(tableName);
   const trackedMetrics = [
     'totalOrders',
     'completedOrders',
@@ -66,7 +67,7 @@ const createAnalyticsRepository = ({
   const getReport = async (reportType, date) => {
     const result = await client.send(
       new GetCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         Key: reportKey(reportType, date),
       })
     );
@@ -82,7 +83,7 @@ const createAnalyticsRepository = ({
       // eslint-disable-next-line no-await-in-loop
       await client.send(
         new PutCommand({
-          TableName: tableName,
+          TableName: resolveTableName(),
           Item: {
             ...metricKey(report.reportType, metricName, report.date),
             reportId: report.reportId,
@@ -148,7 +149,7 @@ const createAnalyticsRepository = ({
 
     await client.send(
       new UpdateCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         Key: reportKey(reportType, date),
         UpdateExpression: updateParts.join(', '),
         ExpressionAttributeNames: expressionAttributeNames,
@@ -163,7 +164,7 @@ const createAnalyticsRepository = ({
   const listByDate = async (date) => {
     const result = await client.send(
       new QueryCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         IndexName: 'gsi1',
         KeyConditionExpression: 'gsi1pk = :pk',
         ExpressionAttributeValues: {
@@ -181,7 +182,7 @@ const createAnalyticsRepository = ({
   const listMetricHistory = async (metricName) => {
     const result = await client.send(
       new QueryCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         IndexName: 'gsi2',
         KeyConditionExpression: 'gsi2pk = :pk',
         ExpressionAttributeValues: {
@@ -203,7 +204,7 @@ const createAnalyticsRepository = ({
   const removeReport = async (reportType, date) => {
     await client.send(
       new DeleteCommand({
-        TableName: tableName,
+        TableName: resolveTableName(),
         Key: reportKey(reportType, date),
       })
     );

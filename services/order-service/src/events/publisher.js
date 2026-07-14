@@ -1,5 +1,5 @@
-const sharedLogger = require('@freshmart/shared').logger;
-const { eventPublisher } = require('@freshmart/shared');
+const sharedLogger = require('@freshmart/service-shared').logger;
+const { eventPublisher } = require('@freshmart/service-shared');
 
 const logger = sharedLogger.child({ service: 'order-service' });
 

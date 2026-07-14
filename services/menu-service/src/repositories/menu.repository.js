@@ -6,7 +6,7 @@ const {
   QueryCommand,
   TransactWriteCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 // Fix #6 — resolve once at module load, fail fast on cold start instead of per-call
 const TABLE_NAME = (() => {

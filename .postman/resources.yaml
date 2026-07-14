@@ -1,0 +1,15 @@
+# Use this workspace to collaborate
+workspace:
+  id: 890a3f9f-c8b9-4eb6-855b-604b6a3158f9
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ..\postman\collections\FreshMart Serverless Backend: 9d5ac4b0-ca47-40ee-a2c1-9312b891ec85
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

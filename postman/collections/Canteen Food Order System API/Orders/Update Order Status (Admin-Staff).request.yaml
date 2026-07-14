@@ -1,0 +1,14 @@
+$kind: http-request
+name: Update Order Status (Admin/Staff)
+url: "{{baseUrl}}/orders/{{orderId}}/status"
+method: PATCH
+headers:
+  Authorization: Bearer {{adminToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "orderStatus": "ACCEPTED"
+    }
+order: 5000

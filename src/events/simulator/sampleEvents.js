@@ -32,14 +32,14 @@ const sampleEvents = [
   buildSampleEvent(EVENT_TYPES.USER_REGISTERED, {
     user: {
       userId: 'USER_sample',
-      email: 'customer@canteen.com',
+      email: 'customer@freshmart.com',
       name: 'Sample Customer',
     },
   }),
   buildSampleEvent(EVENT_TYPES.USER_REGISTERED_V1, {
     user: {
       userId: 'USER_sample',
-      email: 'customer@canteen.com',
+      email: 'customer@freshmart.com',
       name: 'Sample Customer',
     },
   }),

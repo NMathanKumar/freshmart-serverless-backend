@@ -109,7 +109,7 @@ const buildEventEnvelope = (eventType, payload = {}, context = {}) => {
     eventId: genId('EVT'),
     eventType,
     timestamp: new Date().toISOString(),
-    source: context.source || config.aws.eventBridge.source || 'canteen-backend',
+    source: context.source || config.aws.eventBridge.source || 'freshmart-backend',
     version: context.version || EVENT_VERSION,
     payload,
     correlationId,

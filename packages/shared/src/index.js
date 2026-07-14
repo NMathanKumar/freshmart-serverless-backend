@@ -7,6 +7,7 @@ module.exports = {
   eventPublisher: require('./events/publisher'),
   validation: require('./validation'),
   middleware: require('./middleware'),
+  auth: require('./auth'),
   constants: require('./constants'),
   response: require('./response/apiResponse'),
   integrations: require('./integrations'),
@@ -16,4 +17,5 @@ module.exports = {
     id: require('./utils/id'),
     pagination: require('./utils/pagination'),
   },
+  ...require('./runtime'),
 };

@@ -1,5 +1,5 @@
-const asyncHandler = require('@freshmart/shared').utils.asyncHandler;
-const { success, created } = require('@freshmart/shared').response;
+const asyncHandler = require('@freshmart/service-shared').utils.asyncHandler;
+const { success, created } = require('@freshmart/service-shared').response;
 const orderService = require('../services/order.service');
 
 const placeOrder = asyncHandler(async (req, res) => {

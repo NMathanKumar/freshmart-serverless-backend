@@ -48,6 +48,12 @@ variable "enable_xray" {
   default     = true
 }
 
+variable "enable_vpc_access" {
+  description = "Whether to attach the AWS managed VPC Lambda execution policy."
+  type        = bool
+  default     = false
+}
+
 variable "dynamodb_table_permissions" {
   description = "List of DynamoDB tables and the actions allowed on each table."
   type = list(object({
@@ -109,6 +115,18 @@ variable "allow_eventbridge_read" {
   description = "Whether to grant EventBridge read-style permissions."
   type        = bool
   default     = false
+}
+
+variable "allow_cognito_user_pool_access" {
+  description = "Whether to grant Cognito user pool API permissions."
+  type        = bool
+  default     = false
+}
+
+variable "cognito_user_pool_arns" {
+  description = "Cognito user pool ARNs that Cognito API actions may target."
+  type        = list(string)
+  default     = []
 }
 
 variable "eventbridge_rule_name_prefixes" {

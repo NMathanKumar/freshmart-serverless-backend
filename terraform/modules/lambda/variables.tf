@@ -121,6 +121,18 @@ variable "reserved_concurrent_executions" {
   default     = null
 }
 
+variable "subnet_ids" {
+  description = "Optional VPC subnet IDs for Lambda VPC attachment."
+  type        = list(string)
+  default     = []
+}
+
+variable "security_group_ids" {
+  description = "Optional VPC security group IDs for Lambda VPC attachment."
+  type        = list(string)
+  default     = []
+}
+
 variable "ephemeral_storage" {
   description = "Optional ephemeral storage configuration."
   type = object({
@@ -139,6 +151,12 @@ variable "log_retention_in_days" {
   description = "CloudWatch Logs retention for the Lambda log group."
   type        = number
   default     = 30
+}
+
+variable "log_group_kms_key_id" {
+  description = "Optional KMS key ID or alias for encrypting the Lambda log group."
+  type        = string
+  default     = "alias/aws/logs"
 }
 
 variable "permissions" {

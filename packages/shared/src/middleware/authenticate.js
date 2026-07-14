@@ -1,7 +1,6 @@
-const jwt = require('jsonwebtoken');
-const config = require('../config');
 const { UnauthorizedError } = require('../errors/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { verifyCognitoJwt, extractCognitoUser } = require('../auth/cognito');
 
 const authenticate = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || '';
@@ -12,8 +11,17 @@ const authenticate = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, config.jwt.secret);
-    req.user = { userId: payload.userId, role: payload.role, email: payload.email };
+    const payload = await verifyCognitoJwt(token, { allowedTokenUse: ['access', 'id'] });
+    const user = extractCognitoUser(payload);
+    req.user = {
+      userId: user.userId,
+      role: user.role,
+      email: user.email,
+      username: user.username,
+      groups: user.groups,
+      tokenUse: user.tokenUse,
+      cognito: payload,
+    };
     next();
   } catch (err) {
     throw new UnauthorizedError('Invalid or expired token');

@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/inventory/{{inventoryId}}"
+method: PUT
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "currentStock": 140,
+      "minimumStock": 25,
+      "unit": "pcs"
+    }
+order: 2000

@@ -1,5 +1,5 @@
-const asyncHandler = require('@freshmart/shared').utils.asyncHandler;
-const { success, created, noContent } = require('@freshmart/shared').response;
+const asyncHandler = require('@freshmart/service-shared').utils.asyncHandler;
+const { success, created, noContent } = require('@freshmart/service-shared').response;
 const menuService = require('../service/menu.service');
 
 // Builds the context object passed to every service call.

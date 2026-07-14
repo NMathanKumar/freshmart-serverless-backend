@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/food?category=Main Course"
+method: GET
+headers:
+  Authorization: Bearer {{customerToken}}
+queryParams:
+  category: Main Course
+order: 2000

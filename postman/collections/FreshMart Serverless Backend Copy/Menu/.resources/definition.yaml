@@ -1,0 +1,3 @@
+$kind: collection
+description: Menu routes are exposed by the backend and included here because they are actual gateway routes.
+order: 5000

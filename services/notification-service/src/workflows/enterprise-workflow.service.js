@@ -1,17 +1,16 @@
-const logger = require('@freshmart/shared').logger;
-const { BadRequestError } = require('@freshmart/shared').errors;
-const config = require('@freshmart/shared').config;
-const menuService = require('@canteen/menu-service/src/service/menu.service');
-const inventoryRepository = require('@freshmart/inventory-service/src/repositories/inventory.repository');
+const logger = require('@freshmart/service-shared').logger;
+const { BadRequestError } = require('@freshmart/service-shared').errors;
+const config = require('@freshmart/service-shared').config;
 const {
   publishImageProcessed,
   publishInvoiceUploaded,
   publishDailyReportGenerated,
   publishRestockJobQueued,
 } = require('../events/publishers');
-const s3Service = require('@freshmart/shared').integrations.s3;
-const snsService = require('@freshmart/shared').integrations.sns;
-const sqsService = require('@freshmart/shared').integrations.sqs;
+const s3Service = require('@freshmart/service-shared').integrations.s3;
+const menuService = require('@freshmart/service-shared').integrations.menu;
+const snsService = require('@freshmart/service-shared').integrations.sns;
+const sqsService = require('@freshmart/service-shared').integrations.sqs;
 
 const buildS3ObjectUrl = (bucket, key) => {
   const region = config.aws.region;
@@ -76,7 +75,7 @@ const extractMetadataPlaceholder = (payload) => ({
 const buildInvoiceBody = (payment, invoice) =>
   Buffer.from(
     [
-      'Canteen Invoice',
+      'FreshMart Invoice',
       `Invoice ID: ${invoice.invoiceId}`,
       `Payment ID: ${payment.paymentId}`,
       `Order ID: ${payment.orderId}`,
@@ -158,37 +157,14 @@ const processOrderPlaced = async (payload, context = {}) => {
   if (!items.length) {
     throw new BadRequestError(`Invalid payload for 'OrderPlaced'. Missing required field: order.items`);
   }
-  const inventorySnapshots = [];
 
-  for (const item of items) {
-    if (!item.foodId) {
-      throw new BadRequestError(`Invalid payload for 'OrderPlaced'. Missing required field: order.items.foodId`);
-    }
-    // Inventory deduction already happens inside the transactional order flow.
-    // The workflow consumes the event after the fact to fan out notifications
-    // and analytics using the post-deduction state.
-    // eslint-disable-next-line no-await-in-loop
-    let inventory;
-    try {
-      inventory = await inventoryRepository.findByFoodId(item.foodId);
-    } catch (error) {
-      if (!isDatabaseUnavailableError(error)) throw error;
-      logger.warn('Falling back to mock inventory snapshot during order workflow', {
-        foodId: item.foodId,
-        error: error.message,
-      });
-    }
-    if (!inventory) {
-      inventory = {
-        inventoryId: `MOCK_INV_${item.foodId}`,
-        foodId: item.foodId,
-        currentStock: null,
-        minimumStock: null,
-        mocked: true,
-      };
-    }
-    inventorySnapshots.push(inventory);
-  }
+  const inventorySnapshots = items.map((item) => ({
+    inventoryId: item.inventoryId || null,
+    foodId: item.foodId || item.productId || null,
+    currentStock: item.currentStock ?? null,
+    minimumStock: item.minimumStock ?? null,
+    mocked: item.inventoryId ? false : true,
+  }));
 
   await snsService.publishOrderPlacedNotification({
     orderId: order.orderId,

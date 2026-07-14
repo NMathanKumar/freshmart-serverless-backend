@@ -5,7 +5,7 @@ const {
   DeleteCommand,
   QueryCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const tableName = () => {
   const name = config.dynamodb.tables.inventory;

@@ -1,5 +1,5 @@
 const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const tableName = () => {
   const name = config.dynamodb.tables.carts;
@@ -341,12 +341,10 @@ module.exports = {
   getOrCreateCart,
   findItems,
   findItemsByProductId,
-  // TODO: Remove after Order Service migration.
   findItemsByFoodId: findItemsByProductId,
   findItem,
   upsertItem,
   putItem,
-  // TODO: Remove after Order Service migration.
   setItemQuantity,
   updateItemAvailability,
   removeItem,

@@ -3,10 +3,9 @@ const {
   PutCommand,
   QueryCommand,
   UpdateCommand,
-  TransactWriteCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const { documentClient, config } = require('@freshmart/shared').aws;
-const logger = require('@freshmart/shared').logger;
+const { documentClient, config } = require('@freshmart/service-shared').aws;
+const logger = require('@freshmart/service-shared').logger;
 
 const getTableName = (tableName = config.dynamodb.tables.authUsers) => {
   if (!tableName) {
@@ -19,10 +18,10 @@ const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const userPk = (userId) => `USER#${userId}`;
 const profileSk = () => 'PROFILE';
 const emailPk = (email) => `EMAIL#${normalizeEmail(email)}`;
-const refreshSk = (jti) => `REFRESH#${jti}`;
 const EMAIL_INDEX_NAME = 'EmailIndex';
 const EMAIL_INDEX_PK = 'GSI1PK';
 const EMAIL_INDEX_SK = 'GSI1SK';
+
 const withOptionalString = (item, key, value) => {
   if (typeof value === 'string' && value.trim() !== '') {
     item[key] = value;
@@ -47,37 +46,68 @@ const toDomainUser = (item) => {
   if (!item) return null;
   return {
     userId: item.userId,
-    name: item.name,
-    email: item.email,
-    emailLower: item.emailLower,
-    passwordHash: item.passwordHash,
+    cognitoSub: item.cognitoSub || item.userId,
+    username: item.username || null,
+    name: item.name || null,
+    email: item.email || null,
+    emailLower: item.emailLower || normalizeEmail(item.email),
     role: item.role,
     phone: item.phone || null,
     status: item.status || 'ACTIVE',
-    tokenVersion: Number(item.tokenVersion || 0),
-    version: Number(item.version || 0),
+    provider: item.provider || 'COGNITO',
+    groups: Array.isArray(item.groups) ? item.groups : [],
+    emailVerified: Boolean(item.emailVerified),
+    phoneVerified: Boolean(item.phoneVerified),
+    mfaEnabled: Boolean(item.mfaEnabled),
+    lastLoginAt: item.lastLoginAt || null,
+    lastAuthAt: item.lastAuthAt || null,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
-    lastLoginAt: item.lastLoginAt || null,
-    revokedAt: item.revokedAt || null,
+    version: Number(item.version || 0),
   };
 };
 
-const toRefreshSession = (item) => {
-  if (!item) return null;
-  return {
-    userId: item.userId,
-    jti: item.jti,
-    tokenVersion: Number(item.tokenVersion || 0),
-    revokedAt: item.revokedAt || null,
-    expiresAt: Number(item.expiresAt || 0),
-    createdAt: item.createdAt,
+const buildUpdateExpression = (updates = {}, timestamp = new Date().toISOString()) => {
+  const setParts = ['updatedAt = :updatedAt', 'version = if_not_exists(version, :zero) + :one'];
+  const removeParts = [];
+  const values = {
+    ':updatedAt': timestamp,
+    ':zero': 0,
+    ':one': 1,
   };
+  const names = {};
+
+  const assign = (field, value) => {
+    const nameKey = `#${field}`;
+    const valueKey = `:${field}`;
+    names[nameKey] = field;
+    values[valueKey] = value;
+    setParts.push(`${nameKey} = ${valueKey}`);
+  };
+
+  for (const [field, value] of Object.entries(updates)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (value === null) {
+      removeParts.push(`#${field}`);
+      names[`#${field}`] = field;
+      continue;
+    }
+    assign(field, value);
+  }
+
+  let expression = `SET ${setParts.join(', ')}`;
+  if (removeParts.length) {
+    expression += ` REMOVE ${removeParts.join(', ')}`;
+  }
+
+  return { expression, values, names };
 };
 
 const createAuthRepository = ({
   client = documentClient,
-  tableName = getTableName(),
+  tableName = config.dynamodb.tables.authUsers || '',
   now = () => new Date(),
 } = {}) => {
   const createError = (message, code) => {
@@ -92,51 +122,35 @@ const createAuthRepository = ({
     error?.code === 'ConditionalCheckFailedException';
 
   const findByEmail = async (email) => {
-    logStep('STEP 3A - repository QueryCommand start', {
-      tableName,
+    const resolvedTableName = getTableName(tableName);
+    const normalizedEmail = normalizeEmail(email);
+    logStep('Auth repository findByEmail start', {
+      tableName: resolvedTableName,
       indexName: EMAIL_INDEX_NAME,
-      keyConditionExpression: `${EMAIL_INDEX_PK} = :pk AND ${EMAIL_INDEX_SK} = :sk`,
-      expressionAttributeValues: {
-        ':pk': emailPk(email),
-        ':sk': 'PROFILE',
-      },
+      email: normalizedEmail,
     });
 
-    let result;
-    try {
-      result = await client.send(
-        new QueryCommand({
-          TableName: tableName,
-          IndexName: EMAIL_INDEX_NAME,
-          KeyConditionExpression: `${EMAIL_INDEX_PK} = :pk AND ${EMAIL_INDEX_SK} = :sk`,
-          ExpressionAttributeValues: {
-            ':pk': emailPk(email),
-            ':sk': 'PROFILE',
-          },
-          Limit: 1,
-        })
-      );
-    } catch (error) {
-      logStepError('STEP 3A - repository QueryCommand failed', error, {
-        tableName,
-        indexName: EMAIL_INDEX_NAME,
-        email,
-      });
-      throw error;
-    }
+    const result = await client.send(
+      new QueryCommand({
+        TableName: resolvedTableName,
+        IndexName: EMAIL_INDEX_NAME,
+        KeyConditionExpression: `${EMAIL_INDEX_PK} = :pk AND ${EMAIL_INDEX_SK} = :sk`,
+        ExpressionAttributeValues: {
+          ':pk': emailPk(normalizedEmail),
+          ':sk': 'PROFILE',
+        },
+        Limit: 1,
+      })
+    );
 
-    logStep('STEP 3A - repository QueryCommand success', {
-      tableName,
-      indexName: EMAIL_INDEX_NAME,
-      itemCount: result.Items?.length || 0,
-    });
     return toDomainUser(result.Items?.[0] || null);
   };
 
   const findById = async (userId) => {
+    const resolvedTableName = getTableName(tableName);
     const result = await client.send(
       new GetCommand({
-        TableName: tableName,
+        TableName: resolvedTableName,
         Key: {
           PK: userPk(userId),
           SK: profileSk(),
@@ -146,28 +160,40 @@ const createAuthRepository = ({
     return toDomainUser(result.Item || null);
   };
 
-  const createUser = async ({
+  const createProfile = async ({
     userId,
+    cognitoSub = userId,
+    username = null,
     name,
     email,
-    passwordHash,
     role,
     phone,
     status = 'ACTIVE',
+    provider = 'COGNITO',
+    groups = [],
+    emailVerified = false,
+    phoneVerified = false,
+    mfaEnabled = false,
   }) => {
-    const emailLower = normalizeEmail(email);
+    const resolvedTableName = getTableName(tableName);
+    const normalizedEmail = normalizeEmail(email);
     const timestamp = now().toISOString();
     const userItem = {
       PK: userPk(userId),
       SK: profileSk(),
       userId,
+      cognitoSub,
+      username,
       name,
       email,
-      emailLower,
-      passwordHash,
+      emailLower: normalizedEmail,
       role,
       status,
-      tokenVersion: 0,
+      provider,
+      groups,
+      emailVerified,
+      phoneVerified,
+      mfaEnabled,
       version: 0,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -175,61 +201,19 @@ const createAuthRepository = ({
       [EMAIL_INDEX_SK]: 'PROFILE',
       entityType: 'USER_PROFILE',
     };
+
     withOptionalString(userItem, 'phone', phone);
 
-    const emailLock = {
-      PK: emailPk(email),
-      SK: 'PROFILE',
-      emailLower,
-      userId,
-      createdAt: timestamp,
-      entityType: 'EMAIL_LOCK',
-    };
-
     try {
-      logStep('STEP 6A - repository TransactWriteCommand start', {
-        tableName,
-        userPk: userItem.PK,
-        userSk: userItem.SK,
-        emailLockPk: emailLock.PK,
-        emailLockSk: emailLock.SK,
-        userAttributes: Object.keys(userItem),
-        emailLockAttributes: Object.keys(emailLock),
-      });
       await client.send(
-        new TransactWriteCommand({
-          TransactItems: [
-            {
-              Put: {
-                TableName: tableName,
-                Item: emailLock,
-                ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
-              },
-            },
-            {
-              Put: {
-                TableName: tableName,
-                Item: userItem,
-                ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
-              },
-            },
-          ],
+        new PutCommand({
+          TableName: resolvedTableName,
+          Item: userItem,
+          ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
         })
       );
-      logStep('STEP 6A - repository TransactWriteCommand success', {
-        tableName,
-        userPk: userItem.PK,
-        userSk: userItem.SK,
-      });
       return toDomainUser(userItem);
     } catch (error) {
-      logStepError('STEP 6A - repository TransactWriteCommand failed', error, {
-        tableName,
-        userPk: userItem.PK,
-        userSk: userItem.SK,
-        emailLockPk: emailLock.PK,
-        emailLockSk: emailLock.SK,
-      });
       if (isConditionalFailure(error)) {
         throw createError('An account with this email already exists', 'CONFLICT');
       }
@@ -237,156 +221,65 @@ const createAuthRepository = ({
     }
   };
 
-  const updateLoginMetadata = async (userId, { lastLoginAt = now().toISOString() } = {}) => {
-    const result = await client.send(
-      new UpdateCommand({
-        TableName: tableName,
-        Key: {
-          PK: userPk(userId),
-          SK: profileSk(),
-        },
-        UpdateExpression:
-          'SET lastLoginAt = :lastLoginAt, updatedAt = :updatedAt ADD #version :one',
-        ConditionExpression: 'attribute_exists(PK)',
-        ExpressionAttributeNames: {
-          '#version': 'version',
-        },
-        ExpressionAttributeValues: {
-          ':lastLoginAt': lastLoginAt,
-          ':updatedAt': now().toISOString(),
-          ':one': 1,
-        },
-        ReturnValues: 'ALL_NEW',
-      })
-    );
-    return toDomainUser(result.Attributes || null);
-  };
-
-  const bumpTokenVersion = async (userId) => {
-    const result = await client.send(
-      new UpdateCommand({
-        TableName: tableName,
-        Key: {
-          PK: userPk(userId),
-          SK: profileSk(),
-        },
-        UpdateExpression:
-          'SET revokedAt = :revokedAt, updatedAt = :updatedAt ADD tokenVersion :one, #version :one',
-        ConditionExpression: 'attribute_exists(PK)',
-        ExpressionAttributeNames: {
-          '#version': 'version',
-        },
-        ExpressionAttributeValues: {
-          ':revokedAt': now().toISOString(),
-          ':updatedAt': now().toISOString(),
-          ':one': 1,
-        },
-        ReturnValues: 'ALL_NEW',
-      })
-    );
-    return toDomainUser(result.Attributes || null);
-  };
-
-  const createRefreshSession = async ({
-    userId,
-    jti,
-    tokenVersion,
-    ttlSeconds = 7 * 24 * 60 * 60,
-  }) => {
+  const updateProfile = async (userId, updates = {}) => {
+    const resolvedTableName = getTableName(tableName);
     const timestamp = now().toISOString();
-    const expiresAt = Math.floor(now().getTime() / 1000) + Number(ttlSeconds);
-    const item = {
-      PK: userPk(userId),
-      SK: refreshSk(jti),
-      userId,
-      jti,
-      tokenVersion: Number(tokenVersion || 0),
-      revokedAt: null,
-      expiresAt,
-      ttl: expiresAt,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      entityType: 'REFRESH_SESSION',
-    };
+    const expression = buildUpdateExpression(updates, timestamp);
 
-    logStep('STEP 9A - repository PutCommand refresh session start', {
-      tableName,
-      PK: item.PK,
-      SK: item.SK,
-      attributes: Object.keys(item),
-    });
-
-    try {
-      await client.send(
-        new PutCommand({
-          TableName: tableName,
-          Item: item,
-          ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
-        })
-      );
-    } catch (error) {
-      logStepError('STEP 9A - repository PutCommand refresh session failed', error, {
-        tableName,
-        PK: item.PK,
-        SK: item.SK,
-      });
-      throw error;
-    }
-
-    logStep('STEP 9A - repository PutCommand refresh session success', {
-      tableName,
-      PK: item.PK,
-      SK: item.SK,
-    });
-
-    return toRefreshSession(item);
-  };
-
-  const findRefreshSession = async (userId, jti) => {
-    const result = await client.send(
-      new GetCommand({
-        TableName: tableName,
-        Key: {
-          PK: userPk(userId),
-          SK: refreshSk(jti),
-        },
-      })
-    );
-    return toRefreshSession(result.Item || null);
-  };
-
-  const revokeRefreshSession = async (userId, jti) => {
     const result = await client.send(
       new UpdateCommand({
-        TableName: tableName,
+        TableName: resolvedTableName,
         Key: {
           PK: userPk(userId),
-          SK: refreshSk(jti),
+          SK: profileSk(),
         },
-        UpdateExpression: 'SET revokedAt = :revokedAt, updatedAt = :updatedAt',
+        UpdateExpression: expression.expression,
+        ExpressionAttributeNames: expression.names,
+        ExpressionAttributeValues: expression.values,
         ConditionExpression: 'attribute_exists(PK)',
-        ExpressionAttributeValues: {
-          ':revokedAt': now().toISOString(),
-          ':updatedAt': now().toISOString(),
-        },
         ReturnValues: 'ALL_NEW',
       })
     );
-    return toRefreshSession(result.Attributes || null);
+
+    return toDomainUser(result.Attributes || null);
   };
 
-  const revokeAllRefreshSessions = async (userId) => bumpTokenVersion(userId);
+  const syncProfile = async (profile) => {
+    const existing = await findById(profile.userId);
+    if (!existing) {
+      return createProfile(profile);
+    }
+    return updateProfile(profile.userId, {
+      cognitoSub: profile.cognitoSub,
+      username: profile.username,
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone ?? null,
+      role: profile.role,
+      status: profile.status,
+      provider: profile.provider,
+      groups: profile.groups,
+      emailVerified: profile.emailVerified,
+      phoneVerified: profile.phoneVerified,
+      mfaEnabled: profile.mfaEnabled,
+      lastLoginAt: profile.lastLoginAt,
+      lastAuthAt: profile.lastAuthAt,
+    });
+  };
+
+  const markLogout = async (userId, details = {}) =>
+    updateProfile(userId, {
+      lastAuthAt: details.lastAuthAt || now().toISOString(),
+    });
 
   return {
     tableName,
     findByEmail,
     findById,
-    createUser,
-    updateLoginMetadata,
-    createRefreshSession,
-    findRefreshSession,
-    revokeRefreshSession,
-    revokeAllRefreshSessions,
+    createProfile,
+    updateProfile,
+    syncProfile,
+    markLogout,
     normalizeEmail,
   };
 };

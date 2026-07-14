@@ -3,6 +3,7 @@ const { buildConfig } = require('../config');
 
 const config = buildConfig();
 const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+let isColdStart = true;
 
 const transports = [];
 
@@ -33,5 +34,28 @@ const logger = winston.createLogger({
   defaultMeta: { service: config.serviceName },
   transports,
 });
+
+logger.decorateRequest = (meta = {}) =>
+  logger.child({
+    ...meta,
+    service: meta.service || config.serviceName,
+    coldStart: meta.coldStart ?? isColdStart,
+  });
+
+logger.markWarm = () => {
+  isColdStart = false;
+};
+
+logger.isColdStart = () => isColdStart;
+
+logger.captureMemory = () => {
+  const usage = process.memoryUsage();
+  return {
+    memoryRssBytes: usage.rss,
+    memoryHeapUsedBytes: usage.heapUsed,
+    memoryHeapTotalBytes: usage.heapTotal,
+    memoryExternalBytes: usage.external,
+  };
+};
 
 module.exports = logger;

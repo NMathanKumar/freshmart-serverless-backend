@@ -1,4 +1,4 @@
-const logger = require('@freshmart/shared').logger;
+const logger = require('@freshmart/service-shared').logger;
 const { buildSuccessResponse, buildErrorResponse, logEventContext } = require('./utils');
 
 const processedEvents = new Map();

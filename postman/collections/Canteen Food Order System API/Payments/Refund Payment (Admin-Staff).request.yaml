@@ -1,0 +1,7 @@
+$kind: http-request
+name: Refund Payment (Admin/Staff)
+url: "{{baseUrl}}/payments/{{paymentId}}/refund"
+method: PATCH
+headers:
+  Authorization: Bearer {{adminToken}}
+order: 4000

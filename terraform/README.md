@@ -11,9 +11,11 @@ This directory contains the Terraform scaffold for FreshMart.
 - `modules/iam`: service roles and policies
 - `modules/cloudwatch`: log groups, alarms, dashboards
 - `modules/eventbridge`: buses, rules, and targets
-- `modules/cognito`: future authentication foundation
-- `modules/sns`: future notifications foundation
-- `modules/sqs`: future queue foundation
+- `modules/network`: VPC, subnets, routing, NAT, and endpoint foundation
+- `modules/cognito`: Cognito user pool, client, domain, groups, and identity pool
+- `modules/secrets`: Secrets Manager and Parameter Store foundations
+- `modules/sns`: SNS topics and subscriptions
+- `modules/sqs`: SQS queues, DLQs, and SNS fan-in
 - `providers.tf`: shared provider configuration
 - `versions.tf`: Terraform and provider version constraints
 - `variables.tf`: root inputs
@@ -23,6 +25,6 @@ This directory contains the Terraform scaffold for FreshMart.
 
 ## Notes
 
-- No AWS resources are defined yet.
 - Use the environment folders to compose modules per stage.
 - Apply shared tags everywhere through `local.common_tags`.
+- Keep all environment-specific wiring in the environment entrypoints so the reusable modules stay portable.

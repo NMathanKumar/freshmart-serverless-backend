@@ -8,14 +8,26 @@ const clientOptions = {
   region: awsConfig.region,
 };
 
-const s3Client = new S3Client(clientOptions);
-const snsClient = new SNSClient(clientOptions);
-const sqsClient = new SQSClient(clientOptions);
-const eventBridgeClient = new EventBridgeClient(clientOptions);
+let s3Client;
+let snsClient;
+let sqsClient;
+let eventBridgeClient;
 
 module.exports = {
-  s3Client,
-  snsClient,
-  sqsClient,
-  eventBridgeClient,
+  get s3Client() {
+    if (!s3Client) s3Client = new S3Client(clientOptions);
+    return s3Client;
+  },
+  get snsClient() {
+    if (!snsClient) snsClient = new SNSClient(clientOptions);
+    return snsClient;
+  },
+  get sqsClient() {
+    if (!sqsClient) sqsClient = new SQSClient(clientOptions);
+    return sqsClient;
+  },
+  get eventBridgeClient() {
+    if (!eventBridgeClient) eventBridgeClient = new EventBridgeClient(clientOptions);
+    return eventBridgeClient;
+  },
 };

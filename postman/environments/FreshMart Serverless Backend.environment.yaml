@@ -1,0 +1,26 @@
+name: FreshMart Serverless Backend
+values:
+  - key: baseUrl
+    value: 'https://98fyk75ya9.execute-api.ap-southeast-1.amazonaws.com/v1'
+  - key: accessToken
+    value: ''
+  - key: refreshToken
+    value: ''
+  - key: adminToken
+    value: ''
+  - key: userId
+    value: ''
+  - key: productId
+    value: ''
+  - key: categoryId
+    value: ''
+  - key: inventoryId
+    value: ''
+  - key: cartId
+    value: ''
+  - key: orderId
+    value: ''
+  - key: paymentId
+    value: ''
+  - key: notificationId
+    value: ''

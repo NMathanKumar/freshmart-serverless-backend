@@ -1,7 +1,7 @@
 const express = require('express');
-const authenticate = require('@freshmart/shared').middleware.authenticate;
-const authorize = require('@freshmart/shared').middleware.authorize;
-const validate = require('@freshmart/shared').middleware.validate;
+const authenticate = require('@freshmart/service-shared').middleware.authenticate;
+const authorize = require('@freshmart/service-shared').middleware.authorize;
+const validate = require('@freshmart/service-shared').middleware.validate;
 const controller = require('../controllers/payment.controller');
 const {
   createPaymentSchema,

@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/orders"
+method: POST
+headers:
+  Authorization: Bearer {{customerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "pickupTime": "2026-06-25T12:30:00Z"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.environment.set('orderId', pm.response.json().data.orderId);
+    language: text/javascript
+order: 1000

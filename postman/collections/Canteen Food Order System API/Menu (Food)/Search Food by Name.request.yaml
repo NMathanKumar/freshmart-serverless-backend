@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/food/search?q=dosa"
+method: GET
+headers:
+  Authorization: Bearer {{customerToken}}
+queryParams:
+  q: dosa
+order: 3000

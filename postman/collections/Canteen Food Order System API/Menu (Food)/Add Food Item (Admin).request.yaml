@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/food"
+method: POST
+headers:
+  Authorization: Bearer {{adminToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "Veg Biryani",
+      "description": "Spiced rice with vegetables",
+      "category": "Main Course",
+      "price": 110,
+      "imageUrl": "https://example.com/biryani.jpg",
+      "available": true,
+      "preparationTime": 20
+    }
+scripts:
+  - type: afterResponse
+    code: pm.environment.set('foodId', pm.response.json().data.foodId);
+    language: text/javascript
+order: 5000

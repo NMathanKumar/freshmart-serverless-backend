@@ -15,6 +15,8 @@ locals {
     cloudwatch  = "cloudwatch"
     eventbridge = "eventbridge"
     cognito     = "cognito"
+    network     = "network"
+    secrets     = "secrets"
     sns         = "sns"
     sqs         = "sqs"
     s3          = "s3"

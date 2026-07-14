@@ -1,4 +1,4 @@
-const logger = require('@freshmart/shared').logger;
+const logger = require('@freshmart/service-shared').logger;
 const { normalizeEventBridgeEvent, getEventMetadata } = require('./utils');
 const { getHandler } = require('./router');
 const { runMiddlewareStack } = require('./middleware');

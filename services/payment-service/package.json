@@ -4,12 +4,10 @@
   "private": true,
   "main": "src/lambda.js",
   "scripts": {
-    "start": "node src/lambda.js",
-    "postinstall": "node ../_shared/materialize-local-deps.js"
+    "start": "node src/lambda.js"
   },
   "dependencies": {
-    "@freshmart/shared": "file:../../packages/shared",
-    "@freshmart/service-shared": "file:../_shared",
+    "@freshmart/service-shared": "file:../../packages/shared",
     "@freshmart/order-service": "file:../order-service",
     "@aws-sdk/client-dynamodb": "^3.1076.0",
     "@aws-sdk/client-eventbridge": "^3.1076.0",

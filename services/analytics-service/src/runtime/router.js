@@ -1,15 +1,8 @@
-const { BadRequestError } = require('@freshmart/shared').errors;
+const { BadRequestError } = require('@freshmart/service-shared').errors;
 const { EVENT_TYPES } = require('../events/constants');
 const { buildSuccessResponse, assertRequiredPaths } = require('./utils');
 const workflowService = require('../workflows/enterprise-workflow.service');
-// TODO: Replace direct service imports with EventBridge or HTTP API boundaries.
-const inventoryService = require('@freshmart/inventory-service/src/services/inventory.service');
-const cartService = require('@freshmart/cart-service/src/services/cart.service');
-const orderService = require('@freshmart/order-service/src/services/order.service');
-const paymentService = require('@freshmart/payment-service/src/services/payment.service');
-const notificationService = require('@freshmart/notification-runtime');
 const analyticsService = require('../services/analytics.service');
-const adminService = require('@freshmart/admin-service/src/services/admin.service');
 
 const createConsumer = ({ consumerName, requiredPaths = [], formatter = null, action = null }) => {
   const consumer = async (event, runtimeContext) => {
@@ -51,16 +44,7 @@ const consumers = {
   [EVENT_TYPES.USER_REGISTERED_V1]: createConsumer({
     consumerName: 'userRegisteredV1Consumer',
     requiredPaths: ['user.userId', 'user.email'],
-    action: async (payload, runtimeContext) => {
-      const notificationResult = await notificationService.handleUserRegisteredEvent(payload, runtimeContext);
-      const analyticsResult = await analyticsService.handleUserRegisteredEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.USER_REGISTERED_V1, payload, runtimeContext);
-      return {
-        notificationResult,
-        analyticsResult,
-        adminResult,
-      };
-    },
+    action: analyticsService.handleUserRegisteredEvent,
   }),
   [EVENT_TYPES.FOOD_CREATED]: createConsumer({
     consumerName: 'foodCreatedConsumer',
@@ -75,17 +59,17 @@ const consumers = {
   [EVENT_TYPES.FOOD_AVAILABILITY_CHANGED]: createConsumer({
     consumerName: 'foodAvailabilityChangedConsumer',
     requiredPaths: ['food.foodId', 'food.available'],
-    action: cartService.handleFoodAvailabilityChanged,
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.FOOD_DELETED]: createConsumer({
     consumerName: 'foodDeletedConsumer',
     requiredPaths: ['foodId'],
-    action: cartService.handleFoodDeleted,
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.INVENTORY_UPDATED]: createConsumer({
     consumerName: 'inventoryUpdatedConsumer',
     requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
-    action: cartService.handleInventoryUpdated,
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.INVENTORY_LOW]: createConsumer({
     consumerName: 'inventoryLowConsumer',
@@ -95,61 +79,30 @@ const consumers = {
   [EVENT_TYPES.INVENTORY_LOW_V1]: createConsumer({
     consumerName: 'inventoryLowV1Consumer',
     requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
-    action: async (payload, runtimeContext) => {
-      const notificationResult = await notificationService.handleInventoryLowEvent(payload, runtimeContext);
-      const analyticsResult = await analyticsService.handleInventoryLowEvent(payload, runtimeContext);
-      return {
-        notificationResult,
-        analyticsResult,
-      };
-    },
+    action: analyticsService.handleInventoryLowEvent,
   }),
   [EVENT_TYPES.INVENTORY_OUT_OF_STOCK]: createConsumer({
     consumerName: 'inventoryOutOfStockConsumer',
     requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
-    action: workflowService.processInventoryOutOfStock,
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.INVENTORY_OUT_OF_STOCK_V1]: createConsumer({
     consumerName: 'inventoryOutOfStockV1Consumer',
     requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
-    action: async (payload, runtimeContext) => {
-      const notificationResult = await notificationService.handleInventoryOutOfStockEvent(payload, runtimeContext);
-      const analyticsResult = await analyticsService.handleInventoryOutOfStockEvent(payload, runtimeContext);
-      return {
-        notificationResult,
-        analyticsResult,
-      };
-    },
+    action: analyticsService.handleInventoryOutOfStockEvent,
   }),
   [EVENT_TYPES.ORDER_PLACED]: createConsumer({
     consumerName: 'orderPlacedConsumer',
     requiredPaths: ['order.orderId'],
-    action: async (payload, runtimeContext) => {
-      const workflowResult = await workflowService.processOrderPlaced(payload, runtimeContext);
-      const inventoryResult = await inventoryService.handleOrderPlacedEvent(payload, runtimeContext);
-      return {
-        workflowResult,
-        inventoryResult,
-      };
-    },
+    action: workflowService.processOrderPlaced,
   }),
   [EVENT_TYPES.ORDER_PLACED_V1]: createConsumer({
     consumerName: 'orderPlacedV1Consumer',
     requiredPaths: ['order.orderId'],
-    action: async (payload, runtimeContext) => {
-      const workflowResult = await workflowService.processOrderPlaced(payload, runtimeContext);
-      const inventoryResult = await inventoryService.handleOrderPlacedEvent(payload, runtimeContext);
-      const paymentResult = await paymentService.handleOrderPlacedEvent(payload, runtimeContext);
-      const analyticsResult = await analyticsService.handleOrderPlacedEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.ORDER_PLACED_V1, payload, runtimeContext);
-      return {
-        workflowResult,
-        inventoryResult,
-        paymentResult,
-        analyticsResult,
-        adminResult,
-      };
-    },
+    action: async (payload, runtimeContext) => ({
+      workflowResult: await workflowService.processOrderPlaced(payload, runtimeContext),
+      analyticsResult: await analyticsService.handleOrderPlacedEvent(payload, runtimeContext),
+    }),
   }),
   [EVENT_TYPES.ORDER_ACCEPTED]: createConsumer({
     consumerName: 'orderAcceptedConsumer',
@@ -159,57 +112,27 @@ const consumers = {
   [EVENT_TYPES.ORDER_ACCEPTED_V1]: createConsumer({
     consumerName: 'orderAcceptedV1Consumer',
     requiredPaths: ['order.orderId'],
-    action: async (payload, runtimeContext) => {
-      const notificationResult = await notificationService.handleOrderAcceptedEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.ORDER_ACCEPTED_V1, payload, runtimeContext);
-      return {
-        notificationResult,
-        adminResult,
-      };
-    },
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.ORDER_CANCELLED]: createConsumer({
     consumerName: 'orderCancelledConsumer',
     requiredPaths: ['order.orderId'],
-    action: inventoryService.handleOrderCancelledEvent,
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.ORDER_CANCELLED_V1]: createConsumer({
     consumerName: 'orderCancelledV1Consumer',
     requiredPaths: ['order.orderId'],
-    action: async (payload, runtimeContext) => {
-      const analyticsResult = await analyticsService.handleOrderCancelledEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.ORDER_CANCELLED_V1, payload, runtimeContext);
-      return {
-        analyticsResult,
-        adminResult,
-      };
-    },
+    action: analyticsService.handleOrderCancelledEvent,
   }),
   [EVENT_TYPES.ORDER_READY_V1]: createConsumer({
     consumerName: 'orderReadyV1Consumer',
     requiredPaths: ['order.orderId'],
-    action: async (payload, runtimeContext) => {
-      const notificationResult = await notificationService.handleOrderReadyEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.ORDER_READY_V1, payload, runtimeContext);
-      return {
-        notificationResult,
-        adminResult,
-      };
-    },
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.ORDER_COMPLETED_V1]: createConsumer({
     consumerName: 'orderCompletedV1Consumer',
     requiredPaths: ['order.orderId'],
-    action: async (payload, runtimeContext) => {
-      const notificationResult = await notificationService.handleOrderCompletedEvent(payload, runtimeContext);
-      const analyticsResult = await analyticsService.handleOrderCompletedEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.ORDER_COMPLETED_V1, payload, runtimeContext);
-      return {
-        notificationResult,
-        analyticsResult,
-        adminResult,
-      };
-    },
+    action: analyticsService.handleOrderCompletedEvent,
   }),
   [EVENT_TYPES.PAYMENT_CREATED]: createConsumer({
     consumerName: 'paymentCreatedConsumer',
@@ -219,44 +142,25 @@ const consumers = {
   [EVENT_TYPES.PAYMENT_SUCCESS]: createConsumer({
     consumerName: 'paymentSuccessConsumer',
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    action: orderService.handlePaymentSuccess,
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.PAYMENT_SUCCESS_V1]: createConsumer({
     consumerName: 'paymentSuccessV1Consumer',
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    action: async (payload, runtimeContext) => {
-      const orderResult = await orderService.handlePaymentSuccess(payload, runtimeContext);
-      const workflowResult = await workflowService.processPaymentSuccess(payload, runtimeContext);
-      const notificationResult = await notificationService.handlePaymentSuccessEvent(payload, runtimeContext);
-      const analyticsResult = await analyticsService.handlePaymentSuccessEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.PAYMENT_SUCCESS_V1, payload, runtimeContext);
-      return {
-        orderResult,
-        workflowResult,
-        notificationResult,
-        analyticsResult,
-        adminResult,
-      };
-    },
+    action: async (payload, runtimeContext) => ({
+      workflowResult: await workflowService.processPaymentSuccess(payload, runtimeContext),
+      analyticsResult: await analyticsService.handlePaymentSuccessEvent(payload, runtimeContext),
+    }),
   }),
   [EVENT_TYPES.PAYMENT_FAILED]: createConsumer({
     consumerName: 'paymentFailedConsumer',
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    action: orderService.handlePaymentFailed,
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.PAYMENT_FAILED_V1]: createConsumer({
     consumerName: 'paymentFailedV1Consumer',
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    action: async (payload, runtimeContext) => {
-      const orderResult = await orderService.handlePaymentFailed(payload, runtimeContext);
-      const analyticsResult = await analyticsService.handlePaymentFailedEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.PAYMENT_FAILED_V1, payload, runtimeContext);
-      return {
-        orderResult,
-        analyticsResult,
-        adminResult,
-      };
-    },
+    action: analyticsService.handlePaymentFailedEvent,
   }),
   [EVENT_TYPES.PAYMENT_REFUNDED]: createConsumer({
     consumerName: 'paymentRefundedConsumer',
@@ -281,14 +185,7 @@ const consumers = {
   [EVENT_TYPES.NOTIFICATION_DELIVERED_V1]: createConsumer({
     consumerName: 'notificationDeliveredV1Consumer',
     requiredPaths: ['notification.notificationId'],
-    action: async (payload, runtimeContext) => {
-      const analyticsResult = await analyticsService.handleNotificationDeliveredEvent(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.NOTIFICATION_DELIVERED_V1, payload, runtimeContext);
-      return {
-        analyticsResult,
-        adminResult,
-      };
-    },
+    action: analyticsService.handleNotificationDeliveredEvent,
   }),
   [EVENT_TYPES.NOTIFICATION_FAILED_V1]: createConsumer({
     consumerName: 'notificationFailedV1Consumer',
@@ -298,19 +195,10 @@ const consumers = {
   [EVENT_TYPES.DAILY_ANALYTICS_SCHEDULED]: createConsumer({
     consumerName: 'dailyAnalyticsScheduledConsumer',
     requiredPaths: ['reportDate'],
-    action: async (payload, runtimeContext) => {
-      const analyticsResult = await analyticsService.generateDailyReport(payload, runtimeContext);
-      const workflowResult = await workflowService.processDailyAnalyticsScheduled(payload, runtimeContext);
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.DAILY_REPORT_GENERATED_V1, {
-        reportDate: payload.reportDate,
-        report: { reportId: analyticsResult?.reportId || null, reportType: 'DAILY' },
-      }, runtimeContext);
-      return {
-        analyticsResult,
-        workflowResult,
-        adminResult,
-      };
-    },
+    action: async (payload, runtimeContext) => ({
+      analyticsResult: await analyticsService.generateDailyReport(payload, runtimeContext),
+      workflowResult: await workflowService.processDailyAnalyticsScheduled(payload, runtimeContext),
+    }),
   }),
   [EVENT_TYPES.IMAGE_PROCESSED]: createConsumer({
     consumerName: 'imageProcessedConsumer',
@@ -330,18 +218,12 @@ const consumers = {
   [EVENT_TYPES.DAILY_REPORT_GENERATED_V1]: createConsumer({
     consumerName: 'dailyReportGeneratedV1Consumer',
     requiredPaths: ['reportDate', 'report.reportId'],
-    action: async (payload, runtimeContext) => {
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.DAILY_REPORT_GENERATED_V1, payload, runtimeContext);
-      return { adminResult };
-    },
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.ANALYTICS_UPDATED_V1]: createConsumer({
     consumerName: 'analyticsUpdatedV1Consumer',
     requiredPaths: ['report.reportId', 'report.reportType'],
-    action: async (payload, runtimeContext) => {
-      const adminResult = await adminService.handleDomainEvent(EVENT_TYPES.ANALYTICS_UPDATED_V1, payload, runtimeContext);
-      return { adminResult };
-    },
+    formatter: noopFormatter,
   }),
   [EVENT_TYPES.ADMIN_CONFIG_UPDATED_V1]: createConsumer({
     consumerName: 'adminConfigUpdatedV1Consumer',

@@ -1,0 +1,3 @@
+$kind: collection
+description: Inventory routes exposed by the API Gateway.
+order: 7000

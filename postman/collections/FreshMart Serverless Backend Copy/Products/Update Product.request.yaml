@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/products/{{productId}}"
+method: PUT
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productName": "Organic Bananas",
+      "description": "Fresh bananas sourced from local farms",
+      "category": "Fresh Produce",
+      "brand": "FreshMart",
+      "price": 54.99,
+      "images": [
+        "https://example.com/products/bananas.png"
+      ],
+      "available": true,
+      "weight": 1,
+      "unit": "kg",
+      "stock": 180
+    }
+order: 4000

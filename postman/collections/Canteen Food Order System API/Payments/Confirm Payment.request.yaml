@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/payments/{{paymentId}}/confirm"
+method: PATCH
+headers:
+  Authorization: Bearer {{customerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: "{}"
+order: 2000

@@ -26,6 +26,28 @@ locals {
 
   # FreshMart DynamoDB topology for the prod environment.
   dynamodb_tables = {
+    auth_users = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-auth-users"
+      partition_key = "PK"
+      sort_key      = "SK"
+      ttl_enabled   = true
+      ttl_attribute = "ttl"
+      global_secondary_indexes = [
+        {
+          name            = "EmailIndex"
+          partition_key   = "GSI1PK"
+          sort_key        = "GSI1SK"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    user_profiles = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-user-profiles"
+      partition_key = "pk"
+      sort_key      = "sk"
+    })
+
     products = merge(local.dynamodb_table_defaults, {
       table_name    = "${var.project_name}-${local.environment_name}-products"
       partition_key = "productId"
@@ -43,6 +65,46 @@ locals {
         {
           name            = "status-index"
           partition_key   = "status"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    catalog_items = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-catalog-items"
+      partition_key = "PK"
+      sort_key      = "SK"
+      global_secondary_indexes = [
+        {
+          name            = "CategoryIndex"
+          partition_key   = "CategoryPK"
+          sort_key        = "CategorySK"
+          projection_type = "ALL"
+        },
+        {
+          name            = "AvailabilityIndex"
+          partition_key   = "AvailabilityPK"
+          sort_key        = "AvailabilitySK"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    admin = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-admin"
+      partition_key = "pk"
+      sort_key      = "sk"
+      global_secondary_indexes = [
+        {
+          name            = "gsi1"
+          partition_key   = "gsi1pk"
+          sort_key        = "gsi1sk"
+          projection_type = "ALL"
+        },
+        {
+          name            = "gsi2"
+          partition_key   = "gsi2pk"
+          sort_key        = "gsi2sk"
           projection_type = "ALL"
         },
       ]
@@ -173,10 +235,29 @@ locals {
     "dynamodb:Scan",
   ]
 
-  iam_eventbridge_bus_name = "${var.project_name}-${local.environment_name}-domain-events"
+  iam_eventbridge_bus_name = local.eventbridge_bus_name
+  cognito_issuer           = "https://cognito-idp.${var.aws_region}.amazonaws.com/${module.cognito.user_pool_id}"
+  cognito_jwks_url         = "${local.cognito_issuer}/.well-known/jwks.json"
 
   # IAM role matrix for all FreshMart services in this environment.
   iam_roles = {
+    auth = {
+      service_name = "auth-service"
+      tags         = { Service = "Auth Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["auth_users"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      allow_cognito_user_pool_access = true
+      cognito_user_pool_arns         = [module.cognito.user_pool_arn]
+      eventbridge_rule_name_prefixes = []
+    }
+
     product = {
       service_name = "product-service"
       tags         = { Service = "Product Service" }
@@ -259,6 +340,10 @@ locals {
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
+      allow_sns_publish              = true
+      sns_topic_arns = [
+        module.sns.topic_arns["order_ready"],
+      ]
     }
 
     payment = {
@@ -294,9 +379,50 @@ locals {
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
       allow_sns_publish              = true
-      sns_topic_arns                 = [module.sns.topic_arns["notification"]]
-      allow_sqs_send_message         = true
-      sqs_queue_arns                 = [module.sqs.queue_arn["notification"]]
+      sns_topic_arns = [
+        module.sns.topic_arns["notification"],
+        module.sns.topic_arns["low_stock"],
+        module.sns.topic_arns["order_placed"],
+        module.sns.topic_arns["payment_success"],
+        module.sns.topic_arns["report"],
+      ]
+      allow_sqs_send_message = true
+      sqs_queue_arns = [
+        module.sqs.queue_arn["notification"],
+        module.sqs.queue_arn["inventory_events"],
+        module.sqs.queue_arn["analytics"],
+      ]
+      allow_s3_object_access = true
+      s3_object_arns         = [module.s3.object_arn]
+    }
+
+    menu = {
+      service_name = "menu-service"
+      tags         = { Service = "Menu Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["catalog_items"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+      allow_sns_publish              = true
+      sns_topic_arns = [
+        module.sns.topic_arns["low_stock"],
+        module.sns.topic_arns["order_placed"],
+        module.sns.topic_arns["payment_success"],
+        module.sns.topic_arns["report"],
+      ]
+      allow_sqs_send_message = true
+      sqs_queue_arns = [
+        module.sqs.queue_arn["inventory_events"],
+        module.sqs.queue_arn["analytics"],
+      ]
+      allow_s3_object_access = true
+      s3_object_arns         = [module.s3.object_arn]
     }
 
     analytics = {
@@ -310,6 +436,52 @@ locals {
       ]
       allow_eventbridge_put_events   = true
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+      allow_sns_publish              = true
+      sns_topic_arns = [
+        module.sns.topic_arns["low_stock"],
+        module.sns.topic_arns["order_placed"],
+        module.sns.topic_arns["payment_success"],
+        module.sns.topic_arns["report"],
+      ]
+      allow_sqs_send_message = true
+      sqs_queue_arns = [
+        module.sqs.queue_arn["inventory_events"],
+        module.sqs.queue_arn["analytics"],
+      ]
+      allow_s3_object_access = true
+      s3_object_arns         = [module.s3.object_arn]
+    }
+
+    admin = {
+      service_name = "admin-service"
+      tags         = { Service = "Admin Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["admin"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+      allow_s3_object_access         = true
+      s3_object_arns                 = [module.s3.object_arn]
+    }
+
+    user = {
+      service_name = "user-service"
+      tags         = { Service = "User Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = false
+      eventbridge_bus_names          = []
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
     }
@@ -328,23 +500,51 @@ locals {
     publish                        = true
     tracing_mode                   = "Active"
     log_retention_in_days          = 30
+    log_group_kms_key_id           = null
     reserved_concurrent_executions = null
     dead_letter_config             = null
     ephemeral_storage              = null
     layers                         = []
     permissions                    = []
     tags                           = { Component = "Lambda" }
+    subnet_ids                     = module.network.private_subnet_ids
+    security_group_ids             = [module.network.lambda_security_group_id]
   }
 
   lambda_common_environment = {
-    NODE_ENV    = var.environment
-    LOG_LEVEL   = var.lambda_log_level
-    API_VERSION = "v1"
-    JWT_SECRET  = var.jwt_secret
+    NODE_ENV                    = var.environment
+    LOG_LEVEL                   = var.lambda_log_level
+    API_VERSION                 = "v1"
+    INTERNAL_SERVICE_TOKEN      = var.internal_service_token
+    COGNITO_REGION              = var.aws_region
+    COGNITO_USER_POOL_ID        = module.cognito.user_pool_id
+    COGNITO_USER_POOL_CLIENT_ID = module.cognito.user_pool_client_id
+    COGNITO_USER_POOL_ISSUER    = local.cognito_issuer
+    COGNITO_JWKS_URL            = local.cognito_jwks_url
+    COGNITO_HOSTED_UI_DOMAIN    = coalesce(module.cognito.user_pool_domain, "")
+    COGNITO_GROUP_ADMINS        = module.cognito.group_names["admins"]
+    COGNITO_GROUP_STAFF         = module.cognito.group_names["staff"]
+    COGNITO_GROUP_CUSTOMERS     = module.cognito.group_names["customers"]
+    COGNITO_MFA_CONFIGURATION   = "OPTIONAL"
   }
 
   # FreshMart Lambda topology for the prod environment.
   lambda_functions = {
+    auth = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-auth-service"
+      service_name  = "auth-service"
+      description   = "FreshMart auth service Lambda."
+      filename      = "${local.lambda_package_root}/auth-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["auth"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME         = "auth-service"
+        AWS_EVENT_BUS_NAME   = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE     = "auth-service"
+        DDB_TABLE_AUTH_USERS = module.dynamodb["auth_users"].table_name
+      })
+    })
+
     product = merge(local.lambda_common_settings, {
       function_name = "${var.project_name}-${local.environment_name}-product-service"
       service_name  = "product-service"
@@ -357,6 +557,21 @@ locals {
         AWS_EVENT_BUS_NAME = local.eventbridge_bus_name
         AWS_EVENT_SOURCE   = "product-service"
         DDB_TABLE_PRODUCTS = module.dynamodb["products"].table_name
+      })
+    })
+
+    menu = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-menu-service"
+      service_name  = "menu-service"
+      description   = "FreshMart menu service Lambda."
+      filename      = "${local.lambda_package_root}/menu-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["menu"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME            = "menu-service"
+        AWS_EVENT_BUS_NAME      = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE        = "menu-service"
+        DDB_TABLE_CATALOG_ITEMS = module.dynamodb["catalog_items"].table_name
       })
     })
 
@@ -394,6 +609,34 @@ locals {
       })
     })
 
+    admin = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-admin-service"
+      service_name  = "admin-service"
+      description   = "FreshMart admin service Lambda."
+      filename      = "${local.lambda_package_root}/admin-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["admin"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME       = "admin-service"
+        AWS_EVENT_BUS_NAME = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE   = "admin-service"
+        DDB_TABLE_ADMIN    = module.dynamodb["admin"].table_name
+      })
+    })
+
+    user = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-user-service"
+      service_name  = "user-service"
+      description   = "FreshMart user service Lambda."
+      filename      = "${local.lambda_package_root}/user-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["user"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME            = "user-service"
+        DDB_TABLE_USER_PROFILES = module.dynamodb["user_profiles"].table_name
+      })
+    })
+
     order = merge(local.lambda_common_settings, {
       function_name = "${var.project_name}-${local.environment_name}-order-service"
       service_name  = "order-service"
@@ -402,13 +645,14 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["order"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME        = "order-service"
-        AWS_EVENT_BUS_NAME  = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE    = "order-service"
-        DDB_TABLE_ORDERS    = module.dynamodb["orders"].table_name
-        DDB_TABLE_CARTS     = module.dynamodb["carts"].table_name
-        DDB_TABLE_INVENTORY = module.dynamodb["inventory"].table_name
-        DDB_TABLE_PRODUCTS  = module.dynamodb["products"].table_name
+        SERVICE_NAME                  = "order-service"
+        AWS_EVENT_BUS_NAME            = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE              = "order-service"
+        DDB_TABLE_ORDERS              = module.dynamodb["orders"].table_name
+        DDB_TABLE_CARTS               = module.dynamodb["carts"].table_name
+        DDB_TABLE_INVENTORY           = module.dynamodb["inventory"].table_name
+        DDB_TABLE_PRODUCTS            = module.dynamodb["products"].table_name
+        AWS_SNS_ORDER_READY_TOPIC_ARN = module.sns.topic_arns["order_ready"]
       })
     })
 
@@ -436,13 +680,22 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["notification"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME                   = "notification-service"
-        AWS_EVENT_BUS_NAME             = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE               = "notification-service"
-        DDB_TABLE_NOTIFICATIONS        = module.dynamodb["notifications"].table_name
-        AWS_SNS_NOTIFICATION_TOPIC_ARN = module.sns.topic_arns["notification"]
-        AWS_SQS_NOTIFICATION_QUEUE_URL = module.sqs.queue_url["notification"]
-        AWS_SQS_NOTIFICATION_DLQ_URL   = module.sqs.dlq_url["notification"]
+        SERVICE_NAME                      = "notification-service"
+        AWS_EVENT_BUS_NAME                = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE                  = "notification-service"
+        DDB_TABLE_NOTIFICATIONS           = module.dynamodb["notifications"].table_name
+        AWS_S3_BUCKET                     = module.s3.bucket_name
+        AWS_SNS_NOTIFICATION_TOPIC_ARN    = module.sns.topic_arns["notification"]
+        AWS_SNS_LOW_STOCK_TOPIC_ARN       = module.sns.topic_arns["low_stock"]
+        AWS_SNS_ORDER_PLACED_TOPIC_ARN    = module.sns.topic_arns["order_placed"]
+        AWS_SNS_PAYMENT_SUCCESS_TOPIC_ARN = module.sns.topic_arns["payment_success"]
+        AWS_SNS_REPORT_TOPIC_ARN          = module.sns.topic_arns["report"]
+        AWS_SQS_NOTIFICATION_QUEUE_URL    = module.sqs.queue_url["notification"]
+        AWS_SQS_NOTIFICATION_DLQ_URL      = module.sqs.dlq_url["notification"]
+        AWS_SQS_INVENTORY_QUEUE_URL       = module.sqs.queue_url["inventory_events"]
+        AWS_SQS_INVENTORY_DLQ_URL         = module.sqs.dlq_url["inventory_events"]
+        AWS_SQS_ANALYTICS_QUEUE_URL       = module.sqs.queue_url["analytics"]
+        AWS_SQS_ANALYTICS_DLQ_URL         = module.sqs.dlq_url["analytics"]
       })
     })
 
@@ -454,10 +707,19 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["analytics"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME        = "analytics-service"
-        AWS_EVENT_BUS_NAME  = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE    = "analytics-service"
-        DDB_TABLE_ANALYTICS = module.dynamodb["analytics"].table_name
+        SERVICE_NAME                      = "analytics-service"
+        AWS_EVENT_BUS_NAME                = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE                  = "analytics-service"
+        DDB_TABLE_ANALYTICS               = module.dynamodb["analytics"].table_name
+        AWS_S3_BUCKET                     = module.s3.bucket_name
+        AWS_SNS_LOW_STOCK_TOPIC_ARN       = module.sns.topic_arns["low_stock"]
+        AWS_SNS_ORDER_PLACED_TOPIC_ARN    = module.sns.topic_arns["order_placed"]
+        AWS_SNS_PAYMENT_SUCCESS_TOPIC_ARN = module.sns.topic_arns["payment_success"]
+        AWS_SNS_REPORT_TOPIC_ARN          = module.sns.topic_arns["report"]
+        AWS_SQS_INVENTORY_QUEUE_URL       = module.sqs.queue_url["inventory_events"]
+        AWS_SQS_INVENTORY_DLQ_URL         = module.sqs.dlq_url["inventory_events"]
+        AWS_SQS_ANALYTICS_QUEUE_URL       = module.sqs.queue_url["analytics"]
+        AWS_SQS_ANALYTICS_DLQ_URL         = module.sqs.dlq_url["analytics"]
       })
     })
   }
@@ -475,6 +737,33 @@ locals {
 
   # Route definitions are centralized once and reused by the HTTP API module.
   api_gateway_routes = {
+    auth_register = {
+      method     = "POST"
+      path       = "/auth/register"
+      lambda_key = "auth"
+    }
+    auth_login = {
+      method     = "POST"
+      path       = "/auth/login"
+      lambda_key = "auth"
+    }
+    auth_refresh = {
+      method     = "POST"
+      path       = "/auth/refresh"
+      lambda_key = "auth"
+    }
+    auth_logout = {
+      method     = "POST"
+      path       = "/auth/logout"
+      lambda_key = "auth"
+    }
+    auth_me = {
+      method             = "GET"
+      path               = "/auth/me"
+      lambda_key         = "auth"
+      authorization_type = "JWT"
+    }
+
     products_list = {
       method     = "GET"
       path       = "/products"
@@ -499,6 +788,41 @@ locals {
       method     = "DELETE"
       path       = "/products/{id}"
       lambda_key = "product"
+    }
+    menu_search = {
+      method     = "GET"
+      path       = "/menu/search"
+      lambda_key = "menu"
+    }
+    menu_list = {
+      method     = "GET"
+      path       = "/menu"
+      lambda_key = "menu"
+    }
+    menu_get = {
+      method     = "GET"
+      path       = "/menu/{id}"
+      lambda_key = "menu"
+    }
+    menu_create = {
+      method     = "POST"
+      path       = "/menu"
+      lambda_key = "menu"
+    }
+    menu_update = {
+      method     = "PATCH"
+      path       = "/menu/{id}"
+      lambda_key = "menu"
+    }
+    menu_availability = {
+      method     = "PATCH"
+      path       = "/menu/{id}/availability"
+      lambda_key = "menu"
+    }
+    menu_delete = {
+      method     = "DELETE"
+      path       = "/menu/{id}"
+      lambda_key = "menu"
     }
     inventory_list = {
       method     = "GET"
@@ -550,10 +874,36 @@ locals {
       path       = "/payments/{paymentId}"
       lambda_key = "payment"
     }
+
+    admin_health = {
+      method     = "GET"
+      path       = "/admin/health"
+      lambda_key = "admin"
+    }
+    admin_dashboard = {
+      method     = "GET"
+      path       = "/admin/dashboard"
+      lambda_key = "admin"
+    }
+    admin_config_get = {
+      method     = "GET"
+      path       = "/admin/config"
+      lambda_key = "admin"
+    }
+    admin_config_put = {
+      method     = "PUT"
+      path       = "/admin/config"
+      lambda_key = "admin"
+    }
+    admin_audit = {
+      method     = "GET"
+      path       = "/admin/audit"
+      lambda_key = "admin"
+    }
   }
 
   # EventBridge wiring keeps the shared bus, rules, and consumers centralized.
-  eventbridge_bus_name = "freshmart-events"
+  eventbridge_bus_name = "${var.project_name}-events"
 
   eventbridge_lambda_targets = {
     notification = {
@@ -567,29 +917,52 @@ locals {
   }
 
   eventbridge_rules = {
+    auth = {
+      description          = "Match FreshMart auth domain events."
+      sources              = ["auth-service"]
+      detail_type_prefixes = ["UserRegistered"]
+      target_lambda_keys   = ["notification", "analytics"]
+    }
     product = {
       description          = "Match FreshMart product domain events."
+      sources              = ["product-service"]
       detail_type_prefixes = ["Product"]
+      target_lambda_keys   = ["notification", "analytics"]
+    }
+    menu = {
+      description          = "Match FreshMart menu domain events."
+      sources              = ["menu-service"]
+      detail_type_prefixes = ["Food"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     inventory = {
       description          = "Match FreshMart inventory domain events."
+      sources              = ["inventory-service"]
       detail_type_prefixes = ["Inventory"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     cart = {
       description          = "Match FreshMart cart domain events."
+      sources              = ["cart-service"]
       detail_type_prefixes = ["Cart"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     order = {
       description          = "Match FreshMart order domain events."
+      sources              = ["order-service"]
       detail_type_prefixes = ["Order"]
       target_lambda_keys   = ["notification", "analytics"]
     }
     payment = {
       description          = "Match FreshMart payment domain events."
+      sources              = ["payment-service"]
       detail_type_prefixes = ["Payment"]
+      target_lambda_keys   = ["notification", "analytics"]
+    }
+    admin = {
+      description          = "Match FreshMart admin domain events."
+      sources              = ["admin-service"]
+      detail_type_prefixes = ["Admin"]
       target_lambda_keys   = ["notification", "analytics"]
     }
   }
@@ -616,14 +989,26 @@ locals {
     low_stock = {
       name = "${var.project_name}-${local.environment_name}-low-stock"
     }
+    order_placed = {
+      name = "${var.project_name}-${local.environment_name}-order-placed"
+    }
+    order_ready = {
+      name = "${var.project_name}-${local.environment_name}-order-ready"
+    }
     order_events = {
       name = "${var.project_name}-${local.environment_name}-order-events"
     }
     payment_events = {
       name = "${var.project_name}-${local.environment_name}-payment-events"
     }
+    payment_success = {
+      name = "${var.project_name}-${local.environment_name}-payment-success"
+    }
     notification = {
       name = "${var.project_name}-${local.environment_name}-notification"
+    }
+    report = {
+      name = "${var.project_name}-${local.environment_name}-report"
     }
   }
 
@@ -642,6 +1027,10 @@ locals {
     payment_processing = {
       name                      = "${var.project_name}-${local.environment_name}-payment-processing"
       sns_topic_keys            = ["payment_events"]
+      receive_wait_time_seconds = 20
+    }
+    analytics = {
+      name                      = "${var.project_name}-${local.environment_name}-analytics"
       receive_wait_time_seconds = 20
     }
     notification = {

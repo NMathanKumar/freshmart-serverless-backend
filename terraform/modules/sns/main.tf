@@ -26,9 +26,10 @@ locals {
 resource "aws_sns_topic" "this" {
   for_each = var.topics
 
-  name         = each.value.name
-  display_name = try(each.value.display_name, null)
-  fifo_topic   = try(each.value.fifo_topic, false)
+  name              = each.value.name
+  display_name      = try(each.value.display_name, null)
+  fifo_topic        = try(each.value.fifo_topic, false)
+  kms_master_key_id = var.kms_master_key_id
 
   tags = merge(local.merged_tags, {
     Name = each.value.name

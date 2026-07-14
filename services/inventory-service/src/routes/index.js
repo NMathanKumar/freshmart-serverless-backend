@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate, authorize, validate } = require('@freshmart/shared').middleware;
+const { authenticate, authorize, validate } = require('@freshmart/service-shared').middleware;
 
 const inventoryController = require('../controllers/inventory.controller');
 const {

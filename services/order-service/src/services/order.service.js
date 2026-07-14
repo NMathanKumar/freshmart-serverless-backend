@@ -1,8 +1,8 @@
-const { genId } = require('@freshmart/shared').utils.id;
-const { NotFoundError, BadRequestError, ForbiddenError } = require('@freshmart/shared').errors;
-const { buildMeta } = require('@freshmart/shared').utils.pagination;
-const { ORDER_STATUS, CUSTOMER_CANCELLABLE_STATUSES, ROLES } = require('@freshmart/shared').constants;
-const sharedLogger = require('@freshmart/shared').logger;
+const { genId } = require('@freshmart/service-shared').utils.id;
+const { NotFoundError, BadRequestError, ForbiddenError } = require('@freshmart/service-shared').errors;
+const { buildMeta } = require('@freshmart/service-shared').utils.pagination;
+const { ORDER_STATUS, CUSTOMER_CANCELLABLE_STATUSES, ROLES } = require('@freshmart/service-shared').constants;
+const sharedLogger = require('@freshmart/service-shared').logger;
 const orderRepository = require('../repositories/order.repository');
 const cartRepository = require('@freshmart/cart-service/src/repositories/cart.repository');
 const cartService = require('@freshmart/cart-service/src/services/cart.service');
@@ -203,7 +203,6 @@ const cancelOrder = async (orderId, requestingUser, context = {}) => {
   const items = Array.isArray(order.items) ? order.items : [];
   for (const item of items) {
     // eslint-disable-next-line no-await-in-loop
-    // TODO: Remove after Payment Service migration.
     await inventoryService.increaseStock(
       item.productId || item.foodId,
       { amount: item.quantity },
@@ -218,13 +217,11 @@ const syncPaymentStatus = async (orderId, paymentStatus) =>
 
 const handleInventoryUpdated = async (payload = {}, context = {}) => {
   const inventory = payload.inventory || payload;
-  // TODO: Remove after Payment Service migration.
   logger.info('Observed InventoryUpdated event', {
     productId: inventory?.productId || inventory?.foodId || null,
     correlationId: context.correlationId || null,
     requestId: context.requestId || null,
   });
-  // TODO: Remove after Payment Service migration.
   return { productId: inventory?.productId || inventory?.foodId || null };
 };
 

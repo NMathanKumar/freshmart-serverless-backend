@@ -11,6 +11,15 @@ locals {
   merged_tags = merge(local.base_tags, var.tags)
 }
 
+resource "aws_cloudwatch_log_group" "access" {
+  count = var.enable_access_logs ? 1 : 0
+
+  name              = "/aws/apigateway/${var.api_name}"
+  retention_in_days = var.access_log_retention_in_days
+  kms_key_id        = var.access_log_kms_key_id
+  tags              = local.merged_tags
+}
+
 # HTTP API is the core API Gateway resource for FreshMart.
 resource "aws_apigatewayv2_api" "this" {
   name          = var.api_name
@@ -35,6 +44,31 @@ resource "aws_apigatewayv2_stage" "this" {
   name        = var.stage_name
   auto_deploy = true
   tags        = local.merged_tags
+
+  default_route_settings {
+    detailed_metrics_enabled = true
+    throttling_burst_limit   = var.throttling_burst_limit
+    throttling_rate_limit    = var.throttling_rate_limit
+  }
+
+  dynamic "access_log_settings" {
+    for_each = var.enable_access_logs ? [1] : []
+
+    content {
+      destination_arn = aws_cloudwatch_log_group.access[0].arn
+      format = jsonencode({
+        requestId               = "$context.requestId"
+        ip                      = "$context.identity.sourceIp"
+        requestTime             = "$context.requestTime"
+        httpMethod              = "$context.httpMethod"
+        routeKey                = "$context.routeKey"
+        status                  = "$context.status"
+        protocol                = "$context.protocol"
+        responseLength          = "$context.responseLength"
+        integrationErrorMessage = "$context.integrationErrorMessage"
+      })
+    }
+  }
 }
 
 # Optional JWT authorizer placeholder remains disabled unless explicitly enabled.

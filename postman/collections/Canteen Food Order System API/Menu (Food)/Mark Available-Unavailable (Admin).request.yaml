@@ -1,0 +1,14 @@
+$kind: http-request
+name: Mark Available/Unavailable (Admin)
+url: "{{baseUrl}}/food/{{foodId}}/availability"
+method: PATCH
+headers:
+  Authorization: Bearer {{adminToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "available": false
+    }
+order: 7000

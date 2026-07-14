@@ -21,7 +21,7 @@ const errorResponseExample = {
 const swaggerSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'Canteen Food Order System API',
+    title: 'FreshMart Serverless Backend API',
     version: '1.0.0',
     description: 'Stabilized backend API documentation for current endpoints.',
   },

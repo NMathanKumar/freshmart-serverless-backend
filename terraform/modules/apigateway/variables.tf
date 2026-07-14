@@ -86,6 +86,36 @@ variable "cors_max_age" {
   default     = 86400
 }
 
+variable "enable_access_logs" {
+  description = "Whether to emit API Gateway access logs to CloudWatch."
+  type        = bool
+  default     = true
+}
+
+variable "access_log_retention_in_days" {
+  description = "Retention for the API Gateway access log group."
+  type        = number
+  default     = 30
+}
+
+variable "access_log_kms_key_id" {
+  description = "Optional KMS key ID or alias for API Gateway access log encryption."
+  type        = string
+  default     = null
+}
+
+variable "throttling_burst_limit" {
+  description = "Default burst limit for the HTTP API stage."
+  type        = number
+  default     = 100
+}
+
+variable "throttling_rate_limit" {
+  description = "Default steady-state rate limit for the HTTP API stage."
+  type        = number
+  default     = 50
+}
+
 variable "jwt_authorizer_enabled" {
   description = "Whether the JWT authorizer placeholder should be created."
   type        = bool

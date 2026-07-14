@@ -9,26 +9,71 @@ const { buildConfig } = require('../config');
 const config = buildConfig();
 const baseClientOptions = { region: config.aws.region };
 
-const dynamoDbClient = new DynamoDBClient(baseClientOptions);
-const documentClient = DynamoDBDocumentClient.from(dynamoDbClient, {
-  marshallOptions: {
-    removeUndefinedValues: true,
-    convertEmptyValues: true,
-    convertClassInstanceToMap: true,
-  },
-});
+let dynamoDbClient;
+let documentClient;
+let s3Client;
+let snsClient;
+let sqsClient;
+let eventBridgeClient;
 
-const s3Client = new S3Client(baseClientOptions);
-const snsClient = new SNSClient(baseClientOptions);
-const sqsClient = new SQSClient(baseClientOptions);
-const eventBridgeClient = new EventBridgeClient(baseClientOptions);
+const getDynamoDbClient = () => {
+  if (!dynamoDbClient) {
+    dynamoDbClient = new DynamoDBClient(baseClientOptions);
+  }
+  return dynamoDbClient;
+};
+
+const getDocumentClient = () => {
+  if (!documentClient) {
+    documentClient = DynamoDBDocumentClient.from(getDynamoDbClient(), {
+      marshallOptions: {
+        removeUndefinedValues: true,
+        convertEmptyValues: true,
+        convertClassInstanceToMap: true,
+      },
+    });
+  }
+  return documentClient;
+};
+
+const getS3Client = () => {
+  if (!s3Client) s3Client = new S3Client(baseClientOptions);
+  return s3Client;
+};
+
+const getSnsClient = () => {
+  if (!snsClient) snsClient = new SNSClient(baseClientOptions);
+  return snsClient;
+};
+
+const getSqsClient = () => {
+  if (!sqsClient) sqsClient = new SQSClient(baseClientOptions);
+  return sqsClient;
+};
+
+const getEventBridgeClient = () => {
+  if (!eventBridgeClient) eventBridgeClient = new EventBridgeClient(baseClientOptions);
+  return eventBridgeClient;
+};
 
 module.exports = {
   config,
-  dynamoDbClient,
-  documentClient,
-  s3Client,
-  snsClient,
-  sqsClient,
-  eventBridgeClient,
+  get dynamoDbClient() {
+    return getDynamoDbClient();
+  },
+  get documentClient() {
+    return getDocumentClient();
+  },
+  get s3Client() {
+    return getS3Client();
+  },
+  get snsClient() {
+    return getSnsClient();
+  },
+  get sqsClient() {
+    return getSqsClient();
+  },
+  get eventBridgeClient() {
+    return getEventBridgeClient();
+  },
 };

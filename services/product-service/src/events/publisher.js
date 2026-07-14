@@ -3,7 +3,7 @@ const {
   publishProductUpdated,
   publishProductDeleted,
   publishProductAvailabilityChanged,
-} = require('@freshmart/shared').eventPublisher;
+} = require('@freshmart/service-shared').eventPublisher;
 
 module.exports = {
   publishProductCreated,

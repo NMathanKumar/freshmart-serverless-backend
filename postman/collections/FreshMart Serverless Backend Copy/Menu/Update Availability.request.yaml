@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/menu/MENU_123/availability"
+method: PATCH
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "available": false
+    }
+order: 6000

@@ -1,11 +1,17 @@
 {
   "name": "freshmart-backend",
   "version": "1.0.0",
-  "description": "FreshMart – Grocery & Daily Essentials Platform. Production-ready, AWS Lambda-deployable backend (Node.js + Express, clean architecture)",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "description": "FreshMart - Grocery & Daily Essentials Platform. Production-ready, AWS Lambda-deployable backend (Node.js + Express, clean architecture)",
   "scripts": {
     "package": "node scripts/package.js all",
     "package:auth": "node scripts/package.js auth",
     "package:product": "node scripts/package.js product",
+    "package:menu": "node scripts/package.js menu",
     "package:inventory": "node scripts/package.js inventory",
     "package:cart": "node scripts/package.js cart",
     "package:order": "node scripts/package.js order",
@@ -13,10 +19,12 @@
     "package:notification": "node scripts/package.js notification",
     "package:analytics": "node scripts/package.js analytics",
     "package:admin": "node scripts/package.js admin",
-    "package:user": "node scripts/package.js user"
+    "package:user": "node scripts/package.js user",
+    "test": "npm run test --workspaces --if-present",
+    "verify:deployment": "node scripts/verify-deployment.js"
   },
   "engines": {
-    "node": ">=18.x"
+    "node": ">=18"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1076.0",
@@ -26,7 +34,8 @@
     "@aws-sdk/client-sqs": "^3.1076.0",
     "@aws-sdk/lib-dynamodb": "^3.1076.0",
     "@aws-sdk/s3-request-presigner": "^3.1076.0",
-    "bcryptjs": "^2.4.3",
+    "adm-zip": "^0.5.16",
+    "archiver": "^7.0.1",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -38,7 +47,7 @@
     "serverless-http": "^3.2.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^9.0.1",
+    "uuid": "^11.1.1",
     "winston": "^3.13.1"
   },
   "devDependencies": {

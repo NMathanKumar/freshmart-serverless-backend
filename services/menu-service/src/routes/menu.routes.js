@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate, authorize, validate } = require('@freshmart/shared').middleware;
+const { authenticateOrInternal, authorize, validate } = require('@freshmart/service-shared').middleware;
 const {
   createFoodSchema,
   updateFoodSchema,
@@ -12,13 +12,19 @@ const controller = require('../controller/menu.controller');
 
 const router = express.Router();
 
-router.get('/search', authenticate, validate(searchQuerySchema, 'query'), controller.searchFood);
-router.get('/', authenticate, validate(listQuerySchema, 'query'), controller.listFood);
-router.get('/:id', authenticate, validate(idParamSchema, 'params'), controller.getFoodById);
-router.post('/', authenticate, authorize('ADMIN', 'STAFF'), validate(createFoodSchema), controller.createFood);
+router.get('/search', authenticateOrInternal, validate(searchQuerySchema, 'query'), controller.searchFood);
+router.get('/', authenticateOrInternal, validate(listQuerySchema, 'query'), controller.listFood);
+router.get('/:id', authenticateOrInternal, validate(idParamSchema, 'params'), controller.getFoodById);
+router.post(
+  '/',
+  authenticateOrInternal,
+  authorize('ADMIN', 'STAFF'),
+  validate(createFoodSchema),
+  controller.createFood
+);
 router.patch(
   '/:id',
-  authenticate,
+  authenticateOrInternal,
   authorize('ADMIN', 'STAFF'),
   validate(idParamSchema, 'params'),
   validate(updateFoodSchema),
@@ -26,12 +32,18 @@ router.patch(
 );
 router.patch(
   '/:id/availability',
-  authenticate,
+  authenticateOrInternal,
   authorize('ADMIN', 'STAFF'),
   validate(idParamSchema, 'params'),
   validate(availabilitySchema),
   controller.setAvailability
 );
-router.delete('/:id', authenticate, authorize('ADMIN'), validate(idParamSchema, 'params'), controller.deleteFood);
+router.delete(
+  '/:id',
+  authenticateOrInternal,
+  authorize('ADMIN'),
+  validate(idParamSchema, 'params'),
+  controller.deleteFood
+);
 
 module.exports = router;

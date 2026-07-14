@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/orders/{{orderId}}/track"
+method: GET
+headers:
+  Authorization: Bearer {{customerToken}}
+order: 4000

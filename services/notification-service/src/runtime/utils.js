@@ -1,5 +1,5 @@
-const { BadRequestError } = require('@freshmart/shared').errors;
-const logger = require('@freshmart/shared').logger;
+const { BadRequestError } = require('@freshmart/service-shared').errors;
+const logger = require('@freshmart/service-shared').logger;
 
 const safeJsonParse = (value) => {
   if (value === undefined || value === null || value === '') return {};

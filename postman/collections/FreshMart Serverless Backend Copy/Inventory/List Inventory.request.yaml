@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/inventory?limit=20"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+queryParams:
+  limit: "20"
+order: 1000

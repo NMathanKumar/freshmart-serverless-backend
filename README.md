@@ -1,13 +1,17 @@
-# FreshMart – Grocery & Daily Essentials Platform
+# FreshMart - Grocery & Daily Essentials Platform
 
 Production-ready backend for a grocery and daily essentials e-commerce platform built as independent AWS-ready microservices.
 
 ## Documentation
 
-- **Project Overview:** [README.md](README.md)
-- **Deployment Guide:** [DEPLOYMENT.md](DEPLOYMENT.md)
+- [Architecture Overview](docs/architecture-overview.md)
+- [Deployment Order](docs/deployment-order.md)
+- [Environment Setup](docs/environment-setup.md)
+- [Production Checklist](docs/production-checklist.md)
+- [Rollback Checklist](docs/rollback-checklist.md)
+- [Deployment Guide](DEPLOYMENT.md)
 
-The complete deployment guide covering Terraform, AWS infrastructure, Lambda packaging, deployment verification, troubleshooting, and operational best practices.
+The repository now keeps release documentation under `docs/` so deployment, rollback, and environment setup guidance stays aligned with the production architecture.
 
 ## Getting Started
 
@@ -44,6 +48,9 @@ Shared runtime and infrastructure helpers live in:
 - `src/integrations`
 - `src/events`
 - `src/lambda`
+- `terraform/modules/network`
+- `terraform/modules/cognito`
+- `terraform/modules/secrets`
 
 ## Service Layout
 
@@ -73,9 +80,9 @@ Each service follows the same internal structure:
 
 ## Authentication
 
-- Authentication is currently handled via JWT with bcrypt password hashing.
-- The auth module is structured to be replaced by Amazon Cognito in a future sprint.
-- No Cognito integration is implemented yet.
+- Authentication is handled by Cognito-backed JWT flows with the auth service managing application-specific user profile and role data.
+- Cognito owns password storage, token issuance, MFA, refresh tokens, and JWT signing.
+- The auth service owns onboarding, profile synchronization, RBAC mapping, audit events, and application validation.
 
 ## Local Development
 
@@ -99,4 +106,4 @@ All routes are versioned under `/v1`:
 
 ## Repository Goal
 
-This repository serves as the production microservices foundation for FreshMart AWS deployment and system design demonstrations.
+This repository serves as the production microservices foundation for FreshMart AWS deployment and release operations.

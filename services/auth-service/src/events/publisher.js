@@ -1,4 +1,4 @@
-const { publishDomainEvent } = require('@freshmart/shared').eventPublisher;
+const { publishDomainEvent } = require('@freshmart/service-shared').eventPublisher;
 
 const publishUserRegistered = (payload = {}, context = {}) =>
   publishDomainEvent('UserRegistered.v1', payload, context);
@@ -9,9 +9,13 @@ const publishUserLoggedIn = (payload = {}, context = {}) =>
 const publishUserLoggedOut = (payload = {}, context = {}) =>
   publishDomainEvent('UserLoggedOut.v1', payload, context);
 
+const publishPasswordChanged = (payload = {}, context = {}) =>
+  publishDomainEvent('PasswordChanged.v1', payload, context);
+
 module.exports = {
   publishUserRegistered,
   publishUserLoggedIn,
   publishUserLoggedOut,
+  publishPasswordChanged,
 };
 

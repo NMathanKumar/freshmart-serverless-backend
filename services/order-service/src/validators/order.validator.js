@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const { ORDER_STATUS } = require('@freshmart/shared').constants;
+const { ORDER_STATUS } = require('@freshmart/service-shared').constants;
 
 const ORDER_STATUS_VALUES = Object.values(ORDER_STATUS);
 

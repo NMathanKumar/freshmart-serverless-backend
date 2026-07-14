@@ -1,7 +1,6 @@
-const { genId } = require('@freshmart/shared').utils.id;
-const { BadRequestError, ConflictError, NotFoundError } = require('@freshmart/shared').errors;
-const sharedLogger = require('@freshmart/shared').logger;
-// TODO: Replace direct product-service repository access with an event-driven or HTTP boundary.
+const { genId } = require('@freshmart/service-shared').utils.id;
+const { BadRequestError, ConflictError, NotFoundError } = require('@freshmart/service-shared').errors;
+const sharedLogger = require('@freshmart/service-shared').logger;
 const createProductRepository = require('@freshmart/product-service/src/repositories/product.repository');
 const inventoryRepository = require('../repositories/inventory.repository');
 const {
@@ -12,7 +11,14 @@ const {
 } = require('../events/publisher');
 
 const logger = sharedLogger.child({ service: 'inventory-service' });
-const productRepository = createProductRepository();
+let productRepository = null;
+
+const getProductRepository = () => {
+  if (!productRepository) {
+    productRepository = createProductRepository();
+  }
+  return productRepository;
+};
 
 const isConditionalConflict = (error) =>
   error?.name === 'ConditionalCheckFailedException' ||
@@ -228,7 +234,7 @@ const listLowStockAlerts = async () => {
     let product = null;
     const id = alert.productId || alert.foodId;
     try {
-      product = await productRepository.findById(id);
+      product = await getProductRepository().findById(id);
     } catch (error) {
       logger.warn('Low stock alert enrichment failed', {
         productId: id,

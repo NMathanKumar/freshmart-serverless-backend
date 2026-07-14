@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/cart"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productId": "{{productId}}",
+      "quantity": 2,
+      "price": 49.99,
+      "productName": "Organic Bananas",
+      "imageUrl": "https://example.com/products/bananas.png",
+      "available": true
+    }
+order: 2000

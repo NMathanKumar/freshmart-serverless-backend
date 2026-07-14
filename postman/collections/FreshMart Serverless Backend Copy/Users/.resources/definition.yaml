@@ -1,0 +1,3 @@
+$kind: collection
+description: No standalone /users routes are exposed in the current API Gateway. Current profile data is available at /auth/me.
+order: 3000

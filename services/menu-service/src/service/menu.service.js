@@ -1,6 +1,6 @@
-const { genId } = require('@freshmart/shared').utils.id;
-const { NotFoundError } = require('@freshmart/shared').errors;
-const baseLogger = require('@freshmart/shared').logger;
+const { genId } = require('@freshmart/service-shared').utils.id;
+const { NotFoundError } = require('@freshmart/service-shared').errors;
+const baseLogger = require('@freshmart/service-shared').logger;
 const createMenuRepository = require('../repositories/menu.repository');
 const {
 	publishFoodCreated,

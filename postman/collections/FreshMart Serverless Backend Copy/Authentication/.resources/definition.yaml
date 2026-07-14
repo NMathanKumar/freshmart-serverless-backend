@@ -1,0 +1,3 @@
+$kind: collection
+description: Authentication endpoints exposed by the API Gateway.
+order: 2000

@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/payments"
+method: POST
+headers:
+  Authorization: Bearer {{customerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "orderId": "{{orderId}}",
+      "paymentMethod": "UPI"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.environment.set('paymentId', pm.response.json().data.paymentId);
+    language: text/javascript
+order: 1000

@@ -33,3 +33,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "kms_master_key_id" {
+  description = "Optional KMS key ID or alias used to encrypt SNS topics."
+  type        = string
+  default     = "alias/aws/sns"
+}

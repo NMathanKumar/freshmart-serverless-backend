@@ -52,14 +52,8 @@ variable "lambda_log_level" {
   default     = "info"
 }
 
-variable "jwt_secret" {
-  description = "JWT signing secret injected into authenticated Lambda services."
-  type        = string
-  sensitive   = true
-}
-
-variable "jwt_refresh_secret" {
-  description = "Refresh-token signing secret injected into the auth Lambda."
+variable "internal_service_token" {
+  description = "Shared token used for service-to-service authentication."
   type        = string
   sensitive   = true
 }

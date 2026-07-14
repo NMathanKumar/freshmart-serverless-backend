@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync, execSync } = require('child_process');
+const archiver = require('archiver');
+const AdmZip = require('adm-zip');
 
 const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
@@ -25,29 +27,19 @@ const ensureDir = (dirPath) => {
 
 const installProductionDependencies = (serviceDir) => {
   const lockFileExists = fs.existsSync(path.join(serviceDir, 'package-lock.json'));
-  const nodeModulesExists = fs.existsSync(path.join(serviceDir, 'node_modules'));
-  if (lockFileExists && nodeModulesExists) {
-    try {
-      execFileSync('node', [path.join(serviceDir, '..', '_shared', 'materialize-local-deps.js')], {
-        cwd: serviceDir,
-        stdio: 'inherit',
-      });
-      return;
-    } catch (error) {
-      // A stale or partially materialized local dependency tree can leave broken links behind.
-      // Fall through to a clean reinstall so packaging can recover deterministically.
-    }
-  }
+
+  // Migrate local materialization from services/_shared -> scripts/materialize-local-deps.js
+  const materializeScript = path.join(rootDir, 'scripts', 'materialize-local-deps.js');
 
   const installWithFallback = () => {
     try {
-      execSync('npm ci --omit=dev', {
+      execSync('npm ci --omit=dev --workspaces=false --install-links', {
         cwd: serviceDir,
         stdio: 'inherit',
         shell: true,
       });
     } catch (error) {
-      execSync('npm install --omit=dev', {
+      execSync('npm install --omit=dev --workspaces=false --install-links', {
         cwd: serviceDir,
         stdio: 'inherit',
         shell: true,
@@ -58,18 +50,19 @@ const installProductionDependencies = (serviceDir) => {
   if (lockFileExists) {
     installWithFallback();
   } else {
-    execSync('npm install --omit=dev', {
+    execSync('npm install --omit=dev --workspaces=false --install-links', {
       cwd: serviceDir,
       stdio: 'inherit',
       shell: true,
     });
   }
 
-  execFileSync('node', [path.join(serviceDir, '..', '_shared', 'materialize-local-deps.js')], {
+  execFileSync('node', [materializeScript], {
     cwd: serviceDir,
     stdio: 'inherit',
   });
 };
+
 
 const removeTypeScriptFiles = (dirPath) => {
   if (!fs.existsSync(dirPath)) return;
@@ -133,47 +126,80 @@ const copyFileWithRetry = (sourcePath, targetPath) => {
   retryWithBackoff(() => fs.copyFileSync(sourcePath, targetPath));
 };
 
-const createZip = (serviceDir, zipPath) => {
-  const attempts = process.platform === 'win32' ? 3 : 1;
-  let lastError = null;
+const verifyPackagedArtifact = (zipPath, serviceDir) => {
+  if (!fs.existsSync(zipPath)) {
+    throw new Error(`Missing generated ZIP artifact: ${zipPath}`);
+  }
 
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      if (process.platform === 'win32') {
-        const command = [
-          '$ErrorActionPreference = "Stop";',
-          `$source = ${JSON.stringify(path.join(serviceDir, '*'))};`,
-          `$destination = ${JSON.stringify(zipPath)};`,
-          'Compress-Archive -Path $source -DestinationPath $destination -Force;',
-        ].join(' ');
+  const stats = fs.statSync(zipPath);
+  if (stats.size <= 0) {
+    throw new Error(`Generated ZIP artifact is empty: ${zipPath}`);
+  }
 
-        execFileSync('powershell', ['-NoProfile', '-Command', command], {
-          stdio: 'inherit',
-        });
-      } else {
-        execFileSync('tar', ['-a', '-c', '-f', zipPath, '-C', serviceDir, '.'], {
-          stdio: 'inherit',
-        });
-      }
-      return;
-    } catch (error) {
-      lastError = error;
-      if (attempt === attempts) {
-        throw error;
-      }
+  const zip = new AdmZip(zipPath);
+  const entries = zip.getEntries().map((entry) => entry.entryName.replace(/\\/g, '/'));
+  const requiredEntries = ['package.json', 'src/lambda.js'];
 
-      if (process.platform === 'win32') {
-        execFileSync('powershell', ['-NoProfile', '-Command', 'Start-Sleep -Seconds 2'], {
-          stdio: 'inherit',
-        });
-      }
+  for (const requiredEntry of requiredEntries) {
+    if (!entries.includes(requiredEntry)) {
+      throw new Error(`ZIP artifact is missing required entry '${requiredEntry}' for ${serviceDir}`);
     }
   }
 
-  throw lastError;
+  if (!entries.some((entry) => entry.startsWith('node_modules/'))) {
+    throw new Error(`ZIP artifact does not include node_modules for ${serviceDir}`);
+  }
 };
 
-const stagePackage = (serviceName) => {
+const createZip = async (serviceDir, zipPath) => {
+  await fs.promises.rm(zipPath, { force: true });
+
+  await new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(zipPath);
+    const archive = archiver('zip', {
+      zlib: { level: 9 },
+    });
+
+    output.on('close', resolve);
+    output.on('error', reject);
+
+    archive.on('warning', (error) => {
+      if (error.code === 'ENOENT') {
+        return;
+      }
+      reject(error);
+    });
+
+    archive.on('error', reject);
+    archive.pipe(output);
+
+    archive.glob('**/*', {
+      cwd: serviceDir,
+      dot: true,
+      ignore: [
+        '.git/**',
+        '.github/**',
+        'coverage/**',
+        'dist/**',
+        'lambda.zip',
+        '**/lambda.zip',
+        '*.zip',
+        '**/*.zip',
+        '*.map',
+        '**/*.map',
+        '*.md',
+        '**/*.md',
+        'tests/**',
+        'test/**',
+        '__tests__/**',
+      ],
+    });
+
+    void archive.finalize();
+  });
+};
+
+const stagePackage = async (serviceName) => {
   const service = services[serviceName];
   if (!service) {
     throw new Error(`Unknown service '${serviceName}'. Expected one of: ${Object.keys(services).join(', ')}`);
@@ -191,9 +217,11 @@ const stagePackage = (serviceName) => {
   ensureDir(distDir);
   removeTypeScriptFiles(serviceDir);
   removeZipFiles(serviceDir);
-  installProductionDependencies(serviceDir);
+  removeFileIfExists(distZipPath);
   removeFileIfExists(tempZipPath);
-  createZip(serviceDir, tempZipPath);
+  installProductionDependencies(serviceDir);
+  await createZip(serviceDir, tempZipPath);
+  verifyPackagedArtifact(tempZipPath, serviceDir);
 
   try {
     copyFileWithRetry(tempZipPath, lambdaZipPath);
@@ -211,20 +239,31 @@ const stagePackage = (serviceName) => {
   return lambdaZipPath;
 };
 
-const main = () => {
+const main = async () => {
   const target = process.argv[2] || 'all';
 
   if (target === 'all') {
-    return Object.keys(services).map((serviceName) => stagePackage(serviceName));
+    const outputs = [];
+    for (const serviceName of Object.keys(services)) {
+      outputs.push(await stagePackage(serviceName));
+    }
+    return outputs;
   }
 
-  return [stagePackage(target)];
+  return [await stagePackage(target)];
 };
 
 if (require.main === module) {
-  const outputs = main();
-  // eslint-disable-next-line no-console
-  console.log(JSON.stringify({ packaged: outputs }, null, 2));
+  main()
+    .then((outputs) => {
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify({ packaged: outputs }, null, 2));
+    })
+    .catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      process.exitCode = 1;
+    });
 }
 
 module.exports = {
