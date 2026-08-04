@@ -16,7 +16,17 @@ locals {
   # Flatten rules and target fan-out into deterministic maps for event targets and permissions.
   rule_target_pairs = merge([
     for rule_key, rule in var.rules : {
-      for target_key in rule.target_lambda_keys :
+      for target_key in coalesce(rule.target_sns_keys, []) :
+      "${rule_key}-${target_key}" => {
+        rule_key   = rule_key
+        target_key = target_key
+      }
+    }
+  ]...)
+
+  rule_lambda_target_pairs = merge([
+    for rule_key, rule in var.rules : {
+      for target_key in coalesce(rule.target_lambda_keys, []) :
       "${rule_key}-${target_key}" => {
         rule_key   = rule_key
         target_key = target_key
@@ -110,14 +120,37 @@ resource "aws_cloudwatch_event_rule" "this" {
   tags           = local.merged_tags
 }
 
-# Lambda targets remain explicit per rule and are fanned out to Notification and Analytics.
-resource "aws_cloudwatch_event_target" "this" {
+# SNS targets remain explicit per rule and are fanned out to Notification and Analytics.
+resource "aws_cloudwatch_event_target" "sns" {
   for_each = local.rule_target_pairs
 
   event_bus_name = aws_cloudwatch_event_bus.this.name
   rule           = aws_cloudwatch_event_rule.this[each.value.rule_key].name
-  arn            = var.lambda_targets[each.value.target_key].function_arn
+  arn            = var.sns_targets[each.value.target_key].topic_arn
   target_id      = "${each.value.rule_key}-${each.value.target_key}"
+
+  retry_policy {
+    maximum_event_age_in_seconds = var.retry_policy.maximum_event_age_in_seconds
+    maximum_retry_attempts       = var.retry_policy.maximum_retry_attempts
+  }
+
+  dynamic "dead_letter_config" {
+    for_each = local.dlq_arn == null ? [] : [1]
+
+    content {
+      arn = local.dlq_arn
+    }
+  }
+}
+
+# Lambda targets
+resource "aws_cloudwatch_event_target" "lambda" {
+  for_each = local.rule_lambda_target_pairs
+
+  event_bus_name = aws_cloudwatch_event_bus.this.name
+  rule           = aws_cloudwatch_event_rule.this[each.value.rule_key].name
+  arn            = var.lambda_targets[each.value.target_key].function_arn
+  target_id      = "${each.value.rule_key}-lambda-${each.value.target_key}"
 
   retry_policy {
     maximum_event_age_in_seconds = var.retry_policy.maximum_event_age_in_seconds
@@ -135,7 +168,7 @@ resource "aws_cloudwatch_event_target" "this" {
 
 # EventBridge needs permission to invoke each Lambda target.
 resource "aws_lambda_permission" "this" {
-  for_each = local.rule_target_pairs
+  for_each = local.rule_lambda_target_pairs
 
   statement_id  = "${each.value.rule_key}-${each.value.target_key}-eventbridge"
   action        = "lambda:InvokeFunction"

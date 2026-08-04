@@ -1,9 +1,17 @@
 const asyncHandler = require('@freshmart/service-shared').utils.asyncHandler;
 const { success, created } = require('@freshmart/service-shared').response;
+const { emitBusinessMetrics } = require('@freshmart/service-shared').metrics;
 const orderService = require('../services/order.service');
 
 const placeOrder = asyncHandler(async (req, res) => {
   const order = await orderService.placeOrderFromCart(req.user.userId, req.body, req.eventContext);
+  try {
+    emitBusinessMetrics([
+      { name: 'OrderPlaced', value: 1, unit: 'Count', extraDimensions: { EventType: 'order', OrderChannel: req.body.channel || 'Web' } },
+      { name: 'OrderRevenue', value: order.totalAmount || 0, unit: 'None', extraDimensions: { EventType: 'order', OrderChannel: req.body.channel || 'Web', Currency: 'SGD' } },
+      { name: 'OrderItemCount', value: order.items?.length || 0, unit: 'Count', extraDimensions: { EventType: 'order', OrderChannel: req.body.channel || 'Web' } }
+    ]);
+  } catch (_) {}
   created(res, { message: 'Order placed successfully', data: order });
 });
 
@@ -41,6 +49,11 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
 const cancelOrder = asyncHandler(async (req, res) => {
   const order = await orderService.cancelOrder(req.params.id, req.user, req.eventContext);
+  try {
+    emitBusinessMetrics([
+      { name: 'OrderCancelled', value: 1, unit: 'Count', extraDimensions: { EventType: 'order' } }
+    ]);
+  } catch (_) {}
   success(res, { message: 'Order cancelled', data: order });
 });
 

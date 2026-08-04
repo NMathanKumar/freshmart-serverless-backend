@@ -112,16 +112,25 @@ locals {
 
     inventory = merge(local.dynamodb_table_defaults, {
       table_name    = "${var.project_name}-${local.environment_name}-inventory"
-      partition_key = "productId"
+      partition_key = "pk"
+      sort_key      = "sk"
       global_secondary_indexes = [
         {
-          name            = "warehouse-index"
-          partition_key   = "warehouseId"
+          name            = "gsi1"
+          partition_key   = "gsi1pk"
+          sort_key        = "gsi1sk"
           projection_type = "ALL"
         },
         {
-          name            = "stockStatus-index"
-          partition_key   = "stockStatus"
+          name            = "gsi2"
+          partition_key   = "gsi2pk"
+          sort_key        = "gsi2sk"
+          projection_type = "ALL"
+        },
+        {
+          name            = "gsi3"
+          partition_key   = "gsi3pk"
+          sort_key        = "gsi3sk"
           projection_type = "ALL"
         },
       ]
@@ -194,6 +203,46 @@ locals {
 
     analytics = merge(local.dynamodb_table_defaults, {
       table_name    = "${var.project_name}-${local.environment_name}-analytics"
+      partition_key = "pk"
+      sort_key      = "sk"
+      global_secondary_indexes = [
+        {
+          name            = "gsi1"
+          partition_key   = "gsi1pk"
+          sort_key        = "gsi1sk"
+          projection_type = "ALL"
+        },
+        {
+          name            = "gsi2"
+          partition_key   = "gsi2pk"
+          sort_key        = "gsi2sk"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    coupon = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-coupon"
+      partition_key = "pk"
+      sort_key      = "sk"
+      global_secondary_indexes = [
+        {
+          name            = "gsi1"
+          partition_key   = "gsi1pk"
+          sort_key        = "gsi1sk"
+          projection_type = "ALL"
+        },
+        {
+          name            = "gsi2"
+          partition_key   = "gsi2pk"
+          sort_key        = "gsi2sk"
+          projection_type = "ALL"
+        },
+      ]
+    })
+
+    warehouses = merge(local.dynamodb_table_defaults, {
+      table_name    = "${var.project_name}-${local.environment_name}-warehouses"
       partition_key = "pk"
       sort_key      = "sk"
       global_secondary_indexes = [
@@ -291,6 +340,8 @@ locals {
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
+      allow_sqs_receive_message      = true
+      sqs_queue_arns                 = [module.sqs.queue_arn["inventory_processing"]]
     }
 
     cart = {
@@ -326,11 +377,11 @@ locals {
         },
         {
           table_arn = module.dynamodb["carts"].table_arn
-          actions   = local.iam_dynamodb_ro_actions
+          actions   = local.iam_dynamodb_rw_actions
         },
         {
           table_arn = module.dynamodb["inventory"].table_arn
-          actions   = local.iam_dynamodb_ro_actions
+          actions   = local.iam_dynamodb_rw_actions
         },
         {
           table_arn = module.dynamodb["products"].table_arn
@@ -341,10 +392,8 @@ locals {
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
-      allow_sns_publish              = true
-      sns_topic_arns = [
-        module.sns.topic_arns["order_ready"],
-      ]
+      allow_sns_publish              = false
+      sns_topic_arns                 = []
     }
 
     payment = {
@@ -379,22 +428,13 @@ locals {
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
-      allow_sns_publish              = true
+      allow_sns_publish              = false
       sns_topic_arns = [
-        module.sns.topic_arns["notification"],
-        module.sns.topic_arns["low_stock"],
-        module.sns.topic_arns["order_placed"],
-        module.sns.topic_arns["payment_success"],
-        module.sns.topic_arns["report"],
       ]
-      allow_sqs_send_message = true
-      sqs_queue_arns = [
-        module.sqs.queue_arn["notification"],
-        module.sqs.queue_arn["inventory_events"],
-        module.sqs.queue_arn["analytics"],
-      ]
-      allow_s3_object_access = true
-      s3_object_arns         = [module.s3.object_arn]
+      allow_sqs_receive_message = true
+      sqs_queue_arns            = [module.sqs.queue_arn["notification_processing"]]
+      allow_s3_object_access    = true
+      s3_object_arns            = [module.s3.object_arn]
     }
 
     menu = {
@@ -410,20 +450,12 @@ locals {
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
-      allow_sns_publish              = true
-      sns_topic_arns = [
-        module.sns.topic_arns["low_stock"],
-        module.sns.topic_arns["order_placed"],
-        module.sns.topic_arns["payment_success"],
-        module.sns.topic_arns["report"],
-      ]
-      allow_sqs_send_message = true
-      sqs_queue_arns = [
-        module.sqs.queue_arn["inventory_events"],
-        module.sqs.queue_arn["analytics"],
-      ]
-      allow_s3_object_access = true
-      s3_object_arns         = [module.s3.object_arn]
+      allow_sns_publish              = false
+      sns_topic_arns                 = []
+      allow_sqs_receive_message      = true
+      sqs_queue_arns                 = [module.sqs.queue_arn["inventory_processing"]]
+      allow_s3_object_access         = true
+      s3_object_arns                 = [module.s3.object_arn]
     }
 
     analytics = {
@@ -432,6 +464,38 @@ locals {
       dynamodb_table_permissions = [
         {
           table_arn = module.dynamodb["analytics"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+      allow_sqs_receive_message      = true
+      sqs_queue_arns                 = [module.sqs.queue_arn["analytics_processing"]]
+    }
+
+    coupon = {
+      service_name = "coupon-service"
+      tags         = { Service = "Coupon Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["coupon"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+    }
+
+    warehouse = {
+      service_name = "warehouse-service"
+      tags         = { Service = "Warehouse Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["warehouses"].table_arn
           actions   = local.iam_dynamodb_rw_actions
         },
       ]
@@ -448,7 +512,43 @@ locals {
         {
           table_arn = module.dynamodb["admin"].table_arn
           actions   = local.iam_dynamodb_rw_actions
-        }
+        },
+        {
+          table_arn = module.dynamodb["orders"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["products"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["inventory"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["carts"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["payments"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["catalog_items"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["analytics"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["warehouses"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
       ]
       allow_eventbridge_put_events   = true
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
@@ -469,6 +569,41 @@ locals {
       ]
       allow_eventbridge_put_events   = false
       eventbridge_bus_names          = []
+      allow_eventbridge_read         = false
+      eventbridge_rule_name_prefixes = []
+    }
+
+    customer_bff = {
+      service_name = "customer-bff-service"
+      tags         = { Service = "Customer BFF Service" }
+      dynamodb_table_permissions = [
+        {
+          table_arn = module.dynamodb["products"].table_arn
+          actions   = local.iam_dynamodb_ro_actions
+        },
+        {
+          table_arn = module.dynamodb["catalog_items"].table_arn
+          actions   = local.iam_dynamodb_ro_actions
+        },
+        {
+          table_arn = module.dynamodb["carts"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["orders"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["notifications"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
+        }
+      ]
+      allow_eventbridge_put_events   = true
+      eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
     }
@@ -494,8 +629,6 @@ locals {
     layers                         = []
     permissions                    = []
     tags                           = { Component = "Lambda" }
-    subnet_ids                     = module.network.private_subnet_ids
-    security_group_ids             = [module.network.lambda_security_group_id]
   }
 
   lambda_common_environment = {
@@ -632,14 +765,13 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["order"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME                  = "order-service"
-        AWS_EVENT_BUS_NAME            = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE              = "order-service"
-        DDB_TABLE_ORDERS              = module.dynamodb["orders"].table_name
-        DDB_TABLE_CARTS               = module.dynamodb["carts"].table_name
-        DDB_TABLE_INVENTORY           = module.dynamodb["inventory"].table_name
-        DDB_TABLE_PRODUCTS            = module.dynamodb["products"].table_name
-        AWS_SNS_ORDER_READY_TOPIC_ARN = module.sns.topic_arns["order_ready"]
+        SERVICE_NAME        = "order-service"
+        AWS_EVENT_BUS_NAME  = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE    = "order-service"
+        DDB_TABLE_ORDERS    = module.dynamodb["orders"].table_name
+        DDB_TABLE_CARTS     = module.dynamodb["carts"].table_name
+        DDB_TABLE_INVENTORY = module.dynamodb["inventory"].table_name
+        DDB_TABLE_PRODUCTS  = module.dynamodb["products"].table_name
       })
     })
 
@@ -667,22 +799,11 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["notification"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME                      = "notification-service"
-        AWS_EVENT_BUS_NAME                = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE                  = "notification-service"
-        DDB_TABLE_NOTIFICATIONS           = module.dynamodb["notifications"].table_name
-        AWS_S3_BUCKET                     = module.s3.bucket_name
-        AWS_SNS_NOTIFICATION_TOPIC_ARN    = module.sns.topic_arns["notification"]
-        AWS_SNS_LOW_STOCK_TOPIC_ARN       = module.sns.topic_arns["low_stock"]
-        AWS_SNS_ORDER_PLACED_TOPIC_ARN    = module.sns.topic_arns["order_placed"]
-        AWS_SNS_PAYMENT_SUCCESS_TOPIC_ARN = module.sns.topic_arns["payment_success"]
-        AWS_SNS_REPORT_TOPIC_ARN          = module.sns.topic_arns["report"]
-        AWS_SQS_NOTIFICATION_QUEUE_URL    = module.sqs.queue_url["notification"]
-        AWS_SQS_NOTIFICATION_DLQ_URL      = module.sqs.dlq_url["notification"]
-        AWS_SQS_INVENTORY_QUEUE_URL       = module.sqs.queue_url["inventory_events"]
-        AWS_SQS_INVENTORY_DLQ_URL         = module.sqs.dlq_url["inventory_events"]
-        AWS_SQS_ANALYTICS_QUEUE_URL       = module.sqs.queue_url["analytics"]
-        AWS_SQS_ANALYTICS_DLQ_URL         = module.sqs.dlq_url["analytics"]
+        SERVICE_NAME            = "notification-service"
+        AWS_EVENT_BUS_NAME      = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE        = "notification-service"
+        DDB_TABLE_NOTIFICATIONS = module.dynamodb["notifications"].table_name
+        AWS_S3_BUCKET           = module.s3.bucket_name
       })
     })
 
@@ -694,19 +815,71 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["analytics"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME                      = "analytics-service"
-        AWS_EVENT_BUS_NAME                = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE                  = "analytics-service"
-        DDB_TABLE_ANALYTICS               = module.dynamodb["analytics"].table_name
-        AWS_S3_BUCKET                     = module.s3.bucket_name
-        AWS_SNS_LOW_STOCK_TOPIC_ARN       = module.sns.topic_arns["low_stock"]
-        AWS_SNS_ORDER_PLACED_TOPIC_ARN    = module.sns.topic_arns["order_placed"]
-        AWS_SNS_PAYMENT_SUCCESS_TOPIC_ARN = module.sns.topic_arns["payment_success"]
-        AWS_SNS_REPORT_TOPIC_ARN          = module.sns.topic_arns["report"]
-        AWS_SQS_INVENTORY_QUEUE_URL       = module.sqs.queue_url["inventory_events"]
-        AWS_SQS_INVENTORY_DLQ_URL         = module.sqs.dlq_url["inventory_events"]
-        AWS_SQS_ANALYTICS_QUEUE_URL       = module.sqs.queue_url["analytics"]
-        AWS_SQS_ANALYTICS_DLQ_URL         = module.sqs.dlq_url["analytics"]
+        SERVICE_NAME        = "analytics-service"
+        AWS_EVENT_BUS_NAME  = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE    = "analytics-service"
+        DDB_TABLE_ANALYTICS = module.dynamodb["analytics"].table_name
+        AWS_S3_BUCKET       = module.s3.bucket_name
+      })
+    })
+
+    coupon = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-coupon-service"
+      service_name  = "coupon-service"
+      description   = "FreshMart coupon service Lambda."
+      filename      = "${local.lambda_package_root}/coupon-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["coupon"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME       = "coupon-service"
+        AWS_EVENT_BUS_NAME = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE   = "coupon-service"
+        DDB_TABLE_COUPON   = module.dynamodb["coupon"].table_name
+      })
+    })
+
+    warehouse = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-warehouse-service"
+      service_name  = "warehouse-service"
+      description   = "FreshMart warehouse service Lambda."
+      filename      = "${local.lambda_package_root}/warehouse-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["warehouse"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME         = "warehouse-service"
+        AWS_EVENT_BUS_NAME   = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE     = "warehouse-service"
+        DDB_TABLE_WAREHOUSES = module.dynamodb["warehouses"].table_name
+      })
+    })
+
+    customer_bff = merge(local.lambda_common_settings, {
+      function_name = "${var.project_name}-${local.environment_name}-customer-bff-service"
+      service_name  = "customer-bff-service"
+      description   = "FreshMart customer bff service Lambda."
+      filename      = "${local.lambda_package_root}/customer-bff-service/${local.lambda_package_filename}"
+      handler       = "src/lambda.handler"
+      role_arn      = module.iam["customer_bff"].role_arn
+      environment_variables = merge(local.lambda_common_environment, {
+        SERVICE_NAME                  = "customer-bff-service"
+        AWS_EVENT_BUS_NAME            = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE              = "customer-bff-service"
+        COGNITO_APP_CLIENT_ID         = module.cognito.user_pool_client_id
+        CUSTOMER_CATALOG_API_URL      = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_CATEGORY_API_URL     = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_CART_API_URL         = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_ORDER_API_URL        = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_USER_API_URL         = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_WISHLIST_API_URL     = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_NOTIFICATION_API_URL = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_PROMOTIONS_API_URL   = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        CUSTOMER_COUPON_API_URL       = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+        DDB_TABLE_PRODUCTS            = module.dynamodb["products"].table_name
+        DDB_TABLE_CATALOG_ITEMS       = module.dynamodb["catalog_items"].table_name
+        DDB_TABLE_CARTS               = module.dynamodb["carts"].table_name
+        DDB_TABLE_ORDERS              = module.dynamodb["orders"].table_name
+        DDB_TABLE_USER_PROFILES       = module.dynamodb["user_profiles"].table_name
+        DDB_TABLE_NOTIFICATIONS       = module.dynamodb["notifications"].table_name
       })
     })
   }
@@ -750,6 +923,34 @@ locals {
       lambda_key         = "auth"
       authorization_type = "JWT"
     }
+    auth_verify_email_request = {
+      method             = "POST"
+      path               = "/auth/verification/email/request"
+      lambda_key         = "auth"
+      authorization_type = "JWT"
+    }
+    auth_verify_email_confirm = {
+      method             = "POST"
+      path               = "/auth/verification/email/confirm"
+      lambda_key         = "auth"
+      authorization_type = "JWT"
+    }
+    auth_forgot_password = {
+      method     = "POST"
+      path       = "/auth/forgot-password"
+      lambda_key = "auth"
+    }
+    auth_confirm_password = {
+      method     = "POST"
+      path       = "/auth/confirm-password"
+      lambda_key = "auth"
+    }
+    auth_change_password = {
+      method             = "POST"
+      path               = "/auth/change-password"
+      lambda_key         = "auth"
+      authorization_type = "JWT"
+    }
 
     products_list = {
       method     = "GET"
@@ -762,19 +963,22 @@ locals {
       lambda_key = "product"
     }
     products_create = {
-      method     = "POST"
-      path       = "/products"
-      lambda_key = "product"
+      method             = "POST"
+      path               = "/products"
+      lambda_key         = "product"
+      authorization_type = "JWT"
     }
     products_update = {
-      method     = "PUT"
-      path       = "/products/{id}"
-      lambda_key = "product"
+      method             = "PUT"
+      path               = "/products/{id}"
+      lambda_key         = "product"
+      authorization_type = "JWT"
     }
     products_delete = {
-      method     = "DELETE"
-      path       = "/products/{id}"
-      lambda_key = "product"
+      method             = "DELETE"
+      path               = "/products/{id}"
+      lambda_key         = "product"
+      authorization_type = "JWT"
     }
 
     menu_search = {
@@ -793,24 +997,28 @@ locals {
       lambda_key = "menu"
     }
     menu_create = {
-      method     = "POST"
-      path       = "/menu"
-      lambda_key = "menu"
+      method             = "POST"
+      path               = "/menu"
+      lambda_key         = "menu"
+      authorization_type = "JWT"
     }
     menu_update = {
-      method     = "PATCH"
-      path       = "/menu/{id}"
-      lambda_key = "menu"
+      method             = "PATCH"
+      path               = "/menu/{id}"
+      lambda_key         = "menu"
+      authorization_type = "JWT"
     }
     menu_availability = {
-      method     = "PATCH"
-      path       = "/menu/{id}/availability"
-      lambda_key = "menu"
+      method             = "PATCH"
+      path               = "/menu/{id}/availability"
+      lambda_key         = "menu"
+      authorization_type = "JWT"
     }
     menu_delete = {
-      method     = "DELETE"
-      path       = "/menu/{id}"
-      lambda_key = "menu"
+      method             = "DELETE"
+      path               = "/menu/{id}"
+      lambda_key         = "menu"
+      authorization_type = "JWT"
     }
 
     inventory_list = {
@@ -819,49 +1027,82 @@ locals {
       lambda_key = "inventory"
     }
     inventory_update = {
-      method     = "PUT"
-      path       = "/inventory/{productId}"
-      lambda_key = "inventory"
+      method             = "PUT"
+      path               = "/inventory/{productId}"
+      lambda_key         = "inventory"
+      authorization_type = "JWT"
     }
     cart_get = {
-      method     = "GET"
-      path       = "/cart"
-      lambda_key = "cart"
+      method             = "GET"
+      path               = "/cart"
+      lambda_key         = "cart"
+      authorization_type = "JWT"
     }
     cart_create = {
-      method     = "POST"
-      path       = "/cart"
-      lambda_key = "cart"
+      method             = "POST"
+      path               = "/cart"
+      lambda_key         = "cart"
+      authorization_type = "JWT"
     }
     cart_delete = {
-      method     = "DELETE"
-      path       = "/cart/{productId}"
-      lambda_key = "cart"
+      method             = "DELETE"
+      path               = "/cart/{productId}"
+      lambda_key         = "cart"
+      authorization_type = "JWT"
+    }
+    cart_add_items = {
+      method             = "POST"
+      path               = "/cart/items"
+      lambda_key         = "cart"
+      authorization_type = "JWT"
+    }
+    cart_update_item = {
+      method             = "PATCH"
+      path               = "/cart/items/{productId}"
+      lambda_key         = "cart"
+      authorization_type = "JWT"
+    }
+    cart_delete_item = {
+      method             = "DELETE"
+      path               = "/cart/items/{productId}"
+      lambda_key         = "cart"
+      authorization_type = "JWT"
+    }
+    orders_list = {
+      method             = "GET"
+      path               = "/orders"
+      lambda_key         = "order"
+      authorization_type = "JWT"
     }
     orders_create = {
-      method     = "POST"
-      path       = "/orders"
-      lambda_key = "order"
+      method             = "POST"
+      path               = "/orders"
+      lambda_key         = "order"
+      authorization_type = "JWT"
     }
     orders_get = {
-      method     = "GET"
-      path       = "/orders/{orderId}"
-      lambda_key = "order"
+      method             = "GET"
+      path               = "/orders/{orderId}"
+      lambda_key         = "order"
+      authorization_type = "JWT"
     }
     orders_cancel = {
-      method     = "PUT"
-      path       = "/orders/{orderId}/cancel"
-      lambda_key = "order"
+      method             = "PUT"
+      path               = "/orders/{orderId}/cancel"
+      lambda_key         = "order"
+      authorization_type = "JWT"
     }
     payments_create = {
-      method     = "POST"
-      path       = "/payments"
-      lambda_key = "payment"
+      method             = "POST"
+      path               = "/payments"
+      lambda_key         = "payment"
+      authorization_type = "JWT"
     }
     payments_get = {
-      method     = "GET"
-      path       = "/payments/{paymentId}"
-      lambda_key = "payment"
+      method             = "GET"
+      path               = "/payments/{paymentId}"
+      lambda_key         = "payment"
+      authorization_type = "JWT"
     }
 
     admin_health = {
@@ -870,89 +1111,144 @@ locals {
       lambda_key = "admin"
     }
     admin_dashboard = {
-      method     = "GET"
-      path       = "/admin/dashboard"
-      lambda_key = "admin"
+      method             = "GET"
+      path               = "/admin/dashboard"
+      lambda_key         = "admin"
+      authorization_type = "JWT"
     }
     admin_config_get = {
-      method     = "GET"
-      path       = "/admin/config"
-      lambda_key = "admin"
+      method             = "GET"
+      path               = "/admin/config"
+      lambda_key         = "admin"
+      authorization_type = "JWT"
     }
     admin_config_put = {
-      method     = "PUT"
-      path       = "/admin/config"
-      lambda_key = "admin"
+      method             = "PUT"
+      path               = "/admin/config"
+      lambda_key         = "admin"
+      authorization_type = "JWT"
     }
     admin_audit = {
-      method     = "GET"
-      path       = "/admin/audit"
-      lambda_key = "admin"
+      method             = "GET"
+      path               = "/admin/audit"
+      lambda_key         = "admin"
+      authorization_type = "JWT"
+    }
+
+    customer_home_get = {
+      method             = "GET"
+      path               = "/customer/home"
+      lambda_key         = "customer_bff"
+      authorization_type = "NONE"
+    }
+    customer_categories_get = {
+      method             = "GET"
+      path               = "/customer/categories"
+      lambda_key         = "customer_bff"
+      authorization_type = "NONE"
+    }
+    customer_product_get = {
+      method             = "GET"
+      path               = "/customer/products/{productId}"
+      lambda_key         = "customer_bff"
+      authorization_type = "NONE"
+    }
+    customer_cart_get = {
+      method             = "GET"
+      path               = "/customer/cart"
+      lambda_key         = "customer_bff"
+      authorization_type = "JWT"
+    }
+    customer_checkout_get = {
+      method             = "GET"
+      path               = "/customer/checkout"
+      lambda_key         = "customer_bff"
+      authorization_type = "JWT"
+    }
+
+    user_profile_get = {
+      method             = "GET"
+      path               = "/users/profile"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    user_profile_put = {
+      method             = "PUT"
+      path               = "/users/profile"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    user_addresses_post = {
+      method             = "POST"
+      path               = "/users/addresses"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    coupon_admin = {
+      method             = "ANY"
+      path               = "/admin/coupons/{proxy+}"
+      lambda_key         = "coupon"
+      authorization_type = "JWT"
+    }
+    coupon_validate = {
+      method             = "POST"
+      path               = "/coupons/validate"
+      lambda_key         = "coupon"
+      authorization_type = "JWT"
+    }
+    coupon_redeem = {
+      method             = "POST"
+      path               = "/coupons/redeem"
+      lambda_key         = "coupon"
+      authorization_type = "JWT"
     }
   }
 
   # EventBridge wiring keeps the shared bus, rules, and consumers centralized.
-  eventbridge_bus_name = "${var.project_name}-events"
+  eventbridge_bus_name = "${var.project_name}-${local.environment_name}-events"
 
-  eventbridge_lambda_targets = {
-    notification = {
-      function_name = module.lambda["notification"].function_name
-      function_arn  = module.lambda["notification"].function_arn
+  eventbridge_sns_targets = {
+    order_events = {
+      topic_arn = module.sns.topic_arns["order_events"]
     }
-    analytics = {
-      function_name = module.lambda["analytics"].function_name
-      function_arn  = module.lambda["analytics"].function_arn
+    customer_events = {
+      topic_arn = module.sns.topic_arns["customer_events"]
+    }
+    inventory_events = {
+      topic_arn = module.sns.topic_arns["inventory_events"]
     }
   }
 
   eventbridge_rules = {
-    auth = {
-      description          = "Match FreshMart auth domain events."
-      sources              = ["auth-service"]
-      detail_type_prefixes = ["UserRegistered"]
-      target_lambda_keys   = ["notification", "analytics"]
+    orders = {
+      description          = "Match FreshMart order domain events."
+      sources              = ["freshmart.order-service"]
+      detail_type_prefixes = ["order."]
+      target_sns_keys      = ["order_events"]
     }
-    product = {
-      description          = "Match FreshMart product domain events."
-      sources              = ["product-service"]
-      detail_type_prefixes = ["Product"]
-      target_lambda_keys   = ["notification", "analytics"]
-    }
-    menu = {
-      description          = "Match FreshMart menu domain events."
-      sources              = ["menu-service"]
-      detail_type_prefixes = ["Food"]
-      target_lambda_keys   = ["notification", "analytics"]
+    customers = {
+      description          = "Match FreshMart customer domain events."
+      sources              = ["freshmart.auth-service", "freshmart.user-service"]
+      detail_type_prefixes = ["customer."]
+      target_sns_keys      = ["customer_events"]
     }
     inventory = {
       description          = "Match FreshMart inventory domain events."
-      sources              = ["inventory-service"]
-      detail_type_prefixes = ["Inventory"]
-      target_lambda_keys   = ["notification", "analytics"]
+      sources              = ["freshmart.inventory-service"]
+      detail_type_prefixes = ["inventory."]
+      target_sns_keys      = ["inventory_events"]
     }
-    cart = {
-      description          = "Match FreshMart cart domain events."
-      sources              = ["cart-service"]
-      detail_type_prefixes = ["Cart"]
-      target_lambda_keys   = ["notification", "analytics"]
+    products = {
+      description          = "Match FreshMart product domain events."
+      sources              = ["freshmart.product-service"]
+      detail_type_prefixes = ["product."]
+      target_sns_keys      = ["inventory_events"]
     }
-    order = {
-      description          = "Match FreshMart order domain events."
-      sources              = ["order-service"]
-      detail_type_prefixes = ["Order"]
-      target_lambda_keys   = ["notification", "analytics"]
-    }
-    payment = {
+    payments = {
       description          = "Match FreshMart payment domain events."
-      sources              = ["payment-service"]
-      detail_type_prefixes = ["Payment"]
-      target_lambda_keys   = ["notification", "analytics"]
-    }
-    admin = {
-      description          = "Match FreshMart admin domain events."
-      sources              = ["admin-service"]
-      detail_type_prefixes = ["Admin"]
-      target_lambda_keys   = ["notification", "analytics"]
+      sources              = ["freshmart.payment-service"]
+      detail_type_prefixes = ["payment."]
+      target_sns_keys      = ["order_events", "customer_events"]
     }
   }
 
@@ -975,56 +1271,32 @@ locals {
 
   # SNS topics provide reusable notification targets across environments.
   sns_topics = {
-    low_stock = {
-      name = "${var.project_name}-${local.environment_name}-low-stock"
-    }
-    order_placed = {
-      name = "${var.project_name}-${local.environment_name}-order-placed"
-    }
-    order_ready = {
-      name = "${var.project_name}-${local.environment_name}-order-ready"
-    }
     order_events = {
       name = "${var.project_name}-${local.environment_name}-order-events"
     }
-    payment_events = {
-      name = "${var.project_name}-${local.environment_name}-payment-events"
+    customer_events = {
+      name = "${var.project_name}-${local.environment_name}-customer-events"
     }
-    payment_success = {
-      name = "${var.project_name}-${local.environment_name}-payment-success"
-    }
-    notification = {
-      name = "${var.project_name}-${local.environment_name}-notification"
-    }
-    report = {
-      name = "${var.project_name}-${local.environment_name}-report"
+    inventory_events = {
+      name = "${var.project_name}-${local.environment_name}-inventory-events"
     }
   }
 
   # SQS queues provide durable workflow buffers and optional SNS fan-in.
   sqs_queues = {
-    inventory_events = {
-      name                      = "${var.project_name}-${local.environment_name}-inventory-events"
-      sns_topic_keys            = ["low_stock"]
+    inventory_processing = {
+      name                      = "${var.project_name}-${local.environment_name}-inventory-processing"
+      sns_topic_keys            = ["order_events", "inventory_events"]
       receive_wait_time_seconds = 20
     }
-    order_processing = {
-      name                      = "${var.project_name}-${local.environment_name}-order-processing"
-      sns_topic_keys            = ["order_events"]
+    notification_processing = {
+      name                      = "${var.project_name}-${local.environment_name}-notification-processing"
+      sns_topic_keys            = ["customer_events", "order_events"]
       receive_wait_time_seconds = 20
     }
-    payment_processing = {
-      name                      = "${var.project_name}-${local.environment_name}-payment-processing"
-      sns_topic_keys            = ["payment_events"]
-      receive_wait_time_seconds = 20
-    }
-    analytics = {
-      name                      = "${var.project_name}-${local.environment_name}-analytics"
-      receive_wait_time_seconds = 20
-    }
-    notification = {
-      name                      = "${var.project_name}-${local.environment_name}-notification"
-      sns_topic_keys            = ["notification"]
+    analytics_processing = {
+      name                      = "${var.project_name}-${local.environment_name}-analytics-processing"
+      sns_topic_keys            = ["order_events", "customer_events", "inventory_events"]
       receive_wait_time_seconds = 20
     }
   }

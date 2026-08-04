@@ -340,7 +340,7 @@ locals {
       eventbridge_bus_names          = [local.iam_eventbridge_bus_name]
       allow_eventbridge_read         = false
       eventbridge_rule_name_prefixes = []
-      allow_sns_publish              = true
+      allow_sns_publish              = false
       sns_topic_arns = [
         module.sns.topic_arns["order_ready"],
       ]
@@ -497,7 +497,7 @@ locals {
     timeout                        = 30
     memory_size                    = 512
     architecture                   = "x86_64"
-    publish                        = true
+    publish                        = false
     tracing_mode                   = "Active"
     log_retention_in_days          = 30
     log_group_kms_key_id           = null
@@ -507,8 +507,8 @@ locals {
     layers                         = []
     permissions                    = []
     tags                           = { Component = "Lambda" }
-    subnet_ids                     = module.network.private_subnet_ids
-    security_group_ids             = [module.network.lambda_security_group_id]
+
+
   }
 
   lambda_common_environment = {
@@ -617,10 +617,14 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["admin"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME       = "admin-service"
-        AWS_EVENT_BUS_NAME = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE   = "admin-service"
-        DDB_TABLE_ADMIN    = module.dynamodb["admin"].table_name
+        SERVICE_NAME            = "admin-service"
+        AWS_EVENT_BUS_NAME      = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE        = "admin-service"
+        DDB_TABLE_ADMIN         = module.dynamodb["admin"].table_name
+        DDB_TABLE_PRODUCTS      = module.dynamodb["products"].table_name
+        DDB_TABLE_INVENTORY     = module.dynamodb["inventory"].table_name
+        DDB_TABLE_ORDERS        = module.dynamodb["orders"].table_name
+        DDB_TABLE_USER_PROFILES = module.dynamodb["user_profiles"].table_name
       })
     })
 

@@ -3,6 +3,7 @@ const { EVENT_TYPES } = require('../events/constants');
 const { buildSuccessResponse, assertRequiredPaths } = require('./utils');
 const workflowService = require('../workflows/enterprise-workflow.service');
 const analyticsService = require('../services/analytics.service');
+const procurementEventHandlers = require('../events/procurement-event.handlers');
 
 const createConsumer = ({ consumerName, requiredPaths = [], formatter = null, action = null }) => {
   const consumer = async (event, runtimeContext) => {
@@ -30,74 +31,66 @@ const createConsumer = ({ consumerName, requiredPaths = [], formatter = null, ac
 
 const noopFormatter = (payload) => payload;
 
+// Consumer handlers keyed by EventBridge detail-type (dot-notation).
+// Since publishers send a single detail-type per event, we register one handler per type.
+// V1 handlers (with real business actions) take precedence over legacy formatters.
 const consumers = {
+  // Infrastructure events
   [EVENT_TYPES.S3_OBJECT_CREATED]: createConsumer({
     consumerName: 's3ObjectCreatedConsumer',
     requiredPaths: ['foodId', 'bucket', 'key', 'contentType'],
     action: workflowService.processFoodImageObjectCreated,
   }),
+
+  // Customer events
   [EVENT_TYPES.USER_REGISTERED]: createConsumer({
     consumerName: 'userRegisteredConsumer',
     requiredPaths: ['user.userId', 'user.email'],
-    formatter: (payload) => ({ userId: payload.user.userId, email: payload.user.email }),
-  }),
-  [EVENT_TYPES.USER_REGISTERED_V1]: createConsumer({
-    consumerName: 'userRegisteredV1Consumer',
-    requiredPaths: ['user.userId', 'user.email'],
     action: analyticsService.handleUserRegisteredEvent,
   }),
+
+  // Product events (publishers send product.* with { product: { productId, name } })
   [EVENT_TYPES.FOOD_CREATED]: createConsumer({
-    consumerName: 'foodCreatedConsumer',
-    requiredPaths: ['food.foodId', 'food.name'],
-    formatter: (payload) => ({ foodId: payload.food.foodId, name: payload.food.name }),
+    consumerName: 'productCreatedConsumer',
+    requiredPaths: ['product.productId'],
+    formatter: (payload) => ({ productId: payload.product.productId, name: payload.product.name }),
   }),
   [EVENT_TYPES.FOOD_UPDATED]: createConsumer({
-    consumerName: 'foodUpdatedConsumer',
-    requiredPaths: ['food.foodId'],
-    formatter: (payload) => ({ foodId: payload.food.foodId }),
+    consumerName: 'productUpdatedConsumer',
+    requiredPaths: ['product.productId'],
+    formatter: (payload) => ({ productId: payload.product.productId }),
   }),
   [EVENT_TYPES.FOOD_AVAILABILITY_CHANGED]: createConsumer({
-    consumerName: 'foodAvailabilityChangedConsumer',
-    requiredPaths: ['food.foodId', 'food.available'],
+    consumerName: 'productAvailabilityChangedConsumer',
+    requiredPaths: ['product.productId'],
     formatter: noopFormatter,
   }),
   [EVENT_TYPES.FOOD_DELETED]: createConsumer({
-    consumerName: 'foodDeletedConsumer',
-    requiredPaths: ['foodId'],
+    consumerName: 'productDeletedConsumer',
+    requiredPaths: ['product.productId'],
     formatter: noopFormatter,
   }),
+
+  // Inventory events (publishers send { inventory: { inventoryId, productId } })
   [EVENT_TYPES.INVENTORY_UPDATED]: createConsumer({
     consumerName: 'inventoryUpdatedConsumer',
-    requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
+    requiredPaths: ['inventory.inventoryId'],
     formatter: noopFormatter,
   }),
   [EVENT_TYPES.INVENTORY_LOW]: createConsumer({
     consumerName: 'inventoryLowConsumer',
-    requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
-    formatter: (payload) => ({ inventoryId: payload.inventory.inventoryId, foodId: payload.inventory.foodId }),
-  }),
-  [EVENT_TYPES.INVENTORY_LOW_V1]: createConsumer({
-    consumerName: 'inventoryLowV1Consumer',
-    requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
+    requiredPaths: ['inventory.inventoryId'],
     action: analyticsService.handleInventoryLowEvent,
   }),
   [EVENT_TYPES.INVENTORY_OUT_OF_STOCK]: createConsumer({
     consumerName: 'inventoryOutOfStockConsumer',
-    requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
-    formatter: noopFormatter,
-  }),
-  [EVENT_TYPES.INVENTORY_OUT_OF_STOCK_V1]: createConsumer({
-    consumerName: 'inventoryOutOfStockV1Consumer',
-    requiredPaths: ['inventory.inventoryId', 'inventory.foodId'],
+    requiredPaths: ['inventory.inventoryId'],
     action: analyticsService.handleInventoryOutOfStockEvent,
   }),
+
+  // Order events
   [EVENT_TYPES.ORDER_PLACED]: createConsumer({
     consumerName: 'orderPlacedConsumer',
-    requiredPaths: ['order.orderId'],
-    action: workflowService.processOrderPlaced,
-  }),
-  [EVENT_TYPES.ORDER_PLACED_V1]: createConsumer({
-    consumerName: 'orderPlacedV1Consumer',
     requiredPaths: ['order.orderId'],
     action: async (payload, runtimeContext) => ({
       workflowResult: await workflowService.processOrderPlaced(payload, runtimeContext),
@@ -107,33 +100,25 @@ const consumers = {
   [EVENT_TYPES.ORDER_ACCEPTED]: createConsumer({
     consumerName: 'orderAcceptedConsumer',
     requiredPaths: ['order.orderId'],
-    formatter: (payload) => ({ orderId: payload.order.orderId }),
-  }),
-  [EVENT_TYPES.ORDER_ACCEPTED_V1]: createConsumer({
-    consumerName: 'orderAcceptedV1Consumer',
-    requiredPaths: ['order.orderId'],
     formatter: noopFormatter,
   }),
   [EVENT_TYPES.ORDER_CANCELLED]: createConsumer({
     consumerName: 'orderCancelledConsumer',
     requiredPaths: ['order.orderId'],
-    formatter: noopFormatter,
-  }),
-  [EVENT_TYPES.ORDER_CANCELLED_V1]: createConsumer({
-    consumerName: 'orderCancelledV1Consumer',
-    requiredPaths: ['order.orderId'],
     action: analyticsService.handleOrderCancelledEvent,
   }),
-  [EVENT_TYPES.ORDER_READY_V1]: createConsumer({
-    consumerName: 'orderReadyV1Consumer',
+  [EVENT_TYPES.ORDER_READY]: createConsumer({
+    consumerName: 'orderReadyConsumer',
     requiredPaths: ['order.orderId'],
     formatter: noopFormatter,
   }),
-  [EVENT_TYPES.ORDER_COMPLETED_V1]: createConsumer({
-    consumerName: 'orderCompletedV1Consumer',
+  [EVENT_TYPES.ORDER_COMPLETED]: createConsumer({
+    consumerName: 'orderCompletedConsumer',
     requiredPaths: ['order.orderId'],
     action: analyticsService.handleOrderCompletedEvent,
   }),
+
+  // Payment events
   [EVENT_TYPES.PAYMENT_CREATED]: createConsumer({
     consumerName: 'paymentCreatedConsumer',
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
@@ -141,11 +126,6 @@ const consumers = {
   }),
   [EVENT_TYPES.PAYMENT_SUCCESS]: createConsumer({
     consumerName: 'paymentSuccessConsumer',
-    requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    formatter: noopFormatter,
-  }),
-  [EVENT_TYPES.PAYMENT_SUCCESS_V1]: createConsumer({
-    consumerName: 'paymentSuccessV1Consumer',
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
     action: async (payload, runtimeContext) => ({
       workflowResult: await workflowService.processPaymentSuccess(payload, runtimeContext),
@@ -155,11 +135,6 @@ const consumers = {
   [EVENT_TYPES.PAYMENT_FAILED]: createConsumer({
     consumerName: 'paymentFailedConsumer',
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    formatter: noopFormatter,
-  }),
-  [EVENT_TYPES.PAYMENT_FAILED_V1]: createConsumer({
-    consumerName: 'paymentFailedV1Consumer',
-    requiredPaths: ['payment.paymentId', 'payment.orderId'],
     action: analyticsService.handlePaymentFailedEvent,
   }),
   [EVENT_TYPES.PAYMENT_REFUNDED]: createConsumer({
@@ -167,31 +142,25 @@ const consumers = {
     requiredPaths: ['payment.paymentId', 'payment.orderId'],
     formatter: (payload) => ({ paymentId: payload.payment.paymentId, orderId: payload.payment.orderId }),
   }),
-  [EVENT_TYPES.PAYMENT_CREATED_V1]: createConsumer({
-    consumerName: 'paymentCreatedV1Consumer',
-    requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    formatter: (payload) => ({ paymentId: payload.payment.paymentId, orderId: payload.payment.orderId }),
-  }),
-  [EVENT_TYPES.PAYMENT_REFUNDED_V1]: createConsumer({
-    consumerName: 'paymentRefundedV1Consumer',
-    requiredPaths: ['payment.paymentId', 'payment.orderId'],
-    formatter: (payload) => ({ paymentId: payload.payment.paymentId, orderId: payload.payment.orderId }),
-  }),
+
+  // Notification events
   [EVENT_TYPES.NOTIFICATION_CREATED_V1]: createConsumer({
-    consumerName: 'notificationCreatedV1Consumer',
+    consumerName: 'notificationCreatedConsumer',
     requiredPaths: ['notification.notificationId'],
     formatter: (payload) => ({ notificationId: payload.notification.notificationId }),
   }),
   [EVENT_TYPES.NOTIFICATION_DELIVERED_V1]: createConsumer({
-    consumerName: 'notificationDeliveredV1Consumer',
+    consumerName: 'notificationDeliveredConsumer',
     requiredPaths: ['notification.notificationId'],
     action: analyticsService.handleNotificationDeliveredEvent,
   }),
   [EVENT_TYPES.NOTIFICATION_FAILED_V1]: createConsumer({
-    consumerName: 'notificationFailedV1Consumer',
+    consumerName: 'notificationFailedConsumer',
     requiredPaths: ['notification.notificationId'],
     formatter: (payload) => ({ notificationId: payload.notification.notificationId }),
   }),
+
+  // Scheduled/batch events
   [EVENT_TYPES.DAILY_ANALYTICS_SCHEDULED]: createConsumer({
     consumerName: 'dailyAnalyticsScheduledConsumer',
     requiredPaths: ['reportDate'],
@@ -212,33 +181,81 @@ const consumers = {
   }),
   [EVENT_TYPES.DAILY_REPORT_GENERATED]: createConsumer({
     consumerName: 'dailyReportGeneratedConsumer',
-    requiredPaths: ['reportDate', 'report.key'],
-    formatter: noopFormatter,
-  }),
-  [EVENT_TYPES.DAILY_REPORT_GENERATED_V1]: createConsumer({
-    consumerName: 'dailyReportGeneratedV1Consumer',
     requiredPaths: ['reportDate', 'report.reportId'],
     formatter: noopFormatter,
   }),
+
+  // Analytics events
   [EVENT_TYPES.ANALYTICS_UPDATED_V1]: createConsumer({
-    consumerName: 'analyticsUpdatedV1Consumer',
+    consumerName: 'analyticsUpdatedConsumer',
     requiredPaths: ['report.reportId', 'report.reportType'],
     formatter: noopFormatter,
   }),
+
+  // Admin events
   [EVENT_TYPES.ADMIN_CONFIG_UPDATED_V1]: createConsumer({
-    consumerName: 'adminConfigUpdatedV1Consumer',
+    consumerName: 'adminConfigUpdatedConsumer',
     requiredPaths: ['config.adminItemId', 'config.entityType'],
     formatter: noopFormatter,
   }),
   [EVENT_TYPES.ADMIN_DASHBOARD_UPDATED_V1]: createConsumer({
-    consumerName: 'adminDashboardUpdatedV1Consumer',
+    consumerName: 'adminDashboardUpdatedConsumer',
     requiredPaths: ['dashboard.adminItemId', 'dashboard.entityType'],
     formatter: noopFormatter,
   }),
+
+  // Inventory restocking
   [EVENT_TYPES.RESTOCK_JOB_QUEUED]: createConsumer({
     consumerName: 'restockJobQueuedConsumer',
     requiredPaths: ['foodId'],
     formatter: noopFormatter,
+  }),
+
+  // Procurement events
+  'PurchaseOrderCreated': createConsumer({
+    consumerName: 'poCreatedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onPurchaseOrderCreated(payload),
+  }),
+  'PurchaseOrderApproved': createConsumer({
+    consumerName: 'poApprovedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onPurchaseOrderApproved(payload),
+  }),
+  'PurchaseOrderReceived': createConsumer({
+    consumerName: 'poReceivedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onPurchaseOrderReceived(payload),
+  }),
+  'RTVCreated': createConsumer({
+    consumerName: 'rtvCreatedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onVendorReturnCreated(payload),
+  }),
+  'RTVApproved': createConsumer({
+    consumerName: 'rtvApprovedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onVendorReturnApproved ? procurementEventHandlers.onVendorReturnApproved(payload) : null,
+  }),
+  'RTVDispatched': createConsumer({
+    consumerName: 'rtvDispatchedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onVendorReturnDispatched(payload),
+  }),
+  'RTVCreditNoteRecorded': createConsumer({
+    consumerName: 'rtvCreditNoteConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onCreditNoteReceived(payload),
+  }),
+  'InvoiceApproved': createConsumer({
+    consumerName: 'invoiceApprovedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onVendorInvoiceApproved(payload),
+  }),
+  'PaymentRecorded': createConsumer({
+    consumerName: 'paymentRecordedConsumer',
+    requiredPaths: [],
+    action: (payload) => procurementEventHandlers.onPaymentRecorded(payload),
   }),
 };
 

@@ -1,21 +1,29 @@
 const {
   GetCommand,
   PutCommand,
-  UpdateCommand,
   DeleteCommand,
   QueryCommand,
+  ScanCommand,
+  TransactWriteCommand,
 } = require('@aws-sdk/lib-dynamodb');
+const { randomUUID } = require('crypto');
 const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const tableName = () => {
-  const name = config.dynamodb.tables.inventory;
-  if (!name) throw new Error('Missing DDB_TABLE_INVENTORY');
-  return name;
+  return config.dynamodb.tables.inventory || process.env.DDB_TABLE_INVENTORY || 'freshmart-dev-inventory';
 };
 
-const key = (productId) => ({
+const key = (productId, warehouseId) => {
+  if (!warehouseId) throw new Error('warehouseId is required for inventory keys');
+  return {
+    pk: `PRODUCT#${productId}`,
+    sk: `WAREHOUSE#${warehouseId}`,
+  };
+};
+
+const movementKey = (productId, timestamp, uuid) => ({
   pk: `PRODUCT#${productId}`,
-  sk: 'STOCK',
+  sk: `MOVEMENT#${timestamp}#${uuid}`,
 });
 
 const normalizeNumber = (value, fallback = 0) => {
@@ -36,25 +44,13 @@ const computeAvailability = (currentStock, reservedStock = 0) =>
 
 const resolveProductId = (productId, foodId) => productId || foodId;
 
-const buildIndexKeys = (currentStock, minimumStock, productId) => {
-  const status = computeStatus(currentStock, minimumStock);
-  const lowStock = status === 'LOW_STOCK' || status === 'OUT_OF_STOCK';
-  return {
-    status,
-    gsi1pk: lowStock ? 'LOW_STOCK' : 'LOW_STOCK#NONE',
-    gsi1sk: `PRODUCT#${productId}`,
-    gsi2pk: `STATUS#${status}`,
-    gsi2sk: `PRODUCT#${productId}`,
-    isLowStock: lowStock,
-  };
-};
-
 const toDomain = (item) => {
   if (!item) return null;
   const status = item.status || computeStatus(item.currentStock, item.minimumStock);
   return {
     inventoryId: item.inventoryId || null,
     productId: item.productId,
+    warehouseId: item.sk ? item.sk.replace('WAREHOUSE#', '') : null,
     currentStock: normalizeNumber(item.currentStock),
     minimumStock: normalizeNumber(item.minimumStock),
     reservedStock: normalizeNumber(item.reservedStock),
@@ -67,37 +63,64 @@ const toDomain = (item) => {
     version: normalizeNumber(item.version),
     productName: item.productName || null,
     productAvailable: item.productAvailable ?? status !== 'OUT_OF_STOCK',
+    dailyConsumption: item.dailyConsumption ? Number(item.dailyConsumption) : undefined,
+    maximumStock: item.maximumStock ? Number(item.maximumStock) : undefined,
+    leadTime: item.leadTime ? Number(item.leadTime) : undefined,
+    supplierId: item.supplierId || undefined,
+    unitCost: item.unitCost ? Number(item.unitCost) : undefined,
   };
 };
 
-const loadInventory = async (productId) => {
+const toMovementDomain = (item) => {
+  if (!item) return null;
+  return {
+    movementId: item.movementId,
+    movementNumber: item.movementNumber,
+    productId: item.productId,
+    sku: item.sku,
+    warehouseId: item.warehouseId,
+    movementType: item.movementType,
+    quantity: normalizeNumber(item.quantity),
+    beforeQuantity: normalizeNumber(item.beforeQuantity),
+    afterQuantity: normalizeNumber(item.afterQuantity),
+    reason: item.reason,
+    status: item.status || 'COMPLETED',
+    referenceType: item.referenceType,
+    referenceId: item.referenceId,
+    remarks: item.remarks,
+    createdBy: item.createdBy,
+    approvedBy: item.approvedBy,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    transactionId: item.transactionId,
+    ip: item.ip,
+    source: item.source,
+    device: item.device,
+    sk: item.sk,
+  };
+};
+
+const loadInventory = async (productId, warehouseId) => {
+  if (!productId || !warehouseId) return null;
   const result = await documentClient.send(
-    new GetCommand({ TableName: tableName(), Key: key(productId) })
+    new GetCommand({ TableName: tableName(), Key: key(productId, warehouseId) })
   );
   return result.Item ? toDomain(result.Item) : null;
 };
 
-const findByProductId = async (productId) => loadInventory(productId);
+const findByProductId = async (productId, warehouseId) => loadInventory(productId, warehouseId);
 
 const listAll = async ({ page = 1, limit = 20 } = {}) => {
-  const statuses = ['ACTIVE', 'LOW_STOCK', 'OUT_OF_STOCK'];
-  const queryResults = await Promise.all(
-    statuses.map((status) =>
-      documentClient
-        .send(
-          new QueryCommand({
-            TableName: tableName(),
-            IndexName: 'gsi2',
-            KeyConditionExpression: 'gsi2pk = :pk',
-            ExpressionAttributeValues: { ':pk': `STATUS#${status}` },
-          })
-        )
-        .then((r) => r.Items || [])
-    )
+  const result = await documentClient.send(
+    new ScanCommand({
+      TableName: tableName(),
+      FilterExpression: 'begins_with(sk, :skPrefix)',
+      ExpressionAttributeValues: { ':skPrefix': 'WAREHOUSE#' },
+    })
   );
 
-  const items = queryResults.flat().map(toDomain).filter(Boolean);
-  const deduped = Array.from(new Map(items.map((item) => [item.productId, item])).values()).sort(
+  const items = (result.Items || []).map(toDomain).filter(Boolean);
+  const deduped = Array.from(new Map(items.map((item) => [`${item.productId}#${item.warehouseId}`, item])).values()).sort(
     (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
   );
 
@@ -113,14 +136,33 @@ const listAll = async ({ page = 1, limit = 20 } = {}) => {
   };
 };
 
+const listAllInventory = async () => {
+  let allItems = [];
+  let lastEvaluatedKey = undefined;
+
+  do {
+    const command = new ScanCommand({
+      TableName: tableName(),
+      FilterExpression: 'begins_with(sk, :skPrefix)',
+      ExpressionAttributeValues: { ':skPrefix': 'WAREHOUSE#' },
+      ExclusiveStartKey: lastEvaluatedKey,
+    });
+    const result = await documentClient.send(command);
+    allItems = allItems.concat((result.Items || []).map(toDomain).filter(Boolean));
+    lastEvaluatedKey = result.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+
+  const deduped = Array.from(new Map(allItems.map((item) => [`${item.productId}#${item.warehouseId}`, item])).values());
+  return deduped;
+};
+
 const listLowStockAlerts = async () => {
   const result = await documentClient.send(
-    new QueryCommand({
+    new ScanCommand({
       TableName: tableName(),
-      IndexName: 'gsi1',
-      KeyConditionExpression: 'gsi1pk = :pk',
-      ExpressionAttributeValues: { ':pk': 'LOW_STOCK' },
-      ScanIndexForward: false,
+      FilterExpression: 'begins_with(sk, :skPrefix) AND (#status = :low OR #status = :out)',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':skPrefix': 'WAREHOUSE#', ':low': 'LOW_STOCK', ':out': 'OUT_OF_STOCK' },
     })
   );
   return (result.Items || []).map(toDomain).filter(Boolean);
@@ -130,6 +172,7 @@ const createInventory = async ({
   inventoryId,
   productId,
   foodId,
+  warehouseId,
   currentStock,
   minimumStock,
   reservedStock = 0,
@@ -139,34 +182,28 @@ const createInventory = async ({
   const computedStatus = computeStatus(currentStock, minimumStock);
   const availableStock = computeAvailability(currentStock, reservedStock);
   const resolvedProductId = resolveProductId(productId, foodId);
-  const indexKeys = buildIndexKeys(currentStock, minimumStock, resolvedProductId);
 
   const item = {
-    ...key(resolvedProductId),
-    inventoryId,
+    ...key(resolvedProductId, warehouseId),
+    inventoryId: inventoryId || `INV_${resolvedProductId}`,
     productId: resolvedProductId,
     currentStock: normalizeNumber(currentStock),
     minimumStock: normalizeNumber(minimumStock),
     reservedStock: normalizeNumber(reservedStock),
     availableStock,
-    unit,
+    unit: unit || 'pcs',
     status: computedStatus,
-    isLowStock: indexKeys.isLowStock,
+    isLowStock: computedStatus !== 'ACTIVE',
     version: 0,
     createdAt: now,
     updatedAt: now,
-    gsi1pk: indexKeys.gsi1pk,
-    gsi1sk: indexKeys.gsi1sk,
-    gsi2pk: indexKeys.gsi2pk,
-    gsi2sk: indexKeys.gsi2sk,
-    entityType: 'INVENTORY',
   };
 
   await documentClient.send(
     new PutCommand({
       TableName: tableName(),
       Item: item,
-      ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+      ConditionExpression: 'attribute_not_exists(pk)',
     })
   );
 
@@ -176,6 +213,7 @@ const createInventory = async ({
 const updateInventory = async ({
   productId,
   foodId,
+  warehouseId,
   currentStock,
   minimumStock,
   reservedStock = 0,
@@ -188,55 +226,51 @@ const updateInventory = async ({
   const computedStatus = computeStatus(currentStock, minimumStock);
   const availableStock = computeAvailability(currentStock, reservedStock);
   const resolvedProductId = resolveProductId(productId, foodId);
-  const indexKeys = buildIndexKeys(currentStock, minimumStock, resolvedProductId);
+  const nextVersion = normalizeNumber(expectedVersion || 0) + 1;
 
-  const result = await documentClient.send(
-    new UpdateCommand({
+  const item = {
+    ...key(resolvedProductId, warehouseId),
+    inventoryId: inventoryId || `INV_${resolvedProductId}`,
+    productId: resolvedProductId,
+    currentStock: normalizeNumber(currentStock),
+    minimumStock: normalizeNumber(minimumStock),
+    reservedStock: normalizeNumber(reservedStock),
+    availableStock,
+    unit: unit || null,
+    status: computedStatus,
+    isLowStock: computedStatus !== 'ACTIVE',
+    version: nextVersion,
+    createdAt: createdAt || now,
+    updatedAt: now,
+  };
+
+  await documentClient.send(
+    new PutCommand({
       TableName: tableName(),
-      Key: key(resolvedProductId),
-      UpdateExpression:
-        'SET inventoryId = :inventoryId, productId = :productId, currentStock = :currentStock, minimumStock = :minimumStock, reservedStock = :reservedStock, availableStock = :availableStock, #unit = :unit, #status = :status, isLowStock = :isLowStock, gsi1pk = :gsi1pk, gsi1sk = :gsi1sk, gsi2pk = :gsi2pk, gsi2sk = :gsi2sk, updatedAt = :updatedAt, #version = :nextVersion, createdAt = if_not_exists(createdAt, :createdAt)',
-      ConditionExpression: 'attribute_exists(pk) AND #version = :expectedVersion',
-      ExpressionAttributeNames: { '#unit': 'unit', '#status': 'status', '#version': 'version' },
-      ExpressionAttributeValues: {
-        ':inventoryId': inventoryId || `INV_${resolvedProductId}`,
-        ':productId': resolvedProductId,
-        ':currentStock': normalizeNumber(currentStock),
-        ':minimumStock': normalizeNumber(minimumStock),
-        ':reservedStock': normalizeNumber(reservedStock),
-        ':availableStock': availableStock,
-        ':unit': unit || null,
-        ':status': computedStatus,
-        ':isLowStock': indexKeys.isLowStock,
-        ':gsi1pk': indexKeys.gsi1pk,
-        ':gsi1sk': indexKeys.gsi1sk,
-        ':gsi2pk': indexKeys.gsi2pk,
-        ':gsi2sk': indexKeys.gsi2sk,
-        ':updatedAt': now,
-        ':createdAt': createdAt || now,
-        ':expectedVersion': normalizeNumber(expectedVersion || 0),
-        ':nextVersion': normalizeNumber(expectedVersion || 0) + 1,
-      },
-      ReturnValues: 'ALL_NEW',
+      Item: item,
+      ConditionExpression: '#version = :expectedVersion',
+      ExpressionAttributeNames: { '#version': 'version' },
+      ExpressionAttributeValues: { ':expectedVersion': normalizeNumber(expectedVersion || 0) },
     })
   );
 
-  return toDomain(result.Attributes || null);
+  return toDomain(item);
 };
 
 const adjustInventoryStock = async ({
   productId,
   foodId,
+  warehouseId,
   currentStockDelta = 0,
   reservedStockDelta = 0,
   expectedVersion,
-  eventId = null,
+  movementDetails = {},
 }) => {
   const resolvedProductId = resolveProductId(productId, foodId);
-  const current = await loadInventory(resolvedProductId);
-  if (!current) return null;
+  if (!warehouseId) throw new Error('warehouseId is required for adjustment');
+  const current = await loadInventory(resolvedProductId, warehouseId);
 
-  const nextCurrentStock = normalizeNumber(current.currentStock) + normalizeNumber(currentStockDelta);
+  const nextCurrentStock = normalizeNumber(current?.currentStock || 0) + normalizeNumber(currentStockDelta);
   if (nextCurrentStock < 0) {
     const error = new Error(`Insufficient stock for product '${productId}'`);
     error.code = 'INSUFFICIENT_STOCK';
@@ -244,79 +278,200 @@ const adjustInventoryStock = async ({
   }
 
   const nextReservedStock = Math.max(
-    normalizeNumber(current.reservedStock) + normalizeNumber(reservedStockDelta),
+    normalizeNumber(current?.reservedStock || 0) + normalizeNumber(reservedStockDelta),
     0
   );
-  const nextVersion = normalizeNumber(expectedVersion ?? current.version) + 1;
+  const nextVersion = normalizeNumber(current?.version || 0) + 1;
   const now = new Date().toISOString();
-  const computedStatus = computeStatus(nextCurrentStock, current.minimumStock);
+  const minimumStock = current?.minimumStock || 10;
+  const computedStatus = computeStatus(nextCurrentStock, minimumStock);
   const availableStock = computeAvailability(nextCurrentStock, nextReservedStock);
-  const indexKeys = buildIndexKeys(nextCurrentStock, current.minimumStock, resolvedProductId);
 
-  const expressionAttributeNames = { '#version': 'version', '#status': 'status' };
-  const expressionAttributeValues = {
-    ':currentStock': nextCurrentStock,
-    ':reservedStock': nextReservedStock,
-    ':availableStock': availableStock,
-    ':status': computedStatus,
-    ':isLowStock': indexKeys.isLowStock,
-    ':gsi1pk': indexKeys.gsi1pk,
-    ':gsi1sk': indexKeys.gsi1sk,
-    ':gsi2pk': indexKeys.gsi2pk,
-    ':gsi2sk': indexKeys.gsi2sk,
-    ':updatedAt': now,
-    ':expectedVersion': normalizeNumber(current.version),
-    ':nextVersion': nextVersion,
+  const inventoryItem = {
+    ...key(resolvedProductId, warehouseId),
+    inventoryId: current?.inventoryId || `INV_${resolvedProductId}`,
+    productId: resolvedProductId,
+    currentStock: nextCurrentStock,
+    minimumStock: minimumStock,
+    reservedStock: nextReservedStock,
+    availableStock: availableStock,
+    unit: current?.unit || 'pcs',
+    status: computedStatus,
+    isLowStock: computedStatus !== 'ACTIVE',
+    createdAt: current?.createdAt || now,
+    updatedAt: now,
+    version: nextVersion,
   };
 
-  let conditionExpression = 'attribute_exists(pk) AND #version = :expectedVersion';
-  let updateExpression =
-    'SET currentStock = :currentStock, reservedStock = :reservedStock, availableStock = :availableStock, #status = :status, isLowStock = :isLowStock, gsi1pk = :gsi1pk, gsi1sk = :gsi1sk, gsi2pk = :gsi2pk, gsi2sk = :gsi2sk, updatedAt = :updatedAt, #version = :nextVersion';
+  const transactItems = [];
 
-  if (eventId) {
-    expressionAttributeNames['#processedEventIds'] = 'processedEventIds';
-    expressionAttributeValues[':eventId'] = eventId;
-    expressionAttributeValues[':emptyList'] = [];
-    expressionAttributeValues[':eventMarkerList'] = [eventId];
-    conditionExpression +=
-      ' AND (attribute_not_exists(#processedEventIds) OR NOT contains(#processedEventIds, :eventId))';
-    updateExpression +=
-      ', #processedEventIds = list_append(if_not_exists(#processedEventIds, :emptyList), :eventMarkerList)';
+  // Update Inventory Item ONLY IF status is COMPLETED
+  const mvtStatus = movementDetails.status || 'COMPLETED';
+  if (mvtStatus === 'COMPLETED') {
+    transactItems.push({
+      Put: {
+        TableName: tableName(),
+        Item: inventoryItem,
+        ConditionExpression: current ? '#version = :expectedVersion' : 'attribute_not_exists(pk)',
+        ExpressionAttributeNames: current ? { '#version': 'version' } : undefined,
+        ExpressionAttributeValues: current ? { ':expectedVersion': normalizeNumber(current.version || 0) } : undefined,
+      }
+    });
   }
 
-  const result = await documentClient.send(
-    new UpdateCommand({
-      TableName: tableName(),
-      Key: key(resolvedProductId),
-      UpdateExpression: updateExpression,
-      ConditionExpression: conditionExpression,
-      ExpressionAttributeNames: expressionAttributeNames,
-      ExpressionAttributeValues: expressionAttributeValues,
-      ReturnValues: 'ALL_NEW',
+  // Create or Update Movement Ledger Item
+  if (movementDetails && movementDetails.movementType) {
+    const uuid = randomUUID();
+    const isUpdate = !!movementDetails.movementId && !!movementDetails.sk;
+    const mvtKey = isUpdate ? { pk: `PRODUCT#${resolvedProductId}`, sk: movementDetails.sk } : movementKey(resolvedProductId, now, uuid);
+    const movementId = isUpdate ? movementDetails.movementId : `MVT_${uuid.replace(/-/g, '')}`;
+    
+    const movementItem = {
+      ...mvtKey,
+      movementId,
+      movementNumber: movementDetails.movementNumber || movementId,
+      productId: resolvedProductId,
+      sku: movementDetails.sku || resolvedProductId,
+      warehouseId: movementDetails.warehouseId || warehouseId,
+      movementType: movementDetails.movementType,
+      quantity: normalizeNumber(currentStockDelta),
+      beforeQuantity: normalizeNumber(current?.currentStock || 0),
+      afterQuantity: mvtStatus === 'COMPLETED' ? nextCurrentStock : normalizeNumber(current?.currentStock || 0),
+      reason: movementDetails.reason || 'SYSTEM_CORRECTION',
+      status: mvtStatus,
+      referenceType: movementDetails.referenceType || 'SYSTEM',
+      referenceId: movementDetails.referenceId || 'NONE',
+      remarks: movementDetails.remarks || '',
+      createdBy: movementDetails.createdBy || 'SYSTEM',
+      approvedBy: movementDetails.approvedBy || null,
+      createdAt: now,
+      updatedAt: now,
+      transactionId: movementDetails.transactionId || randomUUID(),
+      ip: movementDetails.ip || null,
+      source: movementDetails.source || 'inventory-service',
+      device: movementDetails.device || null,
+      // GSIs
+      gsi1pk: movementDetails.warehouseId || warehouseId,
+      gsi1sk: now,
+      gsi2pk: movementDetails.movementType,
+      gsi2sk: now,
+      gsi3pk: movementDetails.referenceId || 'NONE',
+      gsi3sk: now,
+    };
+
+    transactItems.push({
+      Put: {
+        TableName: tableName(),
+        Item: movementItem,
+        ConditionExpression: isUpdate ? 'attribute_exists(pk)' : 'attribute_not_exists(pk)',
+      }
+    });
+  }
+
+  await documentClient.send(
+    new TransactWriteCommand({
+      TransactItems: transactItems,
     })
   );
 
-  return toDomain(result.Attributes || null);
+  return { inventory: mvtStatus === 'COMPLETED' ? toDomain(inventoryItem) : current, movementId: transactItems.find(t => t.Put.Item.movementId)?.Put.Item.movementId };
 };
 
-const deleteInventory = async (productId) => {
-  await documentClient.send(new DeleteCommand({ TableName: tableName(), Key: key(productId) }));
+const getMovement = async (productId, movementId) => {
+  const result = await documentClient.send(
+    new QueryCommand({
+      TableName: tableName(),
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+      FilterExpression: 'movementId = :movementId',
+      ExpressionAttributeValues: {
+        ':pk': `PRODUCT#${productId}`,
+        ':skPrefix': 'MOVEMENT#',
+        ':movementId': movementId,
+      },
+      Limit: 1,
+    })
+  );
+  return result.Items && result.Items.length > 0 ? toMovementDomain(result.Items[0]) : null;
+};
+
+const deleteInventory = async (productId, warehouseId) => {
+  if (!warehouseId) throw new Error('warehouseId is required for delete');
+  await documentClient.send(
+    new DeleteCommand({ TableName: tableName(), Key: key(productId, warehouseId) })
+  );
   return true;
 };
 
+const listMovements = async (productId, { limit = 50 } = {}) => {
+  const result = await documentClient.send(
+    new QueryCommand({
+      TableName: tableName(),
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+      ExpressionAttributeValues: {
+        ':pk': `PRODUCT#${productId}`,
+        ':skPrefix': 'MOVEMENT#',
+      },
+      ScanIndexForward: false, // newest first
+      Limit: limit,
+    })
+  );
+  return (result.Items || []).map(toMovementDomain);
+};
+
+const listAllMovements = async ({ page = 1, limit = 20, warehouseId, movementType } = {}) => {
+  let command;
+  if (warehouseId) {
+    command = new QueryCommand({
+      TableName: tableName(),
+      IndexName: 'gsi1',
+      KeyConditionExpression: 'gsi1pk = :warehouseId',
+      ExpressionAttributeValues: { ':warehouseId': warehouseId },
+      ScanIndexForward: false,
+    });
+  } else if (movementType) {
+    command = new QueryCommand({
+      TableName: tableName(),
+      IndexName: 'gsi2',
+      KeyConditionExpression: 'gsi2pk = :movementType',
+      ExpressionAttributeValues: { ':movementType': movementType },
+      ScanIndexForward: false,
+    });
+  } else {
+    command = new ScanCommand({
+      TableName: tableName(),
+      FilterExpression: 'begins_with(sk, :skPrefix)',
+      ExpressionAttributeValues: { ':skPrefix': 'MOVEMENT#' },
+    });
+  }
+
+  const result = await documentClient.send(command);
+  let items = (result.Items || []).map(toMovementDomain).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const safePage = Number(page) > 0 ? Number(page) : 1;
+  const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 100) : 20;
+  const start = (safePage - 1) * safeLimit;
+
+  return {
+    items: items.slice(start, start + safeLimit),
+    total: items.length,
+    page: safePage,
+    limit: safeLimit,
+  };
+};
+
 module.exports = {
-  tableName,
+  loadInventory,
   findByProductId,
+  findByFoodId: findByProductId,
   listAll,
+  listAllInventory,
   listLowStockAlerts,
   createInventory,
   updateInventory,
   adjustInventoryStock,
   deleteInventory,
-  toDomain,
-  computeStatus,
-  computeAvailability,
+  listMovements,
+  listAllMovements,
+  getMovement,
+  key,
 };
-
-module.exports.findByFoodId = findByProductId;
-module.exports.createInventoryRepository = () => module.exports;

@@ -3,21 +3,7 @@ output "environment" {
   value       = local.environment_name
 }
 
-output "network" {
-  description = "Provisioned network and VPC attachment details."
-  value = {
-    vpc_id                     = module.network.vpc_id
-    vpc_arn                    = module.network.vpc_arn
-    public_subnet_ids          = module.network.public_subnet_ids
-    private_subnet_ids         = module.network.private_subnet_ids
-    lambda_security_group_id   = module.network.lambda_security_group_id
-    endpoint_security_group_id = module.network.endpoint_security_group_id
-    nat_gateway_id             = module.network.nat_gateway_id
-    internet_gateway_id        = module.network.internet_gateway_id
-    vpc_endpoint_ids           = module.network.vpc_endpoint_ids
-    interface_vpc_endpoint_ids = module.network.interface_vpc_endpoint_ids
-  }
-}
+
 
 output "secrets" {
   description = "Provisioned secrets and parameter store references."
@@ -69,10 +55,10 @@ output "lambda_functions" {
   description = "Provisioned Lambda functions and their key identifiers."
   value = {
     for name, fn in module.lambda : name => {
-      function_name  = fn.function_name
-      function_arn   = fn.function_arn
-      invoke_arn     = fn.invoke_arn
-      qualified_arn  = fn.qualified_arn
+      function_name = fn.function_name
+      function_arn  = fn.function_arn
+      invoke_arn    = fn.invoke_arn
+
       log_group_name = fn.log_group_name
       role_arn       = fn.role_arn
     }
@@ -132,5 +118,25 @@ output "sqs" {
     queue_arn  = module.sqs.queue_arn
     dlq_name   = module.sqs.dlq_name
     dlq_arn    = module.sqs.dlq_arn
+  }
+}
+
+output "customer_web" {
+  description = "Provisioned Customer Web CloudFront and S3 details."
+  value = {
+    bucket_id                  = module.customer_web.bucket_id
+    cloudfront_distribution_id = module.customer_web.cloudfront_distribution_id
+    cloudfront_domain_name     = module.customer_web.cloudfront_domain_name
+    cloudfront_url             = module.customer_web.cloudfront_url
+  }
+}
+
+output "admin_web" {
+  description = "Provisioned Admin Web CloudFront and S3 details."
+  value = {
+    bucket_id                  = module.admin_web.bucket_id
+    cloudfront_distribution_id = module.admin_web.cloudfront_distribution_id
+    cloudfront_domain_name     = module.admin_web.cloudfront_domain_name
+    cloudfront_url             = module.admin_web.cloudfront_url
   }
 }

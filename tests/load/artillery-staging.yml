@@ -1,0 +1,54 @@
+config:
+  target: "https://98fyk75ya9.execute-api.ap-southeast-1.amazonaws.com"
+  phases:
+    - name: "Warm-up"
+      duration: 30
+      arrivalRate: 10
+    - name: "Ramp"
+      duration: 60
+      arrivalRate: 10
+      rampTo: 50
+    - name: "Sustained"
+      duration: 120
+      arrivalRate: 50
+    - name: "Spike"
+      duration: 30
+      arrivalRate: 100
+    - name: "Cool-down"
+      duration: 30
+      arrivalRate: 10
+  plugins:
+    ensure: {}
+    expect: {}
+  ensure:
+    thresholds:
+      - "http.response_time.p95": 500
+      - "http.response_time.p99": 2000
+      - "http.response_time.max": 5000
+    maxErrorRate: 1
+
+scenarios:
+  - name: "Browse products"
+    flow:
+      - get:
+          url: "/v1/products"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/v1/products/search?q=fresh"
+          expect:
+            - statusCode: 200
+
+  - name: "Browse menu"
+    flow:
+      - get:
+          url: "/v1/menu"
+          expect:
+            - statusCode: 200
+
+  - name: "Health check"
+    flow:
+      - get:
+          url: "/v1/admin/health"
+          expect:
+            - statusCode: 200

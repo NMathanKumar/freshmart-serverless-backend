@@ -8,10 +8,7 @@ const {
 const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const getTableName = (tableName = config.dynamodb.tables.payments) => {
-  if (!tableName) {
-    throw new Error('Missing DDB_TABLE_PAYMENTS');
-  }
-  return tableName;
+  return tableName || process.env.DDB_TABLE_PAYMENTS || 'freshmart-dev-payments';
 };
 
 const paymentPk = (paymentId) => `PAYMENT#${paymentId}`;

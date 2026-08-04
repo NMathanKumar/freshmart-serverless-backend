@@ -1,34 +1,36 @@
-# Architecture Overview
+# FreshMart Architecture Overview
 
-FreshMart is organized as independent AWS Lambda microservices with a shared runtime package for common configuration, logging, request handling, and AWS client setup.
+FreshMart is a serverless backend composed of Lambda-based services behind a single HTTP API in `ap-southeast-1`.
+
+## Active Infrastructure Definition
+
+- Terraform root: `terraform/environments/dev`
+- AWS account: `769044546162`
+- Region: `ap-southeast-1`
 
 ## Service Boundaries
 
-- `auth-service` handles authentication workflows and application user profile synchronization.
-- `user-service` manages customer profile data.
-- `product-service` and `menu-service` manage catalog data.
-- `inventory-service` manages stock state.
-- `cart-service` manages shopping carts.
-- `order-service` manages order lifecycle state.
-- `payment-service` manages payment processing state.
-- `notification-service` handles user-facing notifications.
-- `analytics-service` aggregates operational and business events.
-- `admin-service` handles administrative workflows and read models.
+- Authentication Service: registration, login, refresh, logout, and current user identity.
+- User Service: user profile persistence.
+- Product Service: product catalog CRUD.
+- Menu Service: menu browsing, search, and availability management.
+- Inventory Service: stock tracking and updates.
+- Cart Service: cart reads and writes.
+- Order Service: order creation, lookup, and cancellation.
+- Payment Service: payment creation and lookup.
+- Notification Service: event-driven notification workflows.
+- Analytics Service: event-driven reporting workflows.
+- Admin Service: admin configuration, audit, health, and dashboard endpoints.
 
-## Shared Platform Layers
+## Shared AWS Components
 
-- `packages/shared` provides common AWS clients, runtime helpers, middleware, logging, and validation primitives.
-- `terraform/` contains the deployed AWS infrastructure for `dev`, `qa`, and `prod`.
-- `scripts/` contains packaging and deployment verification helpers.
+- Cognito for authentication and JWT validation
+- DynamoDB for service data
+- EventBridge for domain events
+- SNS and SQS for asynchronous workflows
+- S3 for shared asset storage
+- CloudWatch for logs, dashboard, and alarms
 
-## Runtime Model
+## Experimental Platform Stack
 
-- API Gateway invokes Lambda handlers.
-- Lambda handlers use the shared runtime wrapper to standardize health checks, request logging, error handling, and structured responses.
-- Services publish domain events to EventBridge and consume events through service-specific handlers.
-
-## Data Model
-
-- Each service owns its DynamoDB table.
-- Cross-service state is synchronized through events instead of direct table access.
-- Infrastructure-managed secrets and parameters are externalized through AWS Secrets Manager and Systems Manager Parameter Store.
+`terraform/stacks/freshmart-platform` remains in the repository for future work. It is not the active architecture and should not be used for default deployment or validation.

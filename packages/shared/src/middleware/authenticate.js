@@ -1,6 +1,6 @@
 const { UnauthorizedError } = require('../errors/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
-const { verifyCognitoJwt, extractCognitoUser } = require('../auth/cognito');
+const { requireCurrentUser } = require('../auth/current-user');
 
 const authenticate = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || '';
@@ -10,22 +10,8 @@ const authenticate = asyncHandler(async (req, res, next) => {
     throw new UnauthorizedError('Missing or malformed Authorization header');
   }
 
-  try {
-    const payload = await verifyCognitoJwt(token, { allowedTokenUse: ['access', 'id'] });
-    const user = extractCognitoUser(payload);
-    req.user = {
-      userId: user.userId,
-      role: user.role,
-      email: user.email,
-      username: user.username,
-      groups: user.groups,
-      tokenUse: user.tokenUse,
-      cognito: payload,
-    };
-    next();
-  } catch (err) {
-    throw new UnauthorizedError('Invalid or expired token');
-  }
+  req.user = requireCurrentUser(req);
+  next();
 });
 
 module.exports = authenticate;

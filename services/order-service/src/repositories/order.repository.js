@@ -1,15 +1,12 @@
-const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const tableName = () => {
-  const name = config.dynamodb.tables.orders;
-  if (!name) throw new Error('Missing DDB_TABLE_ORDERS');
-  return name;
+  return config.dynamodb.tables.orders || process.env.DDB_TABLE_ORDERS || 'freshmart-dev-orders';
 };
 
 const key = (orderId) => ({
-  pk: `ORDER#${orderId}`,
-  sk: 'META',
+  orderId,
 });
 
 const normalizeNumber = (value, fallback = 0) => {
@@ -21,29 +18,46 @@ const toDomain = (item) => {
   if (!item) return null;
   return {
     orderId: item.orderId,
-    userId: item.userId,
+    userId: item.userId || item.customerId,
+    customerId: item.customerId || item.userId,
     items: Array.isArray(item.items) ? item.items : [],
     subtotal: normalizeNumber(item.subtotal),
     tax: normalizeNumber(item.tax),
     discount: normalizeNumber(item.discount),
-    totalAmount: normalizeNumber(item.totalAmount),
-    paymentStatus: item.paymentStatus,
-    orderStatus: item.orderStatus,
+    totalAmount: normalizeNumber(item.totalAmount || item.grandTotal),
+    paymentStatus: item.paymentStatus || 'PENDING',
+    orderStatus: item.orderStatus || item.status || 'PLACED',
     pickupTime: item.pickupTime || null,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
+    createdAt: item.createdAt || item.createdDate,
+    updatedAt: item.updatedAt || item.createdDate,
     version: normalizeNumber(item.version),
   };
 };
 
 const findById = async (orderId) => {
-  const result = await documentClient.send(
-    new GetCommand({
-      TableName: tableName(),
-      Key: key(orderId),
-    })
-  );
-  return toDomain(result.Item || null);
+  let item = null;
+  try {
+    const result = await documentClient.send(
+      new GetCommand({
+        TableName: tableName(),
+        Key: { orderId },
+      })
+    );
+    item = result.Item;
+  } catch (err) {
+    try {
+      const result = await documentClient.send(
+        new GetCommand({
+          TableName: tableName(),
+          Key: { pk: `ORDER#${orderId}`, sk: 'META' },
+        })
+      );
+      item = result.Item;
+    } catch (_err2) {
+      item = null;
+    }
+  }
+  return toDomain(item || null);
 };
 
 const create = async ({
@@ -60,9 +74,11 @@ const create = async ({
 }) => {
   const now = new Date().toISOString();
   const item = {
-    ...key(orderId),
     orderId,
     userId,
+    customerId: userId,
+    createdDate: now,
+    status: orderStatus,
     items,
     subtotal: normalizeNumber(subtotal),
     tax: normalizeNumber(tax),
@@ -74,6 +90,8 @@ const create = async ({
     createdAt: now,
     updatedAt: now,
     version: 0,
+    pk: `ORDER#${orderId}`,
+    sk: 'META',
     gsi1pk: `USER#${userId}`,
     gsi1sk: `CREATED#${now}`,
     gsi2pk: `STATUS#${orderStatus}`,
@@ -85,7 +103,7 @@ const create = async ({
     new PutCommand({
       TableName: tableName(),
       Item: item,
-      ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+      ConditionExpression: 'attribute_not_exists(orderId)',
     })
   );
 
@@ -93,24 +111,59 @@ const create = async ({
 };
 
 const findByUser = async (userId, { page = 1, limit = 20, orderStatus } = {}) => {
-  const result = await documentClient.send(
-    new QueryCommand({
-      TableName: tableName(),
-      IndexName: 'gsi1',
-      KeyConditionExpression: 'gsi1pk = :pk',
-      ExpressionAttributeValues: {
-        ':pk': `USER#${userId}`,
-      },
-      ScanIndexForward: false,
-    })
-  );
+  let rawItems = [];
+  try {
+    const result = await documentClient.send(
+      new QueryCommand({
+        TableName: tableName(),
+        IndexName: 'customer-index',
+        KeyConditionExpression: 'customerId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId,
+        },
+        ScanIndexForward: false,
+      })
+    );
+    rawItems = result.Items || [];
+  } catch (_err1) {
+    try {
+      const result = await documentClient.send(
+        new QueryCommand({
+          TableName: tableName(),
+          IndexName: 'gsi1',
+          KeyConditionExpression: 'gsi1pk = :pk',
+          ExpressionAttributeValues: {
+            ':pk': `USER#${userId}`,
+          },
+          ScanIndexForward: false,
+        })
+      );
+      rawItems = result.Items || [];
+    } catch (_err2) {
+      try {
+        const result = await documentClient.send(
+          new ScanCommand({
+            TableName: tableName(),
+            FilterExpression: 'userId = :userId OR customerId = :userId OR gsi1pk = :pk',
+            ExpressionAttributeValues: {
+              ':userId': userId,
+              ':pk': `USER#${userId}`,
+            },
+          })
+        );
+        rawItems = result.Items || [];
+      } catch (_err3) {
+        rawItems = [];
+      }
+    }
+  }
 
-  let items = (result.Items || []).map(toDomain);
+  let items = rawItems.map(toDomain);
   if (orderStatus) {
     items = items.filter((item) => item.orderStatus === orderStatus);
   }
 
-  const safePage = Number(page) > 0 ? Number(page) : 1;
+  const safePage = Number(page) > 1 ? Number(page) : 1;
   const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 100) : 20;
   const start = (safePage - 1) * safeLimit;
 
@@ -122,14 +175,8 @@ const findByUser = async (userId, { page = 1, limit = 20, orderStatus } = {}) =>
 
 const findAllAdmin = async ({ page = 1, limit = 20, orderStatus } = {}) => {
   const result = await documentClient.send(
-    new QueryCommand({
+    new ScanCommand({
       TableName: tableName(),
-      IndexName: 'gsi2',
-      KeyConditionExpression: 'gsi2pk = :pk',
-      ExpressionAttributeValues: {
-        ':pk': `STATUS#${orderStatus || 'PLACED'}`,
-      },
-      ScanIndexForward: false,
     })
   );
 
@@ -152,12 +199,13 @@ const updateOrderStatus = async (orderId, orderStatus) => {
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
-      Key: key(orderId),
+      Key: { orderId },
       UpdateExpression:
-        'SET orderStatus = :orderStatus, gsi2pk = :gsi2pk, gsi2sk = :gsi2sk, updatedAt = :updatedAt, #version = :nextVersion',
+        'SET orderStatus = :orderStatus, #st = :orderStatus, gsi2pk = :gsi2pk, gsi2sk = :gsi2sk, updatedAt = :updatedAt, #version = :nextVersion',
       ConditionExpression: '#version = :expectedVersion',
       ExpressionAttributeNames: {
         '#version': 'version',
+        '#st': 'status',
       },
       ExpressionAttributeValues: {
         ':orderStatus': orderStatus,
@@ -180,7 +228,7 @@ const updatePaymentStatus = async (orderId, paymentStatus) => {
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
-      Key: key(orderId),
+      Key: { orderId },
       UpdateExpression: 'SET paymentStatus = :paymentStatus, updatedAt = :updatedAt, #version = :nextVersion',
       ConditionExpression: '#version = :expectedVersion',
       ExpressionAttributeNames: {
@@ -202,7 +250,7 @@ const deleteOrder = async (orderId) => {
   await documentClient.send(
     new DeleteCommand({
       TableName: tableName(),
-      Key: key(orderId),
+      Key: { orderId },
     })
   );
   return true;

@@ -128,3 +128,63 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "sqs_queues" {
+  description = "SQS processing queues keyed by name."
+  type        = map(object({ queue_name = string }))
+  default     = {}
+}
+
+variable "sqs_dlqs" {
+  description = "SQS dead-letter queues keyed by name."
+  type        = map(object({ queue_name = string }))
+  default     = {}
+}
+
+variable "sns_topics" {
+  description = "SNS topics keyed by name."
+  type        = map(object({ topic_name = string }))
+  default     = {}
+}
+
+variable "eventbridge_bus_name" {
+  description = "EventBridge bus name."
+  type        = string
+  default     = ""
+}
+
+variable "api_base_url" {
+  description = "API base URL for synthetic monitoring."
+  type        = string
+  default     = ""
+}
+
+variable "enable_synthetic_monitoring" {
+  description = "Enable synthetic health check monitoring."
+  type        = bool
+  default     = false
+}
+
+variable "enable_business_dashboard" {
+  description = "Enable business observability dashboard."
+  type        = bool
+  default     = false
+}
+
+variable "business_dashboard_name" {
+  description = "Optional override for business dashboard name."
+  type        = string
+  default     = null
+}
+
+variable "business_hours" {
+  description = "Business hours for zero-order alarm (HH:MM-HH:MM, timezone SGT)"
+  type        = string
+  default     = "08:00-22:00"
+}
+
+variable "cloudfront_cache_hit_threshold" {
+  description = "Threshold for CloudFront cache hit ratio % alarms."
+  type        = number
+  default     = 80
+}

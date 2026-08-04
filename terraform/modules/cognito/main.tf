@@ -45,6 +45,32 @@ resource "aws_cognito_user_pool" "this" {
     allow_admin_create_user_only = false
   }
 
+  dynamic "email_configuration" {
+    for_each = var.ses_from_email_address != null && var.ses_source_arn != null ? [1] : []
+    content {
+      email_sending_account = "DEVELOPER"
+      from_email_address    = var.ses_from_email_address
+      source_arn            = var.ses_source_arn
+    }
+  }
+
+  lambda_config {
+    post_confirmation = aws_lambda_function.cognito_post_confirmation.arn
+  }
+
+  schema {
+    attribute_data_type      = "String"
+    developer_only_attribute = false
+    mutable                  = true
+    name                     = "profile"
+    required                 = false
+
+    string_attribute_constraints {
+      min_length = 1
+      max_length = 256
+    }
+  }
+
   tags = merge(local.merged_tags, {
     Name = local.user_pool_name
   })
@@ -82,6 +108,9 @@ resource "aws_cognito_user_pool_client" "this" {
   callback_urls                        = local.oauth_enabled ? var.callback_urls : null
   logout_urls                          = local.oauth_enabled ? var.logout_urls : null
   default_redirect_uri                 = local.oauth_enabled ? var.callback_urls[0] : null
+
+  read_attributes      = ["email", "family_name", "given_name", "phone_number", "custom:profile"]
+  write_attributes     = ["email", "family_name", "given_name", "phone_number"]
 }
 
 resource "aws_cognito_user_pool_domain" "this" {
@@ -178,4 +207,94 @@ resource "aws_cognito_identity_pool_roles_attachment" "this" {
     authenticated   = aws_iam_role.authenticated.arn
     unauthenticated = aws_iam_role.unauthenticated.arn
   }
+}
+
+data "archive_file" "cognito_post_confirmation" {
+  type        = "zip"
+  source_file = "${path.module}/src/post-confirmation.js"
+  output_path = "${path.module}/dist/post-confirmation.zip"
+}
+
+resource "aws_iam_role" "cognito_post_confirmation" {
+  name = "${local.user_pool_name}-post-conf-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = merge(local.merged_tags, { Name = "${local.user_pool_name}-post-conf-role" })
+}
+
+resource "aws_iam_role_policy" "cognito_post_confirmation" {
+  name = "${local.user_pool_name}-post-conf-policy"
+  role = aws_iam_role.cognito_post_confirmation.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminUpdateUserAttributes"
+        ]
+        Resource = aws_cognito_user_pool.this.arn
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "cognito_post_confirmation" {
+  filename         = data.archive_file.cognito_post_confirmation.output_path
+  source_code_hash = data.archive_file.cognito_post_confirmation.output_base64sha256
+  function_name    = "${local.user_pool_name}-post-confirmation"
+  role             = aws_iam_role.cognito_post_confirmation.arn
+  handler          = "post-confirmation.handler"
+  runtime          = "nodejs18.x"
+  timeout          = 10
+
+  tags = merge(local.merged_tags, { Name = "${local.user_pool_name}-post-confirmation" })
+}
+
+resource "aws_lambda_permission" "cognito_post_confirmation" {
+  statement_id  = "AllowExecutionFromCognito"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.cognito_post_confirmation.function_name
+  principal     = "cognito-idp.amazonaws.com"
+  source_arn    = aws_cognito_user_pool.this.arn
+}
+
+resource "aws_cognito_user_pool_ui_customization" "this" {
+  count = local.hosted_ui_domain_enabled ? 1 : 0
+
+  user_pool_id = aws_cognito_user_pool.this.id
+  client_id    = aws_cognito_user_pool_client.this.id
+
+  css = <<EOF
+/* Background page color */
+.background-customizable {
+  background-color: #f4fcf0 !important;
+}
+EOF
+
+  depends_on = [
+    aws_cognito_user_pool_domain.this
+  ]
 }

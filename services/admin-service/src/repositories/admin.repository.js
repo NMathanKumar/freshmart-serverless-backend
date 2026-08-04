@@ -8,8 +8,7 @@ const {
 const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const getTableName = (tableName = config.dynamodb.tables.admin) => {
-  if (!tableName) throw new Error('Missing DDB_TABLE_ADMIN');
-  return tableName;
+  return tableName || process.env.DDB_TABLE_ADMIN || 'freshmart-dev-admin';
 };
 
 const entityKey = (entityType, itemId) => ({
@@ -172,6 +171,20 @@ const createAdminRepository = ({
     return true;
   };
 
+  const getNextSequence = async (sequenceName) => {
+    const result = await client.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { pk: 'ADMIN#SEQUENCE', sk: `SEQ#${sequenceName}` },
+        UpdateExpression: 'ADD #val :inc',
+        ExpressionAttributeNames: { '#val': 'value' },
+        ExpressionAttributeValues: { ':inc': 1 },
+        ReturnValues: 'UPDATED_NEW',
+      })
+    );
+    return result.Attributes.value;
+  };
+
   return {
     tableName,
     createEntity,
@@ -180,6 +193,7 @@ const createAdminRepository = ({
     listByEntityType,
     listByStatus,
     deleteEntity,
+    getNextSequence,
   };
 };
 

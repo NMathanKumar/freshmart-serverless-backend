@@ -3,6 +3,7 @@ const routes = require('./routes');
 
 module.exports = createServiceApp({
   mountRoutes(app) {
+    app.use('/payments', routes);
     app.use('/v1/payments', routes);
   },
 });

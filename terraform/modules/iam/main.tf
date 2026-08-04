@@ -39,6 +39,7 @@ locals {
   sns_publish_enabled         = coalesce(var.allow_sns_publish, false)
   sns_topic_resources         = coalesce(var.sns_topic_arns, [])
   sqs_send_message_enabled    = coalesce(var.allow_sqs_send_message, false)
+  sqs_receive_message_enabled = coalesce(var.allow_sqs_receive_message, false)
   sqs_queue_resources         = coalesce(var.sqs_queue_arns, [])
   s3_object_access_enabled    = coalesce(var.allow_s3_object_access, false)
   s3_object_resources         = coalesce(var.s3_object_arns, [])
@@ -126,6 +127,22 @@ data "aws_iam_policy_document" "permissions" {
       sid = "SQSSendMessage"
 
       actions = ["sqs:SendMessage"]
+
+      resources = local.sqs_queue_resources
+    }
+  }
+
+  dynamic "statement" {
+    for_each = local.sqs_receive_message_enabled ? [1] : []
+
+    content {
+      sid = "SQSReceiveMessage"
+
+      actions = [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes"
+      ]
 
       resources = local.sqs_queue_resources
     }
@@ -245,6 +262,10 @@ resource "aws_iam_role" "this" {
     precondition {
       condition     = !local.sqs_send_message_enabled || length(local.sqs_queue_resources) > 0
       error_message = "sqs_queue_arns must be provided when allow_sqs_send_message is true."
+    }
+    precondition {
+      condition     = !local.sqs_receive_message_enabled || length(local.sqs_queue_resources) > 0
+      error_message = "sqs_queue_arns must be provided when allow_sqs_receive_message is true."
     }
 
     precondition {

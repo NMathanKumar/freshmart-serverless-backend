@@ -36,10 +36,11 @@ const createClient = (client) =>
 
 const getUsername = (value) => String(value || '').trim().toLowerCase();
 
-const buildUserAttributes = ({ name, email, phone }) => {
+const buildUserAttributes = ({ name, email, phone, role }) => {
   const attrs = [
     { Name: 'email', Value: String(email || '').trim().toLowerCase() },
     { Name: 'email_verified', Value: 'false' },
+    { Name: 'custom:profile', Value: String(role || 'CUSTOMER').toLowerCase() },
   ];
 
   if (name) {
@@ -47,7 +48,11 @@ const buildUserAttributes = ({ name, email, phone }) => {
   }
 
   if (phone) {
-    attrs.push({ Name: 'phone_number', Value: String(phone).trim() });
+    let sanitizedPhone = String(phone).trim().replace(/[\s\-\(\)]/g, '');
+    if (sanitizedPhone && !sanitizedPhone.startsWith('+')) {
+      sanitizedPhone = '+' + sanitizedPhone;
+    }
+    attrs.push({ Name: 'phone_number', Value: sanitizedPhone });
     attrs.push({ Name: 'phone_number_verified', Value: 'false' });
   }
 
@@ -71,7 +76,7 @@ const createCognitoIntegration = ({
     }
   };
 
-  const adminCreateUser = async ({ username, name, email, phone, temporaryPassword }) => {
+  const adminCreateUser = async ({ username, name, email, phone, temporaryPassword, role }) => {
     assertConfigured();
     const normalizedUsername = getUsername(username || email);
     const result = await cognito.send(
@@ -80,7 +85,7 @@ const createCognitoIntegration = ({
         Username: normalizedUsername,
         MessageAction: 'SUPPRESS',
         TemporaryPassword: temporaryPassword,
-        UserAttributes: buildUserAttributes({ name, email, phone }),
+        UserAttributes: buildUserAttributes({ name, email, phone, role }),
       })
     );
     safeLog('Cognito adminCreateUser success', { username: normalizedUsername });

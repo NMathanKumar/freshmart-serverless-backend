@@ -1,14 +1,10 @@
 const sharedLogger = require('@freshmart/service-shared').logger;
-const { eventPublisher } = require('@freshmart/service-shared');
+const { eventPublisher, constants } = require('@freshmart/service-shared');
+const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'cart-service' });
 
-const EVENT_TYPES = Object.freeze({
-  CART_ITEM_ADDED: 'CartItemAdded.v1',
-  CART_ITEM_UPDATED: 'CartItemUpdated.v1',
-  CART_ITEM_REMOVED: 'CartItemRemoved.v1',
-  CART_CLEARED: 'CartCleared.v1',
-});
+
 
 const publishCartEvent = async (eventType, payload = {}, context = {}) => {
   logger.info('Publishing cart event', {

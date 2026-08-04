@@ -12,9 +12,9 @@ const controller = require('../controller/menu.controller');
 
 const router = express.Router();
 
-router.get('/search', authenticateOrInternal, validate(searchQuerySchema, 'query'), controller.searchFood);
-router.get('/', authenticateOrInternal, validate(listQuerySchema, 'query'), controller.listFood);
-router.get('/:id', authenticateOrInternal, validate(idParamSchema, 'params'), controller.getFoodById);
+router.get('/search', validate(searchQuerySchema, 'query'), controller.searchFood);
+router.get('/', validate(listQuerySchema, 'query'), controller.listFood);
+router.get('/:id', validate(idParamSchema, 'params'), controller.getFoodById);
 router.post(
   '/',
   authenticateOrInternal,

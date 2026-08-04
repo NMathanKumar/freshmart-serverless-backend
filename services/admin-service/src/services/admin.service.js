@@ -2,6 +2,7 @@ const { genId } = require('@freshmart/service-shared').utils.id;
 const { BadRequestError, NotFoundError } = require('@freshmart/service-shared').errors;
 const sharedLogger = require('@freshmart/service-shared').logger;
 const adminRepository = require('../repositories/admin.repository');
+const dashboardRepository = require('../repositories/dashboard.repository');
 const {
   publishAdminConfigUpdated,
   publishAdminDashboardUpdated,
@@ -15,12 +16,21 @@ const AUDIT_ENTITY = 'AUDIT';
 const DASHBOARD_ITEM_ID = 'CURRENT';
 
 const DEFAULT_DASHBOARD = () => ({
+  totalProducts: 0,
+  totalCustomers: 0,
   totalOrders: 0,
+  pendingOrders: 0,
+  processingOrders: 0,
   completedOrders: 0,
   cancelledOrders: 0,
   totalRevenue: 0,
   failedPayments: 0,
   lowStockEvents: 0,
+  lowStockCount: 0,
+  outOfStockCount: 0,
+  recentOrders: [],
+  inventoryAlerts: [],
+  topSellingProducts: [],
   notificationsSent: 0,
   analyticsUpdates: 0,
   dailyReportsGenerated: 0,
@@ -144,21 +154,34 @@ const handleDomainEvent = async (eventType, payload = {}, context = {}) => {
   };
 };
 
-const getDashboard = async () => {
-  const dashboard = await adminRepository.getEntity(DASHBOARD_ENTITY, DASHBOARD_ITEM_ID);
-  if (!dashboard) {
-    return {
+const buildDashboardResponse = (dashboard, statistics, timestamp = new Date().toISOString()) => {
+  const entity = dashboard || {
       adminItemId: DASHBOARD_ITEM_ID,
       entityType: DASHBOARD_ENTITY,
-      data: DEFAULT_DASHBOARD(),
       status: 'ACTIVE',
       createdAt: null,
       updatedAt: null,
       createdBy: null,
       version: 0,
-    };
-  }
-  return dashboard;
+  };
+  return {
+    ...entity,
+    data: {
+      ...DEFAULT_DASHBOARD(),
+      ...(dashboard?.data || {}),
+      ...statistics,
+      lowStockEvents: statistics.lowStockCount + statistics.outOfStockCount,
+      lastUpdatedAt: timestamp,
+    },
+  };
+};
+
+const getDashboard = async () => {
+  const [dashboard, statistics] = await Promise.all([
+    adminRepository.getEntity(DASHBOARD_ENTITY, DASHBOARD_ITEM_ID),
+    dashboardRepository.getStatistics(),
+  ]);
+  return buildDashboardResponse(dashboard, statistics);
 };
 
 const listDashboardSnapshots = async () => adminRepository.listByEntityType(DASHBOARD_ENTITY);
@@ -217,6 +240,7 @@ module.exports = {
   AUDIT_ENTITY,
   DASHBOARD_ITEM_ID,
   DEFAULT_DASHBOARD,
+  buildDashboardResponse,
   handleDomainEvent,
   getDashboard,
   listDashboardSnapshots,

@@ -41,6 +41,8 @@ const CART = Object.freeze({
   MIN_ITEM_QUANTITY: 1,
 });
 
+const { EVENT_TYPES, EVENT_VERSION } = require('../events/constants');
+
 module.exports = {
   ROLES,
   ORDER_STATUS,
@@ -49,4 +51,6 @@ module.exports = {
   PAYMENT_METHOD,
   PAGINATION,
   CART,
+  EVENT_TYPES,
+  EVENT_VERSION,
 };

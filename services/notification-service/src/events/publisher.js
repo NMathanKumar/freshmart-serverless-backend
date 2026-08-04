@@ -1,13 +1,10 @@
 const sharedLogger = require('@freshmart/service-shared').logger;
-const { eventPublisher } = require('@freshmart/service-shared');
+const { eventPublisher, constants } = require('@freshmart/service-shared');
+const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'notification-service' });
 
-const EVENT_TYPES = Object.freeze({
-  NOTIFICATION_CREATED: 'NotificationCreated.v1',
-  NOTIFICATION_DELIVERED: 'NotificationDelivered.v1',
-  NOTIFICATION_FAILED: 'NotificationFailed.v1',
-});
+
 
 const publishNotificationEvent = async (eventType, payload = {}, context = {}) => {
   const start = Date.now();

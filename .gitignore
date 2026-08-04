@@ -21,7 +21,16 @@ yarn-error.log*
 # Build
 dist/
 coverage/
+apps/*/dist/
 *.zip
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
 
 # IDE
 .vscode/
@@ -44,3 +53,11 @@ logs/
 !.env.development.example
 !.env.qa.example
 .env.local
+
+# Temp / Plan files
+tfplan*
+*.json
+!package.json
+!tsconfig*.json
+!components.json
+frontend-legacy-backup/

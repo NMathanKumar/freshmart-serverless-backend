@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  --color-fresh-50: #f2fbf4;
+  --color-fresh-100: #d7f6de;
+  --color-fresh-500: #1f9d45;
+  --color-fresh-600: #197d37;
+  --color-fresh-700: #14642d;
+}
+
+:root {
+  --background: #f7fbf7;
+  --foreground: #102018;
+  --foreground-muted: #5c6d61;
+  --surface-elevated: #ffffff;
+  --surface-subtle: #ecf7ee;
+  --surface-muted: #dcefe0;
+  --border: rgba(16, 32, 24, 0.08);
+}
+
+.dark {
+  --background: #07110b;
+  --foreground: #edf8f0;
+  --foreground-muted: #a7b8ac;
+  --surface-elevated: #0f1b14;
+  --surface-subtle: #122219;
+  --surface-muted: #163223;
+  --border: rgba(237, 248, 240, 0.08);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    background:
+      radial-gradient(circle at top, rgba(31, 157, 69, 0.18), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 250, 244, 0.98));
+    color: var(--foreground);
+  }
+
+  .dark body {
+    background:
+      radial-gradient(circle at top, rgba(31, 157, 69, 0.15), transparent 32%),
+      linear-gradient(180deg, #07110b, #0a1510);
+  }
+}

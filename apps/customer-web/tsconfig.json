@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.frontend-base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "references": [
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/api-sdk" },
+    { "path": "../../packages/design-system" }
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

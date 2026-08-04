@@ -1,12 +1,10 @@
 const sharedLogger = require('@freshmart/service-shared').logger;
-const { eventPublisher } = require('@freshmart/service-shared');
+const { eventPublisher, constants } = require('@freshmart/service-shared');
+const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'admin-service' });
 
-const EVENT_TYPES = Object.freeze({
-  ADMIN_CONFIG_UPDATED: 'AdminConfigUpdated.v1',
-  ADMIN_DASHBOARD_UPDATED: 'AdminDashboardUpdated.v1',
-});
+
 
 const publishAdminEvent = async (eventType, payload = {}, context = {}) => {
   const start = Date.now();

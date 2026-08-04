@@ -1,0 +1,17 @@
+{
+  "name": "@freshmart/admin-bff-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test": "node --test --import tsx test/service.test.ts"
+  },
+  "dependencies": {
+    "@freshmart/platform-core": "file:../../packages/platform-core",
+    "zod": "^3.25.76"
+  }
+}

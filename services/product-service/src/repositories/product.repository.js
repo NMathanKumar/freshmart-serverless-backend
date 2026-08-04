@@ -4,21 +4,16 @@ const {
   UpdateCommand,
   DeleteCommand,
   QueryCommand,
-  TransactWriteCommand,
+  ScanCommand,
 } = require('@aws-sdk/lib-dynamodb');
 const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const getTableName = (tableName = config.dynamodb.tables.products) => {
-  if (!tableName) throw new Error('Missing DDB_TABLE_PRODUCTS');
-  return tableName;
+  return tableName || process.env.DDB_TABLE_PRODUCTS || 'freshmart-dev-products';
 };
 
-const MAIN_SK = 'META';
-const LIST_SK = 'LIST';
-const MAX_TRANSACT_ITEMS = 100;
-
-const tokenSk = (token) => `TOKEN#${token}`;
-const key = (productId, sk = MAIN_SK) => ({ PK: `PRODUCT#${productId}`, SK: sk });
+// The deployed freshmart-dev-products table uses a simple key: { productId: String }
+// with GSIs: category-index (hash: category), brand-index (hash: brand), status-index (hash: status)
 
 const normalizeText = (value) =>
   String(value || '')
@@ -27,8 +22,6 @@ const normalizeText = (value) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-const tokenize = (value) => [...new Set(normalizeText(value).split(' ').filter(Boolean))];
 
 const toDomain = (item) => {
   if (!item) return null;
@@ -40,313 +33,190 @@ const toDomain = (item) => {
     brand: item.brand || null,
     price: Number(item.price),
     images: Array.isArray(item.images) ? item.images : [],
-    available: !!item.available,
+    available: item.available !== false,
     weight: item.weight ? Number(item.weight) : null,
     unit: item.unit || null,
     stock: Number(item.stock ?? 0),
+    status: item.status || 'active',
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     version: Number(item.version || 0),
   };
 };
 
-const buildMainItem = ({ productId, data, now, version = 0, createdAt }) => {
-  const normalizedName = normalizeText(data.productName);
-  const normalizedCategory = normalizeText(data.category);
-  const searchTokens = tokenize(data.productName).slice(0, MAX_TRANSACT_ITEMS - 5);
-  return {
-    ...key(productId),
-    productId,
-    productName: data.productName,
-    description: data.description || null,
-    category: data.category,
-    brand: data.brand || null,
-    price: Number(data.price),
-    images: Array.isArray(data.images) ? data.images : [],
-    available: data.available ?? true,
-    weight: data.weight ? Number(data.weight) : null,
-    unit: data.unit || null,
-    stock: Number(data.stock ?? 0),
-    nameNormalized: normalizedName,
-    searchTokens,
-    version,
-    CategoryPK: `CATEGORY#${normalizedCategory}`,
-    CategorySK: `CREATED#${createdAt || now}#PRODUCT#${productId}`,
-    AvailabilityPK: `NAME#${normalizedName}`,
-    AvailabilitySK: `PRODUCT#${productId}`,
-    createdAt: createdAt || now,
-    updatedAt: now,
-    entityType: 'PRODUCT',
-  };
-};
-
-const buildListItem = (mainItem) => ({
-  ...key(mainItem.productId, LIST_SK),
-  ...mainItem,
-  SK: LIST_SK,
-  CategoryPK: 'CATEGORY#ALL',
-  CategorySK: `CREATED#${mainItem.createdAt}#PRODUCT#${mainItem.productId}`,
-  entityType: 'PRODUCT_LIST_INDEX',
-});
-
-const buildTokenItem = (mainItem, token) => ({
-  ...key(mainItem.productId, tokenSk(token)),
-  ...mainItem,
-  SK: tokenSk(token),
-  searchToken: token,
-  AvailabilityPK: `NAME#${token}`,
-  AvailabilitySK: `PRODUCT#${mainItem.productId}`,
-  entityType: 'PRODUCT_SEARCH_INDEX',
-});
-
-const buildUpdateParams = (item, currentVersion, tableName) => ({
-  TableName: tableName,
-  Key: { PK: item.PK, SK: item.SK },
-  UpdateExpression: `
-    SET #productName = :productName,
-        #description = :description,
-        #category = :category,
-        #brand = :brand,
-        #price = :price,
-        #images = :images,
-        #available = :available,
-        #weight = :weight,
-        #unit = :unit,
-        #stock = :stock,
-        #nameNormalized = :nameNormalized,
-        #searchTokens = :searchTokens,
-        #CategoryPK = :CategoryPK,
-        #CategorySK = :CategorySK,
-        #AvailabilityPK = :AvailabilityPK,
-        #AvailabilitySK = :AvailabilitySK,
-        #updatedAt = :updatedAt,
-        #version = :nextVersion,
-        #entityType = :entityType
-  `,
-  ConditionExpression: currentVersion !== undefined ? '#version = :version' : undefined,
-  ExpressionAttributeNames: {
-    '#productName': 'productName',
-    '#description': 'description',
-    '#category': 'category',
-    '#brand': 'brand',
-    '#price': 'price',
-    '#images': 'images',
-    '#available': 'available',
-    '#weight': 'weight',
-    '#unit': 'unit',
-    '#stock': 'stock',
-    '#nameNormalized': 'nameNormalized',
-    '#searchTokens': 'searchTokens',
-    '#CategoryPK': 'CategoryPK',
-    '#CategorySK': 'CategorySK',
-    '#AvailabilityPK': 'AvailabilityPK',
-    '#AvailabilitySK': 'AvailabilitySK',
-    '#updatedAt': 'updatedAt',
-    '#version': 'version',
-    '#entityType': 'entityType',
-  },
-  ExpressionAttributeValues: {
-    ':productName': item.productName,
-    ':description': item.description || null,
-    ':category': item.category,
-    ':brand': item.brand || null,
-    ':price': Number(item.price),
-    ':images': Array.isArray(item.images) ? item.images : [],
-    ':available': !!item.available,
-    ':weight': item.weight ? Number(item.weight) : null,
-    ':unit': item.unit || null,
-    ':stock': Number(item.stock ?? 0),
-    ':nameNormalized': item.nameNormalized,
-    ':searchTokens': item.searchTokens || [],
-    ':CategoryPK': item.CategoryPK,
-    ':CategorySK': item.CategorySK,
-    ':AvailabilityPK': item.AvailabilityPK,
-    ':AvailabilitySK': item.AvailabilitySK,
-    ':updatedAt': item.updatedAt,
-    ':nextVersion': item.version,
-    ':entityType': item.entityType,
-    ...(currentVersion !== undefined && { ':version': Number(currentVersion) }),
-  },
-});
-
 const createProductRepository = ({ client = documentClient, tableName = null, now = () => new Date() } = {}) => {
   const resolveTableName = () => getTableName(tableName);
-  const getMain = async (productId) => {
+
+  const findById = async (productId) => {
     const result = await client.send(
-      new GetCommand({ TableName: resolveTableName(), Key: key(productId) })
+      new GetCommand({ TableName: resolveTableName(), Key: { productId } })
     );
-    return result.Item || null;
+    return toDomain(result.Item || null);
   };
 
-  const findById = async (productId) => toDomain(await getMain(productId));
-
   const findAll = async ({ limit = 20, cursor, category } = {}) => {
+    if (category) {
+      // Use category-index GSI (hash key: 'category')
+      const params = {
+        TableName: resolveTableName(),
+        IndexName: 'category-index',
+        KeyConditionExpression: 'category = :cat',
+        ExpressionAttributeValues: { ':cat': category },
+        Limit: Number(limit),
+      };
+      if (cursor) {
+        params.ExclusiveStartKey = JSON.parse(Buffer.from(cursor, 'base64url').toString());
+      }
+      const result = await client.send(new QueryCommand(params));
+      return {
+        items: (result.Items || []).map(toDomain).filter(Boolean),
+        nextCursor: result.LastEvaluatedKey
+          ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
+          : null,
+      };
+    } else {
+      // Scan all products
+      const params = {
+        TableName: resolveTableName(),
+        Limit: Number(limit),
+      };
+      if (cursor) {
+        params.ExclusiveStartKey = JSON.parse(Buffer.from(cursor, 'base64url').toString());
+      }
+      const result = await client.send(new ScanCommand(params));
+      return {
+        items: (result.Items || []).map(toDomain).filter(Boolean),
+        nextCursor: result.LastEvaluatedKey
+          ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
+          : null,
+      };
+    }
+  };
+
+  const search = async (term, { limit = 20, cursor } = {}) => {
+    if (!term || !term.trim()) return { items: [], nextCursor: null };
+    const normalizedTerm = normalizeText(term);
+    // Use Scan with contains filter on nameNormalized since no full-text search index exists
     const params = {
       TableName: resolveTableName(),
-      IndexName: 'CategoryIndex',
-      KeyConditionExpression: 'CategoryPK = :pk',
+      FilterExpression: 'contains(nameNormalized, :term) OR contains(productName, :rawTerm)',
       ExpressionAttributeValues: {
-        ':pk': category ? `CATEGORY#${category}` : 'CATEGORY#ALL',
+        ':term': normalizedTerm,
+        ':rawTerm': term,
       },
-      ScanIndexForward: false,
       Limit: Number(limit),
     };
     if (cursor) {
       params.ExclusiveStartKey = JSON.parse(Buffer.from(cursor, 'base64url').toString());
     }
-    const result = await client.send(new QueryCommand(params));
+    const result = await client.send(new ScanCommand(params));
     return {
-      items: (result.Items || []).map(toDomain).filter(Boolean),
+      items: (result.Items || []).map(toDomain).filter(Boolean).slice(0, Number(limit)),
       nextCursor: result.LastEvaluatedKey
         ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
         : null,
     };
   };
 
-  const search = async (term, { limit = 20, cursor } = {}) => {
-    const tokens = tokenize(term);
-    if (!tokens.length) return { items: [], nextCursor: null };
-
-    const results = await Promise.all(
-      tokens.map((token, index) => {
-        const params = {
-          TableName: resolveTableName(),
-          IndexName: 'AvailabilityIndex',
-          KeyConditionExpression: 'AvailabilityPK = :pk',
-          ExpressionAttributeValues: { ':pk': `NAME#${token}` },
-          ScanIndexForward: false,
-          Limit: Number(limit),
-        };
-        if (index === 0 && cursor) {
-          params.ExclusiveStartKey = JSON.parse(Buffer.from(cursor, 'base64url').toString());
-        }
-        return client.send(new QueryCommand(params));
-      })
-    );
-
-    const seen = new Set();
-    const items = [];
-    for (const result of results) {
-      for (const item of result.Items || []) {
-        if (!seen.has(item.productId)) {
-          seen.add(item.productId);
-          const domain = toDomain(item);
-          if (domain) items.push(domain);
-        }
-      }
-    }
-
-    const nextCursor = results[0].LastEvaluatedKey
-      ? Buffer.from(JSON.stringify(results[0].LastEvaluatedKey)).toString('base64url')
-      : null;
-
-    return { items: items.slice(0, Number(limit)), nextCursor };
-  };
-
   const createProduct = async (productId, data) => {
     const timestamp = now().toISOString();
-    const mainItem = buildMainItem({ productId, data, now: timestamp, version: 0 });
-    const listItem = buildListItem(mainItem);
-    const tokenItems = mainItem.searchTokens.map((token) => buildTokenItem(mainItem, token));
-
-    const transactItems = [
-      {
-        Put: {
-          TableName: resolveTableName(),
-          Item: mainItem,
-          ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
-        },
-      },
-      { Put: { TableName: resolveTableName(), Item: listItem } },
-      ...tokenItems.map((item) => ({ Put: { TableName: resolveTableName(), Item: item } })),
-    ];
-
-    await client.send(new TransactWriteCommand({ TransactItems: transactItems }));
-    return toDomain(mainItem);
+    const normalizedName = normalizeText(data.productName || '');
+    const item = {
+      productId,
+      productName: data.productName,
+      description: data.description || null,
+      category: data.category,
+      brand: data.brand || null,
+      price: Number(data.price),
+      images: Array.isArray(data.images) ? data.images : [],
+      available: data.available !== false,
+      weight: data.weight ? Number(data.weight) : null,
+      unit: data.unit || null,
+      stock: Number(data.stock ?? 0),
+      status: data.status || 'active',
+      nameNormalized: normalizedName,
+      version: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    await client.send(
+      new PutCommand({
+        TableName: resolveTableName(),
+        Item: item,
+        ConditionExpression: 'attribute_not_exists(productId)',
+      })
+    );
+    return toDomain(item);
   };
 
   const updateProduct = async (productId, data) => {
-    const current = await getMain(productId);
-    if (!current) return null;
+    const existing = await findById(productId);
+    if (!existing) return null;
 
-    const currentVersion = Number(current.version || 0);
-    const nextVersion = currentVersion + 1;
     const timestamp = now().toISOString();
+    const merged = { ...existing, ...data };
+    const normalizedName = normalizeText(merged.productName || '');
+    const nextVersion = Number(existing.version || 0) + 1;
 
-    const next = buildMainItem({
+    const item = {
       productId,
-      data: { ...current, ...data },
-      now: timestamp,
+      productName: merged.productName,
+      description: merged.description || null,
+      category: merged.category,
+      brand: merged.brand || null,
+      price: Number(merged.price),
+      images: Array.isArray(merged.images) ? merged.images : [],
+      available: merged.available !== false,
+      weight: merged.weight ? Number(merged.weight) : null,
+      unit: merged.unit || null,
+      stock: Number(merged.stock ?? 0),
+      status: merged.status || 'active',
+      nameNormalized: normalizedName,
       version: nextVersion,
-      createdAt: current.createdAt,
-    });
-
-    const nextList = buildListItem(next);
-    const nextTokenItems = next.searchTokens.map((token) => buildTokenItem(next, token));
-
-    const oldTokens = current.searchTokens || [];
-    const newTokenSet = new Set(next.searchTokens);
-    const staleTokenDeletes = oldTokens
-      .filter((t) => !newTokenSet.has(t))
-      .map((token) => ({
-        Delete: { TableName: resolveTableName(), Key: key(productId, tokenSk(token)) },
-      }));
-
-    const transactItems = [
-      { Update: { ...buildUpdateParams(next, currentVersion, resolveTableName()) } },
-      { Update: { ...buildUpdateParams(nextList, undefined, resolveTableName()) } },
-      ...nextTokenItems.map((item) => ({ Put: { TableName: resolveTableName(), Item: item } })),
-      ...staleTokenDeletes,
-    ];
-
-    await client.send(new TransactWriteCommand({ TransactItems: transactItems }));
-    return toDomain(next);
+      createdAt: existing.createdAt,
+      updatedAt: timestamp,
+    };
+    await client.send(
+      new PutCommand({
+        TableName: resolveTableName(),
+        Item: item,
+        ConditionExpression: '#version = :currentVersion',
+        ExpressionAttributeNames: { '#version': 'version' },
+        ExpressionAttributeValues: { ':currentVersion': Number(existing.version || 0) },
+      })
+    );
+    return toDomain(item);
   };
 
   const setAvailability = async (productId, available) => {
-    const current = await getMain(productId);
-    if (!current) return null;
-
-    const currentVersion = Number(current.version || 0);
-    const nextVersion = currentVersion + 1;
     const timestamp = now().toISOString();
-
-    const next = buildMainItem({
-      productId,
-      data: { ...current, available },
-      now: timestamp,
-      version: nextVersion,
-      createdAt: current.createdAt,
-    });
-
-    const nextList = buildListItem(next);
-    const tokenItems = next.searchTokens.map((token) => buildTokenItem(next, token));
-
-    const transactItems = [
-      { Update: { ...buildUpdateParams(next, currentVersion, resolveTableName()) } },
-      { Update: { ...buildUpdateParams(nextList, undefined, resolveTableName()) } },
-      ...tokenItems.map((item) => ({ Put: { TableName: resolveTableName(), Item: item } })),
-    ];
-
-    await client.send(new TransactWriteCommand({ TransactItems: transactItems }));
-    return toDomain(next);
+    const result = await client.send(
+      new UpdateCommand({
+        TableName: resolveTableName(),
+        Key: { productId },
+        UpdateExpression: 'SET available = :available, updatedAt = :updatedAt, #version = #version + :inc',
+        ExpressionAttributeNames: { '#version': 'version' },
+        ExpressionAttributeValues: {
+          ':available': !!available,
+          ':updatedAt': timestamp,
+          ':inc': 1,
+        },
+        ConditionExpression: 'attribute_exists(productId)',
+        ReturnValues: 'ALL_NEW',
+      })
+    );
+    return toDomain(result.Attributes || null);
   };
 
   const remove = async (productId) => {
-    const current = await getMain(productId);
-    if (!current) return false;
-
-    const tokens = current.searchTokens || [];
-    const transactItems = [
-      { Delete: { TableName: resolveTableName(), Key: key(productId, MAIN_SK) } },
-      { Delete: { TableName: resolveTableName(), Key: key(productId, LIST_SK) } },
-      ...tokens.map((token) => ({
-        Delete: { TableName: resolveTableName(), Key: key(productId, tokenSk(token)) },
-      })),
-    ];
-
-    await client.send(new TransactWriteCommand({ TransactItems: transactItems }));
-    return true;
+    const result = await client.send(
+      new DeleteCommand({
+        TableName: resolveTableName(),
+        Key: { productId },
+        ReturnValues: 'ALL_OLD',
+      })
+    );
+    return !!result.Attributes;
   };
 
   return {

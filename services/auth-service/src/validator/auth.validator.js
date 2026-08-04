@@ -12,10 +12,13 @@ const passwordSchema = Joi.string()
   });
 
 const registerSchema = Joi.object({
-  name: Joi.string().min(2).max(120).required(),
+  name: Joi.string().min(2).max(120).optional(),
+  firstName: Joi.string().optional().allow(null, ''),
+  lastName: Joi.string().optional().allow(null, ''),
   email: Joi.string().email().required(),
   password: passwordSchema,
   phone: Joi.string().max(20).optional().allow(null, ''),
+  role: Joi.string().optional().allow(null, '')
 });
 
 const loginSchema = Joi.object({

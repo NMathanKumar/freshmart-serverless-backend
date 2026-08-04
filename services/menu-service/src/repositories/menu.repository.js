@@ -10,9 +10,7 @@ const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 // Fix #6 — resolve once at module load, fail fast on cold start instead of per-call
 const TABLE_NAME = (() => {
-  const name = config.dynamodb.tables.catalogItems;
-  if (!name) throw new Error('Missing DDB_TABLE_CATALOG_ITEMS');
-  return name;
+  return config.dynamodb.tables.catalogItems || process.env.DDB_TABLE_CATALOG_ITEMS || 'freshmart-dev-catalog-items';
 })();
 
 // Fix #9 — plain constants, no zero-arg function overhead

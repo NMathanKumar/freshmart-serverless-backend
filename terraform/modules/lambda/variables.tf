@@ -98,7 +98,7 @@ variable "tracing_mode" {
 variable "publish" {
   description = "Whether to publish a new Lambda version on update."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "environment_variables" {

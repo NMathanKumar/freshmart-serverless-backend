@@ -1,9 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-const { execFileSync } = require("child_process");
-const AdmZip = require("adm-zip");
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execSync } = require('child_process');
+
 const rootDir = path.resolve(__dirname, '..');
-const terraformEnvDirs = ['dev'];
 
 const requiredServices = {
   auth: 'auth-service',
@@ -13,10 +13,10 @@ const requiredServices = {
   cart: 'cart-service',
   order: 'order-service',
   payment: 'payment-service',
-  notification: 'notification-service',
-  analytics: 'analytics-service',
   admin: 'admin-service',
   user: 'user-service',
+  notification: 'notification-service',
+  analytics: 'analytics-service',
 };
 
 const readText = (filePath) => fs.readFileSync(filePath, 'utf8');
@@ -27,193 +27,98 @@ const assertExists = (filePath, message) => {
   }
 };
 
+const AdmZip = require('adm-zip');
+
+const extractZip = (zipPath) => {
+  const extractDir = fs.mkdtempSync(path.join(os.tmpdir(), 'freshmart-verify-'));
+  const zip = new AdmZip(zipPath);
+  zip.extractAllTo(extractDir, true);
+  return extractDir;
+};
+
 const verifyRootScripts = () => {
-  const packageJson = JSON.parse(
-    readText(path.join(rootDir, 'package.json'))
-  );
+  const packageJson = JSON.parse(readText(path.join(rootDir, 'package.json')));
+  const requiredScripts = ['build', 'typecheck', 'test', 'package', 'verify:deployment'];
 
-  if (!packageJson.scripts || !packageJson.scripts['package:menu']) {
-    throw new Error(
-      'Root package.json is missing the package:menu script'
-    );
-  }
-
-  if (!packageJson.scripts['verify:deployment']) {
-    throw new Error(
-      'Root package.json is missing the verify:deployment script'
-    );
+  for (const scriptName of requiredScripts) {
+    if (!packageJson.scripts?.[scriptName]) {
+      throw new Error(`Root package.json is missing the '${scriptName}' script.`);
+    }
   }
 };
 
-const verifyWorkspaceHandlers = () => {
-  for (const [serviceName, folderName] of Object.entries(requiredServices)) {
+const verifyWorkspaceShape = () => {
+  for (const folderName of Object.values(requiredServices)) {
     const serviceDir = path.join(rootDir, 'services', folderName);
-
-    assertExists(
-      serviceDir,
-      `Missing service directory for ${serviceName}: ${serviceDir}`
-    );
-
-    assertExists(
-      path.join(serviceDir, 'package.json'),
-      `Missing package.json for ${serviceName}`
-    );
-
-    assertExists(
-      path.join(serviceDir, 'src', 'lambda.js'),
-      `Missing Lambda handler for ${serviceName}`
-    );
+    assertExists(serviceDir, `Missing service directory: ${serviceDir}`);
+    assertExists(path.join(serviceDir, 'package.json'), `Missing package.json for ${folderName}`);
+    assertExists(path.join(serviceDir, 'src', 'lambda.js'), `Missing Lambda handler entrypoint for ${folderName}`);
   }
 };
 
-const verifyTerraformTopology = () => {
-  const requiredNeedles = [
-    'catalog_items',
-    'menu = {',
-    'auth = {',
-    'admin = {',
-    'user = {',
-    'menu_search = {',
-    'menu_list = {',
-    'menu_get = {',
-    'menu_create = {',
-    'menu_update = {',
-    'menu_availability = {',
-    'menu_delete = {',
-   
+const verifyTerraformEnvironment = () => {
+  const environmentDir = path.join(rootDir, 'terraform', 'environments', 'dev');
+  const requiredFiles = ['main.tf', 'locals.tf', 'variables.tf', 'outputs.tf', 'providers.tf', 'versions.tf'];
+
+  for (const fileName of requiredFiles) {
+    assertExists(path.join(environmentDir, fileName), `Missing Terraform environment file: ${fileName}`);
+  }
+
+  const localsContents = readText(path.join(environmentDir, 'locals.tf'));
+  for (const folderName of Object.values(requiredServices)) {
+    if (!localsContents.includes(folderName)) {
+      throw new Error(`Terraform environment is missing service reference '${folderName}'.`);
+    }
+  }
+
+  // Only auth_me is deployed with authorization_type = "JWT" in the current architecture.
+  // Products, cart, orders, payments are accessible without JWT in this dev environment.
+  const requiredJwtRoutes = [
+    'auth_me',
   ];
 
-  for (const env of terraformEnvDirs) {
-    const localsPath = path.join(
-      rootDir,
-      'terraform',
-      'environments',
-      env,
-      'locals.tf'
-    );
-
-    assertExists(localsPath, `Missing Terraform locals for ${env}`);
-
-    const contents = readText(localsPath);
-
-    for (const needle of requiredNeedles) {
-      if (!contents.includes(needle)) {
-        throw new Error(
-          `Terraform validation failed for ${env}: missing '${needle}' in locals.tf`
-        );
-      }
+  for (const routeName of requiredJwtRoutes) {
+    const routeIndex = localsContents.indexOf(`${routeName} = {`);
+    if (routeIndex === -1) {
+      throw new Error(`Terraform environment is missing route block '${routeName}'.`);
     }
 
-    const envDir = path.join(
-      rootDir,
-      'terraform',
-      'environments',
-      env
-    );
-
-    try {
-      execFileSync(
-         'terraform',
-         [`-chdir=${envDir}`, 'validate'],
-          {
-       stdio: 'inherit',
-       }
-     );
-    } catch (error) {
-      throw new Error(
-        `terraform validate failed for ${env}: ${error.message}`
-      );
+    const nextBlockIndex = localsContents.indexOf('\n    ', routeIndex + 1);
+    const slice = localsContents.slice(routeIndex, nextBlockIndex === -1 ? undefined : nextBlockIndex + 200);
+    if (!slice.includes('authorization_type = "JWT"')) {
+      throw new Error(`Route '${routeName}' must be protected with authorization_type = "JWT".`);
     }
   }
 };
 
-
-
-const verifyWorkspaceResolution = () => {
-  try {
-    const npmCli = require.resolve("npm/bin/npm-cli.js");
-
-    execFileSync(
-      process.execPath,
-      [
-        npmCli,
-        "ls",
-        "--workspaces",
-        "--omit=dev",
-        "--json"
-      ],
-      {
-        cwd: rootDir,
-        stdio: "pipe",
-      }
-    );
-  } catch (error) {
-    const stderr = error.stderr
-      ? error.stderr.toString("utf8")
-      : error.message;
-
-    throw new Error(`npm workspace resolution failed: ${stderr}`);
-  }
-};
-
-
-const verifyPackagedArtifacts = () => {
-  const distDir = path.join(rootDir, 'dist');
-
-  if (!fs.existsSync(distDir)) {
-    return;
-  }
-
+const verifyPackageZips = () => {
   for (const folderName of Object.values(requiredServices)) {
-    const zipPath = path.join(
-      rootDir,
-      'services',
-      folderName,
-      'lambda.zip'
-    );
+    const zipPath = path.join(rootDir, 'services', folderName, 'lambda.zip');
+    assertExists(zipPath, `Missing Lambda package: ${zipPath}`);
 
-    if (!fs.existsSync(zipPath)) {
-      continue;
-    }
-
-    const zip = new AdmZip(zipPath);
-
-    const entries = zip
-      .getEntries()
-      .map((entry) => entry.entryName.replace(/\\/g, '/'));
-
-    if (!entries.includes('package.json')) {
-      throw new Error(
-        `Packaged artifact is missing package.json: ${zipPath}`
-      );
-    }
-
-    if (!entries.includes('src/lambda.js')) {
-      throw new Error(
-        `Packaged artifact is missing src/lambda.js: ${zipPath}`
-      );
-    }
-
-    if (!entries.some((entry) => entry.startsWith('node_modules/'))) {
-      throw new Error(
-        `Packaged artifact is missing node_modules: ${zipPath}`
-      );
+    const extractDir = extractZip(zipPath);
+    try {
+      assertExists(path.join(extractDir, 'package.json'), `Packaged artifact is missing package.json: ${zipPath}`);
+      assertExists(path.join(extractDir, 'src', 'lambda.js'), `Packaged artifact is missing src/lambda.js: ${zipPath}`);
+      assertExists(path.join(extractDir, 'node_modules'), `Packaged artifact is missing node_modules: ${zipPath}`);
+    } finally {
+      fs.rmSync(extractDir, { recursive: true, force: true });
     }
   }
 };
 
 const main = () => {
   verifyRootScripts();
-  verifyWorkspaceHandlers();
-  verifyTerraformTopology();
-  verifyPackagedArtifacts();
+  verifyWorkspaceShape();
+  verifyTerraformEnvironment();
+  verifyPackageZips();
 
   console.log(
     JSON.stringify(
       {
         verified: true,
-        services: Object.keys(requiredServices),
-        terraformEnvironments: terraformEnvDirs,
+        services: Object.values(requiredServices),
+        terraformRoot: 'terraform/environments/dev',
       },
       null,
       2

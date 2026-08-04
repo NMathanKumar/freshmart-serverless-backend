@@ -12,6 +12,8 @@ const {
 const router = express.Router();
 
 router.use(authenticate);
+router.use('/procurement', require('./procurement.routes'));
+router.use('/fulfillment', require('./fulfillment.routes'));
 router.use(authorize('ADMIN', 'STAFF'));
 
 router.get('/reports/date/:date', validate(dateParamsSchema, 'params'), controller.listReportsByDate);

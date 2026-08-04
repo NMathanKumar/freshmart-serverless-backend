@@ -2,26 +2,34 @@
 
 ## Prerequisites
 
-- Node.js 18 or newer
+- Node.js 22 or newer
 - npm
-- Terraform
-- AWS CLI
+- Terraform 1.8 or newer
+- AWS CLI authenticated to account `769044546162`
 
-## Local Variables
+## Terraform Environment
 
-Set the following before running startup checks or service code locally:
+The active Terraform root is `terraform/environments/dev`.
 
-- `AWS_REGION`
-- `AWS_DEFAULT_REGION`
-- `NODE_ENV`
-- `STAGE`
-- `ENVIRONMENT`
+Required deployment environment values:
+
+- `AWS_REGION=ap-southeast-1`
+- `TF_VAR_internal_service_token`
+
+## Runtime Environment Shape
+
+Terraform injects the live Lambda environment variables, including:
+
+- `COGNITO_*`
+- `AWS_EVENT_BUS_NAME`
+- `AWS_EVENT_SOURCE`
+- `DDB_TABLE_*`
+- `AWS_SNS_*`
+- `AWS_SQS_*`
+- `AWS_S3_BUCKET`
 - `INTERNAL_SERVICE_TOKEN`
+- `MENU_SERVICE_BASE_URL`
 
-Service-specific tables and parameters are injected by Terraform and should not be hardcoded into source files.
+## Experimental Stack
 
-## AWS Setup
-
-- Confirm AWS credentials with `aws sts get-caller-identity`.
-- Use the intended account and region before running Terraform.
-- Ensure required SSM parameters and Secrets Manager values exist for the target environment.
+If you are exploring `terraform/stacks/freshmart-platform`, treat it as experimental and separate from the active deployment path.

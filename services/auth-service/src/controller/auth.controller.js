@@ -1,5 +1,6 @@
 const asyncHandler = require('@freshmart/service-shared').utils.asyncHandler;
 const { success, created, noContent } = require('@freshmart/service-shared').response;
+const { emitBusinessMetrics } = require('@freshmart/service-shared').metrics;
 const logger = require('@freshmart/service-shared').logger;
 const authService = require('../service/auth.service');
 
@@ -25,6 +26,11 @@ const register = asyncHandler(async (req, res) => {
   });
 
   const result = await authService.register(req.body, req.eventContext);
+  try {
+    emitBusinessMetrics([
+      { name: 'UserRegistered', value: 1, unit: 'Count', extraDimensions: { EventType: 'auth' } }
+    ]);
+  } catch (_) {}
   created(res, { message: 'Account created successfully', data: result });
 });
 
@@ -36,6 +42,11 @@ const login = asyncHandler(async (req, res) => {
     return;
   }
 
+  try {
+    emitBusinessMetrics([
+      { name: 'UserLogin', value: 1, unit: 'Count', extraDimensions: { EventType: 'auth' } }
+    ]);
+  } catch (_) {}
   success(res, { message: 'Login successful', data: result });
 });
 
@@ -47,6 +58,11 @@ const completeChallenge = asyncHandler(async (req, res) => {
 const refresh = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
   const tokens = await authService.refresh(refreshToken);
+  try {
+    emitBusinessMetrics([
+      { name: 'TokenRefreshed', value: 1, unit: 'Count', extraDimensions: { EventType: 'auth' } }
+    ]);
+  } catch (_) {}
   success(res, { message: 'Token refreshed', data: tokens });
 });
 
@@ -64,11 +80,21 @@ const me = asyncHandler(async (req, res) => {
 
 const forgotPassword = asyncHandler(async (req, res) => {
   const result = await authService.forgotPassword(req.body, req.eventContext);
+  try {
+    emitBusinessMetrics([
+      { name: 'PasswordResetRequested', value: 1, unit: 'Count', extraDimensions: { EventType: 'auth' } }
+    ]);
+  } catch (_) {}
   success(res, { message: 'Password reset code sent', data: result });
 });
 
 const confirmPasswordReset = asyncHandler(async (req, res) => {
   const result = await authService.confirmPasswordReset(req.body, req.eventContext);
+  try {
+    emitBusinessMetrics([
+      { name: 'PasswordResetCompleted', value: 1, unit: 'Count', extraDimensions: { EventType: 'auth' } }
+    ]);
+  } catch (_) {}
   success(res, { message: 'Password reset confirmed', data: result });
 });
 

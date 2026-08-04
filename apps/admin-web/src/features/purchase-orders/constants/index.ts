@@ -1,0 +1,1 @@
+export const PURCHASE_ORDERS_LIMIT = 20;

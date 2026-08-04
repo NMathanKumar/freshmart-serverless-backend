@@ -1,23 +1,17 @@
 # Deployment Order
 
-Use this order when deploying or rebuilding the platform:
+Use this order for the active FreshMart deployment:
 
-1. Validate the working tree and confirm the correct AWS account and region.
+1. Confirm AWS account `769044546162` and region `ap-southeast-1`.
 2. Install dependencies with `npm install`.
-3. Package all Lambdas with `node scripts/package.js all`.
-4. Run `terraform validate` in each environment directory.
-5. Review `terraform plan` for `dev`, then `qa`, then `prod`.
-6. Apply infrastructure changes in the intended environment order.
-7. Verify Lambda startup and service health endpoints.
-8. Confirm API Gateway routes, Cognito settings, IAM permissions, and event targets.
-
-## Deployment Inputs
-
-- AWS credentials with access to the target account
-- Terraform backend configuration
-- Environment-specific variables for `dev`, `qa`, and `prod`
-- Required Secrets Manager and Parameter Store entries
+3. Build the repository with `npm run build`.
+4. Package the live Lambda services with `npm run package`.
+5. Run `terraform init` in `terraform/environments/dev`.
+6. Run `terraform validate` in `terraform/environments/dev`.
+7. Review `terraform plan` in `terraform/environments/dev`.
+8. Apply the reviewed plan in `terraform/environments/dev`.
+9. Verify Lambda, API Gateway, Cognito, DynamoDB, SNS, SQS, EventBridge, CloudWatch, IAM, and S3 in `ap-southeast-1`.
 
 ## Release Rule
 
-Never apply a plan that has not been reviewed after packaging has been regenerated from the current source tree.
+Do not deploy from `terraform/stacks/freshmart-platform` as part of the default FreshMart workflow.

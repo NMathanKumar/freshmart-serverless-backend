@@ -1,14 +1,10 @@
 const sharedLogger = require('@freshmart/service-shared').logger;
-const { eventPublisher } = require('@freshmart/service-shared');
+const { eventPublisher, constants } = require('@freshmart/service-shared');
+const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'payment-service' });
 
-const EVENT_TYPES = Object.freeze({
-  PAYMENT_CREATED: 'PaymentCreated.v1',
-  PAYMENT_SUCCESS: 'PaymentSuccess.v1',
-  PAYMENT_FAILED: 'PaymentFailed.v1',
-  PAYMENT_REFUNDED: 'PaymentRefunded.v1',
-});
+
 
 const publishPaymentEvent = async (eventType, payload = {}, context = {}) => {
   const start = Date.now();

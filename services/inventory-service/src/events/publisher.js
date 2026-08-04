@@ -1,14 +1,10 @@
 const sharedLogger = require('@freshmart/service-shared').logger;
-const { eventPublisher } = require('@freshmart/service-shared');
+const { eventPublisher, constants } = require('@freshmart/service-shared');
+const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'inventory-service' });
 
-const EVENT_TYPES = Object.freeze({
-  INVENTORY_UPDATED: 'InventoryUpdated.v1',
-  INVENTORY_LOW: 'InventoryLow.v1',
-  INVENTORY_OUT_OF_STOCK: 'InventoryOutOfStock.v1',
-  INVENTORY_RESTOCKED: 'InventoryRestocked.v1',
-});
+
 
 const publishInventoryEvent = async (eventType, payload = {}, context = {}) => {
   logger.info('Publishing inventory event', {

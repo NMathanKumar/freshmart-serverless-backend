@@ -1,14 +1,8 @@
 data "aws_caller_identity" "current" {}
 
-module "network" {
-  source = "../../modules/network"
-
-  project_name = var.project_name
-  environment  = var.environment
-  aws_region   = var.aws_region
-  tags         = local.common_tags
+resource "aws_ses_email_identity" "freshmart_noreply" {
+  email = "nmathankumar020@gmail.com"
 }
-
 module "secrets" {
   source = "../../modules/secrets"
 
@@ -55,11 +49,10 @@ module "lambda" {
   ephemeral_storage              = each.value.ephemeral_storage
   layers                         = each.value.layers
   log_retention_in_days          = each.value.log_retention_in_days
-  subnet_ids                     = each.value.subnet_ids
-  security_group_ids             = each.value.security_group_ids
-  log_group_kms_key_id           = each.value.log_group_kms_key_id
-  permissions                    = each.value.permissions
-  tags                           = merge(local.common_tags, var.tags, each.value.tags)
+
+  log_group_kms_key_id = each.value.log_group_kms_key_id
+  permissions          = each.value.permissions
+  tags                 = merge(local.common_tags, var.tags, each.value.tags)
 }
 
 # Instantiate the reusable DynamoDB module once per FreshMart table.
@@ -96,7 +89,7 @@ module "apigateway" {
   lambdas                = local.api_gateway_lambdas
   routes                 = local.api_gateway_routes
   cors_allow_origins     = ["*"]
-  cors_allow_methods     = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  cors_allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
   cors_allow_headers     = ["content-type", "authorization", "x-amz-date", "x-api-key", "x-amz-security-token", "x-amz-user-agent"]
   cors_allow_credentials = false
   jwt_authorizer_enabled = true
@@ -119,6 +112,7 @@ module "iam" {
   allow_sns_publish              = try(each.value.allow_sns_publish, null)
   sns_topic_arns                 = try(each.value.sns_topic_arns, null)
   allow_sqs_send_message         = try(each.value.allow_sqs_send_message, null)
+  allow_sqs_receive_message      = try(each.value.allow_sqs_receive_message, null)
   sqs_queue_arns                 = try(each.value.sqs_queue_arns, null)
   allow_s3_object_access         = try(each.value.allow_s3_object_access, null)
   s3_object_arns                 = try(each.value.s3_object_arns, null)
@@ -128,8 +122,8 @@ module "iam" {
   allow_cognito_user_pool_access = try(each.value.allow_cognito_user_pool_access, false)
   cognito_user_pool_arns         = try(each.value.cognito_user_pool_arns, null)
   eventbridge_rule_name_prefixes = each.value.eventbridge_rule_name_prefixes
-  enable_vpc_access              = true
-  tags                           = merge(local.common_tags, var.tags, each.value.tags)
+
+  tags = merge(local.common_tags, var.tags, each.value.tags)
 }
 
 module "s3" {
@@ -143,6 +137,44 @@ module "s3" {
   tags               = local.common_tags
 }
 
+module "customer_web" {
+  source = "../../modules/cloudfront_web"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  app_name           = "customer"
+  bucket_name        = "${var.project_name}-${var.environment}-customer-web-${data.aws_caller_identity.current.account_id}"
+  versioning_enabled = true
+  tags               = local.common_tags
+  extra_source_arns  = [module.unified_web.cloudfront_distribution_arn]
+}
+
+module "admin_web" {
+  source = "../../modules/cloudfront_web"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  app_name           = "admin"
+  bucket_name        = "${var.project_name}-${var.environment}-admin-web-${data.aws_caller_identity.current.account_id}"
+  versioning_enabled = true
+  tags               = local.common_tags
+  extra_source_arns  = [module.unified_web.cloudfront_distribution_arn]
+}
+
+module "unified_web" {
+  source = "../../modules/cloudfront_unified"
+
+  project_name                         = var.project_name
+  environment                          = var.environment
+  customer_bucket_id                   = module.customer_web.bucket_id
+  customer_bucket_arn                  = module.customer_web.bucket_arn
+  customer_bucket_regional_domain_name = module.customer_web.bucket_domain_name
+  admin_bucket_id                      = module.admin_web.bucket_id
+  admin_bucket_arn                     = module.admin_web.bucket_arn
+  admin_bucket_regional_domain_name    = module.admin_web.bucket_domain_name
+  tags                                 = local.common_tags
+}
+
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 
@@ -154,22 +186,40 @@ module "cloudwatch" {
   api_stage_name        = local.cloudwatch_api_stage_name
   dynamodb_tables       = local.cloudwatch_dynamodb_tables
   log_retention_in_days = 30
-  alarm_actions         = [module.sns.topic_arns["notification"]]
-  ok_actions            = [module.sns.topic_arns["notification"]]
+  alarm_actions         = [module.sns.topic_arns["customer_events"]]
+  ok_actions            = [module.sns.topic_arns["customer_events"]]
   tags                  = local.common_tags
+
+  sqs_queues = {
+    for name, q in module.sqs.queue_name : name => { queue_name = q }
+  }
+  sqs_dlqs = {
+    for name, q in module.sqs.dlq_name : name => { queue_name = q }
+  }
+  sns_topics = {
+    for name, t in module.sns.topic_names : name => { topic_name = t }
+  }
+  eventbridge_bus_name = local.eventbridge_bus_name
+  cloudfront_distributions = {
+    unified = { distribution_id = module.unified_web.cloudfront_distribution_id }
+  }
+  api_base_url                = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com"
+  enable_synthetic_monitoring = true
+  enable_business_dashboard   = true
+  business_hours              = "08:00-22:00"
 }
 
 module "eventbridge" {
   source = "../../modules/eventbridge"
 
-  project_name   = var.project_name
-  environment    = var.environment
-  aws_region     = var.aws_region
-  bus_name       = local.eventbridge_bus_name
-  rules          = local.eventbridge_rules
-  lambda_targets = local.eventbridge_lambda_targets
-  enable_tags    = false
-  tags           = local.common_tags
+  project_name = var.project_name
+  environment  = var.environment
+  aws_region   = var.aws_region
+  bus_name     = local.eventbridge_bus_name
+  rules        = local.eventbridge_rules
+  sns_targets  = local.eventbridge_sns_targets
+  enable_tags  = false
+  tags         = local.common_tags
 }
 
 module "cognito" {
@@ -178,10 +228,30 @@ module "cognito" {
   project_name               = var.project_name
   environment                = var.environment
   aws_region                 = var.aws_region
+  ses_from_email_address     = aws_ses_email_identity.freshmart_noreply.email
+  ses_source_arn             = aws_ses_email_identity.freshmart_noreply.arn
   domain_prefix              = "${var.project_name}-${var.environment}-auth"
   mfa_configuration          = "OPTIONAL"
   software_token_mfa_enabled = true
-  tags                       = local.common_tags
+  password_policy = {
+    minimum_length                   = 8
+    require_lowercase                = true
+    require_numbers                  = true
+    require_symbols                  = true
+    require_uppercase                = true
+    temporary_password_validity_days = 7
+  }
+  callback_urls = [
+    "https://${module.unified_web.cloudfront_domain_name}/auth/callback",
+    "http://localhost:5173/auth/callback",
+    "http://localhost:3001/auth/callback"
+  ]
+  logout_urls = [
+    "https://${module.unified_web.cloudfront_domain_name}",
+    "http://localhost:5173",
+    "http://localhost:3001"
+  ]
+  tags = local.common_tags
 }
 
 module "sns" {
@@ -203,4 +273,27 @@ module "sqs" {
   queues         = local.sqs_queues
   sns_topic_arns = module.sns.topic_arns
   tags           = local.common_tags
+}
+
+# Connect SQS Queues to Lambda Consumers
+
+resource "aws_lambda_event_source_mapping" "analytics_sqs_trigger" {
+  event_source_arn = module.sqs.queue_arn["analytics_processing"]
+  function_name    = module.lambda["analytics"].function_name
+  batch_size       = 10
+  enabled          = true
+}
+
+resource "aws_lambda_event_source_mapping" "inventory_sqs_trigger" {
+  event_source_arn = module.sqs.queue_arn["inventory_processing"]
+  function_name    = module.lambda["inventory"].function_name
+  batch_size       = 10
+  enabled          = true
+}
+
+resource "aws_lambda_event_source_mapping" "notification_sqs_trigger" {
+  event_source_arn = module.sqs.queue_arn["notification_processing"]
+  function_name    = module.lambda["notification"].function_name
+  batch_size       = 10
+  enabled          = true
 }

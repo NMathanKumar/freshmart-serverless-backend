@@ -11,7 +11,6 @@ const {
 } = shared.errors;
 const {
   extractCognitoUser,
-  decodeCompleteJwt,
 } = shared.auth;
 const createAuthRepository = require('../repositories/auth.repository');
 const createCognitoIntegration = require('../integrations/cognito');
@@ -177,13 +176,21 @@ const createAuthService = ({
       new Set([...(groups || []), role === ROLES.ADMIN ? config.auth.cognito.groups.admins : null])
     ).filter(Boolean);
 
-    await cognito.adminCreateUser({
-      username: normalizedEmail,
-      name,
-      email: normalizedEmail,
-      phone,
-      temporaryPassword: password,
-    });
+    try {
+      await cognito.adminCreateUser({
+        username: normalizedEmail,
+        name,
+        email: normalizedEmail,
+        phone,
+        temporaryPassword: password,
+        role,
+      });
+    } catch (error) {
+      if (error.name === 'UsernameExistsException') {
+        throw new ConflictError('An account with this email already exists');
+      }
+      throw error;
+    }
 
     try {
       await cognito.adminSetUserPassword({
@@ -199,6 +206,20 @@ const createAuthService = ({
       const authResult = signInAfterCreate
         ? await cognito.initiateAuth({ username: normalizedEmail, password })
         : null;
+
+      // 6. If signed in, automatically trigger the email verification code
+      if (authResult && authResult.AuthenticationResult?.AccessToken) {
+        try {
+          await cognito.getVerificationCode({
+            accessToken: authResult.AuthenticationResult.AccessToken,
+            attributeName: 'email'
+          });
+          logger.info(`Automatically requested verification email for ${normalizedEmail}`);
+        } catch (err) {
+          // Log but don't fail registration if the OTP send fails (e.g., they might already be verified)
+          logger.warn(`Failed to auto-send verification email: ${err.message}`);
+        }
+      }
 
       let profileClaims = {};
       let tokens = null;
@@ -247,12 +268,13 @@ const createAuthService = ({
     }
   };
 
-  const register = async ({ name, email, password, phone }, context = {}) => {
+  const register = async ({ name, firstName, lastName, email, password, phone }, context = {}) => {
     const requestId = context.requestId || null;
+    const computedName = name || [firstName, lastName].filter(Boolean).join(' ') || email;
     logStep('Auth register start', { requestId, email });
 
     const { profile, tokens } = await createAccount({
-      name,
+      name: computedName,
       email,
       password,
       phone,
@@ -266,6 +288,7 @@ const createAuthService = ({
     const result = {
       user: sanitized,
       accessToken: tokens.accessToken,
+      idToken: tokens.idToken,
       refreshToken: tokens.refreshToken,
       tokenVersion: Number(profile.version || 0),
       jti: tokens.accessClaims?.jti || null,
@@ -290,7 +313,21 @@ const createAuthService = ({
   const login = async ({ email, password }, context = {}) => {
     assertAuthConfig();
     const requestId = context.requestId || null;
-    const authResult = await cognito.initiateAuth({ username: email, password });
+    let authResult;
+    try {
+      authResult = await cognito.initiateAuth({ username: email, password });
+    } catch (error) {
+      if (
+        error?.name === 'NotAuthorizedException' ||
+        error?.name === 'UserNotFoundException' ||
+        error?.name === 'UserNotConfirmedException' ||
+        error?.name === 'InvalidParameterException' ||
+        error?.name === 'InvalidPasswordException'
+      ) {
+        throw new UnauthorizedError(error?.message || 'Incorrect username or password.');
+      }
+      throw error;
+    }
 
     if (authResult?.ChallengeName) {
       return {
@@ -321,6 +358,7 @@ const createAuthService = ({
     const result = {
       user: sanitized,
       accessToken: tokens.accessToken,
+      idToken: tokens.idToken,
       refreshToken: tokens.refreshToken,
       tokenVersion: Number(sanitized.version || 0),
       jti: tokens.accessClaims?.jti || null,

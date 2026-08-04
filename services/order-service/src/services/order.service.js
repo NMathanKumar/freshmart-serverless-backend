@@ -81,16 +81,44 @@ const restoreInventory = async (items, context = {}) => {
 
 const buildOrderResponse = (order) => order;
 
-const placeOrderFromCart = async (userId, { pickupTime } = {}, context = {}) => {
-  const { cart, totals } = await requireCart(userId);
-  const items = totals.items.map((item) => ({
-    productId: item.productId,
-    productName: item.productName || item.name,
-    quantity: Number(item.quantity),
-    price: Number(item.price),
-    imageUrl: item.imageUrl || null,
-    lineTotal: Number(item.lineTotal),
-  }));
+const placeOrderFromCart = async (userId, { pickupTime, items: payloadItems, addressId, slotId, paymentMethod } = {}, context = {}) => {
+  let items;
+  let subtotal;
+  let tax;
+  let totalAmount;
+
+  // Try server-side cart first, fall back to payload items
+  try {
+    const { cart, totals } = await requireCart(userId);
+    items = totals.items.map((item) => ({
+      productId: item.productId,
+      productName: item.productName || item.name,
+      quantity: Number(item.quantity),
+      price: Number(item.price),
+      imageUrl: item.imageUrl || null,
+      lineTotal: Number(item.lineTotal),
+    }));
+    subtotal = totals.subtotal;
+    tax = totals.tax;
+    totalAmount = totals.totalAmount;
+  } catch (cartError) {
+    // If server-side cart is empty but payload has items, use those
+    if (Array.isArray(payloadItems) && payloadItems.length > 0) {
+      items = payloadItems.map((item) => ({
+        productId: item.productId,
+        productName: item.name || item.productName || 'Product',
+        quantity: Number(item.quantity),
+        price: Number(item.price),
+        imageUrl: item.imageUrl || null,
+        lineTotal: Number(item.price) * Number(item.quantity),
+      }));
+      subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
+      tax = Math.round(subtotal * 0.05 * 100) / 100;
+      totalAmount = subtotal + tax;
+    } else {
+      throw cartError;
+    }
+  }
 
   await validateInventory(items);
   const deducted = await deductInventory(items, context);
@@ -100,19 +128,22 @@ const placeOrderFromCart = async (userId, { pickupTime } = {}, context = {}) => 
     orderId,
     userId,
     items,
-    subtotal: totals.subtotal,
-    tax: totals.tax,
+    subtotal,
+    tax,
     discount: 0,
-    totalAmount: totals.totalAmount,
+    totalAmount,
     paymentStatus: 'PENDING',
     orderStatus: ORDER_STATUS.PLACED,
     pickupTime: pickupTime || null,
+    addressId: addressId || null,
+    slotId: slotId || null,
+    paymentMethod: paymentMethod || 'CARD',
   };
 
   let createdOrder;
   try {
     createdOrder = await orderRepository.create(orderPayload);
-    await cartService.clearCart(userId, context);
+    try { await cartService.clearCart(userId, context); } catch (_e) { /* ignore if no server cart */ }
   } catch (error) {
     logger.warn('Rolling back order placement after downstream failure', {
       orderId,

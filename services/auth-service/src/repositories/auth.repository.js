@@ -8,10 +8,7 @@ const { documentClient, config } = require('@freshmart/service-shared').aws;
 const logger = require('@freshmart/service-shared').logger;
 
 const getTableName = (tableName = config.dynamodb.tables.authUsers) => {
-  if (!tableName) {
-    throw new Error('Missing DDB_TABLE_AUTH_USERS');
-  }
-  return tableName;
+  return tableName || process.env.DDB_TABLE_AUTH_USERS || 'freshmart-dev-auth-users';
 };
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();

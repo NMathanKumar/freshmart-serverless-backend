@@ -3,6 +3,7 @@ const routes = require('./routes');
 
 module.exports = createServiceApp({
   mountRoutes(app) {
+    app.use('/cart', routes);
     app.use('/v1/cart', routes);
   },
 });

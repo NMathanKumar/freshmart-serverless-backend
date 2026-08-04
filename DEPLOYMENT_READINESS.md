@@ -30,11 +30,16 @@ Required across the microservice stack:
 - `LOG_LEVEL`
 - `CORS_ALLOWED_ORIGINS`
 - `CORS_ALLOW_CREDENTIALS`
-- `JWT_SECRET`
-- `JWT_REFRESH_SECRET`
-- `JWT_EXPIRES_IN`
-- `JWT_REFRESH_EXPIRES_IN`
-- `BCRYPT_SALT_ROUNDS`
+- `COGNITO_REGION`
+- `COGNITO_USER_POOL_ID`
+- `COGNITO_USER_POOL_CLIENT_ID`
+- `COGNITO_USER_POOL_ISSUER`
+- `COGNITO_JWKS_URL`
+- `COGNITO_HOSTED_UI_DOMAIN`
+- `COGNITO_GROUP_ADMINS`
+- `COGNITO_GROUP_STAFF`
+- `COGNITO_GROUP_CUSTOMERS`
+- `COGNITO_MFA_CONFIGURATION`
 - `RATE_LIMIT_WINDOW_MS`
 - `RATE_LIMIT_MAX`
 - `DB_HOST`
@@ -80,7 +85,7 @@ Required across the microservice stack:
 
 - Lambda name: `auth-service`
 - Handler: `services/auth-service/src/lambda.handler`
-- API Gateway route: `/v1/auth/*`
+- API Gateway route: `/auth/*`
 - DynamoDB table: `DDB_TABLE_AUTH_USERS`
 - Consumed events: none
 - Published events: `UserRegistered.v1`, `UserLoggedIn.v1`, `UserLoggedOut.v1`
@@ -106,7 +111,7 @@ Required across the microservice stack:
 
 - Lambda name: `menu-service`
 - Handler: `services/menu-service/src/lambda.handler`
-- API Gateway route: `/v1/food/*`
+- API Gateway route: `/menu/*`
 - DynamoDB table: `DDB_TABLE_CATALOG_ITEMS`
 - Consumed events: none
 - Published events: `FoodCreated.v1`, `FoodUpdated.v1`, `FoodDeleted.v1`, `FoodAvailabilityChanged.v1`
@@ -119,7 +124,7 @@ Required across the microservice stack:
 
 - Lambda name: `inventory-service`
 - Handler: `services/inventory-service/src/lambda.handler`
-- API Gateway route: `/v1/inventory/*`
+- API Gateway route: `/inventory/*`
 - DynamoDB table: `DDB_TABLE_INVENTORY`
 - Consumed events: `OrderPlaced.v1`, `OrderCancelled.v1`
 - Published events: `InventoryUpdated.v1`, `InventoryLow.v1`, `InventoryOutOfStock.v1`, `InventoryRestocked.v1`
@@ -132,7 +137,7 @@ Required across the microservice stack:
 
 - Lambda name: `cart-service`
 - Handler: `services/cart-service/src/lambda.handler`
-- API Gateway route: `/v1/cart/*`
+- API Gateway route: `/cart/*`
 - DynamoDB table: `DDB_TABLE_CARTS`
 - Consumed events: `InventoryUpdated.v1`, `FoodDeleted.v1`, `FoodAvailabilityChanged.v1`
 - Published events: `CartItemAdded.v1`, `CartItemUpdated.v1`, `CartItemRemoved.v1`, `CartCleared.v1`
@@ -145,7 +150,7 @@ Required across the microservice stack:
 
 - Lambda name: `order-service`
 - Handler: `services/order-service/src/lambda.handler`
-- API Gateway route: `/v1/orders/*`
+- API Gateway route: `/orders/*`
 - DynamoDB table: `DDB_TABLE_ORDERS`
 - Consumed events: `InventoryUpdated.v1`, `PaymentSuccess.v1`, `PaymentFailed.v1`
 - Published events: `OrderPlaced.v1`, `OrderCancelled.v1`, `OrderAccepted.v1`, `OrderReady.v1`, `OrderCompleted.v1`
@@ -158,7 +163,7 @@ Required across the microservice stack:
 
 - Lambda name: `payment-service`
 - Handler: `services/payment-service/src/lambda.handler`
-- API Gateway route: `/v1/payments/*`
+- API Gateway route: `/payments/*`
 - DynamoDB table: `DDB_TABLE_PAYMENTS`
 - Consumed events: `OrderPlaced.v1`
 - Published events: `PaymentCreated.v1`, `PaymentSuccess.v1`, `PaymentFailed.v1`, `PaymentRefunded.v1`
@@ -171,7 +176,7 @@ Required across the microservice stack:
 
 - Lambda name: `notification-service`
 - Handler: `services/notification-service/src/lambda.handler`
-- API Gateway route: `/v1/notifications/*`
+- API Gateway route: not exposed through API Gateway in the active `dev` stack
 - DynamoDB table: `DDB_TABLE_NOTIFICATIONS`
 - Consumed events: `UserRegistered.v1`, `OrderAccepted.v1`, `OrderReady.v1`, `OrderCompleted.v1`, `PaymentSuccess.v1`, `InventoryLow.v1`, `InventoryOutOfStock.v1`
 - Published events: `NotificationCreated.v1`, `NotificationDelivered.v1`, `NotificationFailed.v1`
@@ -184,7 +189,7 @@ Required across the microservice stack:
 
 - Lambda name: `analytics-service`
 - Handler: `services/analytics-service/src/lambda.handler`
-- API Gateway route: `/v1/analytics/*`
+- API Gateway route: not exposed through API Gateway in the active `dev` stack
 - DynamoDB table: `DDB_TABLE_ANALYTICS`
 - Consumed events: `OrderPlaced.v1`, `OrderCompleted.v1`, `OrderCancelled.v1`, `PaymentSuccess.v1`, `PaymentFailed.v1`, `InventoryLow.v1`, `InventoryOutOfStock.v1`, `NotificationDelivered.v1`, `UserRegistered.v1`
 - Published events: `DailyReportGenerated.v1`, `AnalyticsUpdated.v1`
@@ -197,7 +202,7 @@ Required across the microservice stack:
 
 - Lambda name: `admin-service`
 - Handler: `services/admin-service/src/lambda.handler`
-- API Gateway route: `/v1/admin/*`
+- API Gateway route: `/admin/*`
 - DynamoDB table: `DDB_TABLE_ADMIN`
 - Consumed events: `OrderPlaced.v1`, `OrderCompleted.v1`, `OrderCancelled.v1`, `PaymentSuccess.v1`, `PaymentFailed.v1`, `InventoryLow.v1`, `InventoryOutOfStock.v1`, `NotificationDelivered.v1`, `AnalyticsUpdated.v1`, `DailyReportGenerated.v1`
 - Published events: `AdminConfigUpdated.v1`, `AdminDashboardUpdated.v1`
@@ -243,7 +248,7 @@ No scan operations remain in the service repositories.
 6. Attach DynamoDB, EventBridge, SNS, SQS, S3, and CloudWatch permissions.
 7. Deploy each Lambda package separately.
 8. Configure API Gateway routes for each service prefix.
-9. Set environment variables from `.env.example`.
+9. Set Cognito and service environment variables from `.env.example`.
 10. Verify logs, EventBridge delivery, and DynamoDB writes.
 11. Run local event simulator smoke tests.
 

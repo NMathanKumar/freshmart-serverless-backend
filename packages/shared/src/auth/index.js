@@ -1,1 +1,4 @@
-module.exports = require('./cognito');
+module.exports = {
+  ...require('./cognito'),
+  ...require('./current-user'),
+};

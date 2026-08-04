@@ -97,3 +97,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "ses_from_email_address" {
+  description = "The verified SES email address used as the FROM address."
+  type        = string
+  default     = null
+}
+
+variable "ses_source_arn" {
+  description = "The ARN of the verified SES email identity."
+  type        = string
+  default     = null
+}

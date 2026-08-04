@@ -1,13 +1,6 @@
 data "aws_caller_identity" "current" {}
 
-module "network" {
-  source = "../../modules/network"
 
-  project_name = var.project_name
-  environment  = var.environment
-  aws_region   = var.aws_region
-  tags         = local.common_tags
-}
 
 module "secrets" {
   source = "../../modules/secrets"
@@ -15,7 +8,8 @@ module "secrets" {
   project_name = var.project_name
   environment  = var.environment
   aws_region   = var.aws_region
-  secrets      = {}
+  secrets = {
+  }
   parameters = {
     internal_service_token = {
       name        = "/${var.project_name}/${var.environment}/internal-service-token"
@@ -54,11 +48,10 @@ module "lambda" {
   ephemeral_storage              = each.value.ephemeral_storage
   layers                         = each.value.layers
   log_retention_in_days          = each.value.log_retention_in_days
-  subnet_ids                     = each.value.subnet_ids
-  security_group_ids             = each.value.security_group_ids
-  log_group_kms_key_id           = each.value.log_group_kms_key_id
-  permissions                    = each.value.permissions
-  tags                           = merge(local.common_tags, var.tags, each.value.tags)
+
+  log_group_kms_key_id = each.value.log_group_kms_key_id
+  permissions          = each.value.permissions
+  tags                 = merge(local.common_tags, var.tags, each.value.tags)
 }
 
 # Instantiate the reusable DynamoDB module once per FreshMart table.
@@ -94,8 +87,8 @@ module "apigateway" {
   description            = "FreshMart HTTP API for ${var.environment}."
   lambdas                = local.api_gateway_lambdas
   routes                 = local.api_gateway_routes
-  cors_allow_origins     = ["*"]
-  cors_allow_methods     = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  cors_allow_origins     = [module.customer_web.cloudfront_url, module.admin_web.cloudfront_url]
+  cors_allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
   cors_allow_headers     = ["content-type", "authorization", "x-amz-date", "x-api-key", "x-amz-security-token", "x-amz-user-agent"]
   cors_allow_credentials = false
   jwt_authorizer_enabled = true
@@ -127,8 +120,8 @@ module "iam" {
   allow_cognito_user_pool_access = try(each.value.allow_cognito_user_pool_access, false)
   cognito_user_pool_arns         = try(each.value.cognito_user_pool_arns, null)
   eventbridge_rule_name_prefixes = each.value.eventbridge_rule_name_prefixes
-  enable_vpc_access              = true
-  tags                           = merge(local.common_tags, var.tags, each.value.tags)
+
+  tags = merge(local.common_tags, var.tags, each.value.tags)
 }
 
 module "s3" {
@@ -138,6 +131,28 @@ module "s3" {
   environment        = var.environment
   aws_region         = var.aws_region
   bucket_name        = "${var.project_name}-${var.environment}-assets-${data.aws_caller_identity.current.account_id}"
+  versioning_enabled = true
+  tags               = local.common_tags
+}
+
+module "customer_web" {
+  source = "../../modules/cloudfront_web"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  app_name           = "customer"
+  bucket_name        = "${var.project_name}-${var.environment}-customer-web-${data.aws_caller_identity.current.account_id}"
+  versioning_enabled = true
+  tags               = local.common_tags
+}
+
+module "admin_web" {
+  source = "../../modules/cloudfront_web"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  app_name           = "admin"
+  bucket_name        = "${var.project_name}-${var.environment}-admin-web-${data.aws_caller_identity.current.account_id}"
   versioning_enabled = true
   tags               = local.common_tags
 }
@@ -167,6 +182,7 @@ module "eventbridge" {
   bus_name       = local.eventbridge_bus_name
   rules          = local.eventbridge_rules
   lambda_targets = local.eventbridge_lambda_targets
+  enable_tags    = false
   tags           = local.common_tags
 }
 
@@ -179,7 +195,15 @@ module "cognito" {
   domain_prefix              = "${var.project_name}-${var.environment}-auth"
   mfa_configuration          = "OPTIONAL"
   software_token_mfa_enabled = true
-  tags                       = local.common_tags
+  password_policy = {
+    minimum_length                   = 8
+    require_lowercase                = true
+    require_numbers                  = false
+    require_symbols                  = true
+    require_uppercase                = true
+    temporary_password_validity_days = 7
+  }
+  tags = local.common_tags
 }
 
 module "sns" {

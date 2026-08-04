@@ -81,8 +81,14 @@ variable "allow_sqs_send_message" {
   default     = false
 }
 
+variable "allow_sqs_receive_message" {
+  description = "Whether to grant SQS receive permissions."
+  type        = bool
+  default     = false
+}
+
 variable "sqs_queue_arns" {
-  description = "SQS queue ARNs that SendMessage may target."
+  description = "SQS queue ARNs that SendMessage or ReceiveMessage may target."
   type        = list(string)
   default     = []
 }

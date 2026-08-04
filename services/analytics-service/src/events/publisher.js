@@ -1,12 +1,10 @@
 const sharedLogger = require('@freshmart/service-shared').logger;
-const { eventPublisher } = require('@freshmart/service-shared');
+const { eventPublisher, constants } = require('@freshmart/service-shared');
+const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'analytics-service' });
 
-const EVENT_TYPES = Object.freeze({
-  DAILY_REPORT_GENERATED: 'DailyReportGenerated.v1',
-  ANALYTICS_UPDATED: 'AnalyticsUpdated.v1',
-});
+
 
 const publishAnalyticsEvent = async (eventType, payload = {}, context = {}) => {
   const start = Date.now();

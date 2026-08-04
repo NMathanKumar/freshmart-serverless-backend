@@ -19,6 +19,8 @@ variable "bus_name" {
   default     = "freshmart-events"
 }
 
+
+
 variable "rules" {
   description = "EventBridge rule definitions keyed by domain."
   type = map(object({
@@ -26,8 +28,17 @@ variable "rules" {
     enabled              = optional(bool, true)
     detail_type_prefixes = list(string)
     sources              = optional(list(string), [])
-    target_lambda_keys   = list(string)
+    target_sns_keys      = optional(list(string), [])
+    target_lambda_keys   = optional(list(string), [])
   }))
+}
+
+variable "sns_targets" {
+  description = "SNS targets keyed by target alias."
+  type = map(object({
+    topic_arn = string
+  }))
+  default = {}
 }
 
 variable "lambda_targets" {
@@ -36,18 +47,7 @@ variable "lambda_targets" {
     function_name = string
     function_arn  = string
   }))
-}
-
-variable "retry_policy" {
-  description = "Retry policy applied to EventBridge targets."
-  type = object({
-    maximum_event_age_in_seconds = number
-    maximum_retry_attempts       = number
-  })
-  default = {
-    maximum_event_age_in_seconds = 3600
-    maximum_retry_attempts       = 185
-  }
+  default = {}
 }
 
 variable "create_dlq" {
@@ -120,4 +120,16 @@ variable "enable_tags" {
   description = "Whether to apply tags to EventBridge resources."
   type        = bool
   default     = true
+}
+
+variable "retry_policy" {
+  description = "Retry policy for event targets."
+  type = object({
+    maximum_event_age_in_seconds = number
+    maximum_retry_attempts       = number
+  })
+  default = {
+    maximum_event_age_in_seconds = 86400
+    maximum_retry_attempts       = 185
+  }
 }

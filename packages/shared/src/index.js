@@ -1,5 +1,6 @@
 module.exports = {
   config: require('./config'),
+  ...require('./routing'),
   logger: require('./logger'),
   aws: require('./aws/clients'),
   dynamodb: require('./aws/dynamodb'),
@@ -8,6 +9,7 @@ module.exports = {
   validation: require('./validation'),
   middleware: require('./middleware'),
   auth: require('./auth'),
+  ...require('./shared-auth'),
   constants: require('./constants'),
   response: require('./response/apiResponse'),
   integrations: require('./integrations'),

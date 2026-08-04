@@ -44,3 +44,25 @@ resource "aws_sns_topic_subscription" "this" {
   protocol  = each.value.protocol
   endpoint  = each.value.endpoint
 }
+
+# Allow EventBridge to publish to SNS topics
+data "aws_iam_policy_document" "topic_policy" {
+  for_each = var.topics
+
+  statement {
+    sid     = "AllowEventBridgePublish"
+    actions = ["sns:Publish"]
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+    resources = [aws_sns_topic.this[each.key].arn]
+  }
+}
+
+resource "aws_sns_topic_policy" "this" {
+  for_each = var.topics
+
+  arn    = aws_sns_topic.this[each.key].arn
+  policy = data.aws_iam_policy_document.topic_policy[each.key].json
+}

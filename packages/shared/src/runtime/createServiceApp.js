@@ -25,11 +25,15 @@ const createServiceApp = (options = {}) => {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin) return callback(null, true);
-        if (config.http.allowedOrigins.includes(origin)) return callback(null, true);
-        return callback(new Error('CORS origin not allowed'));
+        if (!origin || !config.cors.allowedOrigins || config.cors.allowedOrigins.length === 0 || config.cors.allowedOrigins.includes('*')) {
+          return callback(null, true);
+        }
+        if (config.cors.allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
       },
-      credentials: config.http.allowCredentials,
+      credentials: config.cors.allowCredentials,
     })
   );
   app.use(compression());

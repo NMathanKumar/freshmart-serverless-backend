@@ -1,0 +1,36 @@
+{
+  "name": "@freshmart/customer-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@freshmart/api-sdk": "file:../../packages/api-sdk",
+    "@freshmart/design-system": "file:../../packages/design-system",
+    "@freshmart/shared": "file:../../packages/shared",
+    "@hookform/resolvers": "^4.1.0",
+    "@reduxjs/toolkit": "^2.8.2",
+    "@tailwindcss/vite": "^4.1.11",
+    "framer-motion": "^12.23.12",
+    "lucide-react": "^0.525.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.61.1",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.7.0",
+    "tailwindcss": "^4.1.11",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.4"
+  }
+}

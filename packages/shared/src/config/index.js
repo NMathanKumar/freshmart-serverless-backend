@@ -1,4 +1,5 @@
-require('dotenv').config();
+// Load .env file in local dev; in Lambda, env vars are injected directly.
+try { require('dotenv').config(); } catch (_) { /* dotenv not available in Lambda — safe to ignore */ }
 
 const required = (env, name) => {
   const value = env[name];
@@ -107,6 +108,19 @@ const buildConfig = (env = process.env) => ({
       inventoryDeadLetterQueueUrl: env.AWS_SQS_INVENTORY_DLQ_URL || '',
       emailDeadLetterQueueUrl: env.AWS_SQS_EMAIL_DLQ_URL || '',
       notificationDeadLetterQueueUrl: env.AWS_SQS_NOTIFICATION_DLQ_URL || '',
+      paymentSuccessTopicArn: env.AWS_SNS_PAYMENT_SUCCESS_TOPIC_ARN || '',
+      paymentFailureTopicArn: env.AWS_SNS_PAYMENT_FAILURE_TOPIC_ARN || '',
+      notificationTopicArn: env.AWS_SNS_NOTIFICATION_TOPIC_ARN || '',
+      reportTopicArn: env.AWS_SNS_REPORT_TOPIC_ARN || '',
+    },
+    sqs: {
+      inventoryQueueUrl: env.AWS_SQS_INVENTORY_QUEUE_URL || '',
+      emailQueueUrl: env.AWS_SQS_EMAIL_QUEUE_URL || '',
+      notificationQueueUrl: env.AWS_SQS_NOTIFICATION_QUEUE_URL || '',
+      analyticsQueueUrl: env.AWS_SQS_ANALYTICS_QUEUE_URL || '',
+      inventoryDeadLetterQueueUrl: env.AWS_SQS_INVENTORY_DLQ_URL || '',
+      emailDeadLetterQueueUrl: env.AWS_SQS_EMAIL_DLQ_URL || '',
+      notificationDeadLetterQueueUrl: env.AWS_SQS_NOTIFICATION_DLQ_URL || '',
       analyticsDeadLetterQueueUrl: env.AWS_SQS_ANALYTICS_DLQ_URL || '',
     },
   },
@@ -115,17 +129,17 @@ const buildConfig = (env = process.env) => ({
   },
   dynamodb: {
     tables: {
-      authUsers: env.DDB_TABLE_AUTH_USERS || '',
-      userProfiles: env.DDB_TABLE_USER_PROFILES || '',
-      products: env.DDB_TABLE_PRODUCTS || '',
-      catalogItems: env.DDB_TABLE_CATALOG_ITEMS || '',
-      carts: env.DDB_TABLE_CARTS || '',
-      orders: env.DDB_TABLE_ORDERS || '',
-      payments: env.DDB_TABLE_PAYMENTS || '',
-      inventory: env.DDB_TABLE_INVENTORY || '',
-      notifications: env.DDB_TABLE_NOTIFICATIONS || '',
-      analytics: env.DDB_TABLE_ANALYTICS || '',
-      admin: env.DDB_TABLE_ADMIN || '',
+      authUsers: env.DDB_TABLE_AUTH_USERS || 'freshmart-dev-auth-users',
+      userProfiles: env.DDB_TABLE_USER_PROFILES || 'freshmart-dev-user-profiles',
+      products: env.DDB_TABLE_PRODUCTS || 'freshmart-dev-products',
+      catalogItems: env.DDB_TABLE_CATALOG_ITEMS || 'freshmart-dev-catalog-items',
+      carts: env.DDB_TABLE_CARTS || 'freshmart-dev-carts',
+      orders: env.DDB_TABLE_ORDERS || 'freshmart-dev-orders',
+      payments: env.DDB_TABLE_PAYMENTS || 'freshmart-dev-payments',
+      inventory: env.DDB_TABLE_INVENTORY || 'freshmart-dev-inventory',
+      notifications: env.DDB_TABLE_NOTIFICATIONS || 'freshmart-dev-notifications',
+      analytics: env.DDB_TABLE_ANALYTICS || 'freshmart-dev-analytics',
+      admin: env.DDB_TABLE_ADMIN || 'freshmart-dev-admin',
     },
   },
 });

@@ -14,13 +14,21 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/', controller.getCart);
+router.post('/', validate(addItemSchema), controller.addItem);
 router.post('/items', validate(addItemSchema), controller.addItem);
+router.patch(
+  '/:productId',
+  validate(productIdParamSchema, 'params'),
+  validate(updateQuantitySchema),
+  controller.updateItemQuantity
+);
 router.patch(
   '/items/:productId',
   validate(productIdParamSchema, 'params'),
   validate(updateQuantitySchema),
   controller.updateItemQuantity
 );
+router.delete('/:productId', validate(productIdParamSchema, 'params'), controller.removeItem);
 router.delete('/items/:productId', validate(productIdParamSchema, 'params'), controller.removeItem);
 router.delete('/', controller.clearCart);
 

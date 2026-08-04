@@ -4,7 +4,8 @@
   "private": true,
   "main": "src/lambda.js",
   "scripts": {
-    "start": "node src/lambda.js"
+    "start": "node src/lambda.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@freshmart/service-shared": "file:../../packages/shared",

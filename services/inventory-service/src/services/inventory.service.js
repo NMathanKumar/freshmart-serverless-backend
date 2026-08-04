@@ -61,6 +61,7 @@ const buildResponseInventory = (inventory) => {
   return {
     inventoryId: inventory.inventoryId,
     productId: inventory.productId || inventory.foodId,
+    warehouseId: inventory.warehouseId,
     currentStock: Number(inventory.currentStock),
     minimumStock: Number(inventory.minimumStock),
     unit: inventory.unit,
@@ -82,26 +83,39 @@ const publishInventoryState = async (inventory, context = {}) => {
   }
 };
 
-const requireInventory = async (productId) => {
-  const inventory = await inventoryRepository.findByProductId(productId);
+const requireInventory = async (productId, warehouseId) => {
+  if (!warehouseId) throw new BadRequestError('warehouseId is required');
+  let inventory = await inventoryRepository.findByProductId(productId, warehouseId);
   if (!inventory) {
-    throw new NotFoundError(`Inventory not found for product '${productId}'`);
+    inventory = await inventoryRepository.createInventory({
+      inventoryId: `INV_${productId}_${warehouseId}`,
+      productId,
+      warehouseId,
+      currentStock: 100,
+      minimumStock: 10,
+      unit: 'pcs',
+    });
   }
   return inventory;
 };
 
-const listInventory = async ({ page, limit }) => inventoryRepository.listAll({ page, limit });
+const listInventory = async ({ page, limit, warehouseId }) => inventoryRepository.listAll({ page, limit, warehouseId });
 
-const getInventoryByProductId = async (productId) => buildResponseInventory(await requireInventory(productId));
+const getInventoryByProductId = async (productId, warehouseId) => {
+  if (!warehouseId) throw new BadRequestError('warehouseId is required');
+  return buildResponseInventory(await requireInventory(productId, warehouseId));
+};
 
-const createInventory = async ({ productId, currentStock, minimumStock, unit }, context = {}) => {
+const createInventory = async ({ productId, warehouseId, currentStock, minimumStock, unit }, context = {}) => {
   if (!productId) throw new BadRequestError('productId is required');
-  const existing = await inventoryRepository.findByProductId(productId);
-  if (existing) throw new ConflictError(`Inventory already exists for product '${productId}'`);
+  if (!warehouseId) throw new BadRequestError('warehouseId is required');
+  const existing = await inventoryRepository.findByProductId(productId, warehouseId);
+  if (existing) throw new ConflictError(`Inventory already exists for product '${productId}' in warehouse '${warehouseId}'`);
 
   const inventory = await inventoryRepository.createInventory({
     inventoryId: genId('INV'),
     productId,
+    warehouseId,
     currentStock: normalizePositiveInteger(currentStock, 'currentStock'),
     minimumStock: normalizePositiveInteger(minimumStock, 'minimumStock'),
     unit,
@@ -111,11 +125,13 @@ const createInventory = async ({ productId, currentStock, minimumStock, unit }, 
   return buildResponseInventory(inventory);
 };
 
-const updateInventory = async ({ productId, currentStock, minimumStock, unit }, context = {}) => {
-  const existing = await requireInventory(productId);
+const updateInventory = async ({ productId, warehouseId, currentStock, minimumStock, unit }, context = {}) => {
+  if (!warehouseId) throw new BadRequestError('warehouseId is required');
+  const existing = await requireInventory(productId, warehouseId);
   const inventory = await withConditionalRetry(async () =>
     inventoryRepository.updateInventory({
       productId,
+      warehouseId,
       currentStock: normalizePositiveInteger(currentStock, 'currentStock'),
       minimumStock: normalizePositiveInteger(minimumStock, 'minimumStock'),
       reservedStock: Number(existing.reservedStock || 0),
@@ -130,16 +146,35 @@ const updateInventory = async ({ productId, currentStock, minimumStock, unit }, 
   return buildResponseInventory(inventory);
 };
 
-const adjustStock = async (productId, delta, context = {}, { eventId = null, publish = true } = {}) => {
-  const existing = await requireInventory(productId);
-  let inventory;
+// Reasons whitelist
+const REASON_CODES = [
+  'SALE', 'PURCHASE', 'RETURN', 'SUPPLIER_RETURN', 'DAMAGE', 
+  'EXPIRED', 'THEFT', 'QUALITY_CHECK', 'CYCLE_COUNT', 
+  'TRANSFER', 'INITIAL_STOCK', 'SYSTEM_CORRECTION'
+];
+
+const processAdjustment = async (productId, delta, context, movementDetails, publish = true) => {
+  if (!movementDetails.warehouseId) throw new BadRequestError('warehouseId is required');
+  const existing = await requireInventory(productId, movementDetails.warehouseId);
+  
+  if (movementDetails.reason && !REASON_CODES.includes(movementDetails.reason)) {
+    throw new BadRequestError(`Invalid reason code: ${movementDetails.reason}`);
+  }
+
+  let result;
   try {
-    inventory = await withConditionalRetry(async () =>
+    result = await withConditionalRetry(async () =>
       inventoryRepository.adjustInventoryStock({
         productId,
+        warehouseId: movementDetails.warehouseId,
         currentStockDelta: delta,
         expectedVersion: Number(existing.version || 0),
-        eventId,
+        movementDetails: {
+          ...movementDetails,
+          createdBy: context.userId || 'SYSTEM',
+          ip: context.ip || null,
+          device: context.device || null,
+        }
       })
     );
   } catch (error) {
@@ -149,81 +184,179 @@ const adjustStock = async (productId, delta, context = {}, { eventId = null, pub
     throw error;
   }
 
+  const { inventory, movementId } = result;
+
   if (!inventory) {
     throw new NotFoundError(`Inventory not found for product '${productId}'`);
   }
 
-  if (publish) {
+  if (publish && movementDetails.status !== 'PENDING') {
     await publishInventoryState(inventory, context);
     if (delta > 0) {
       await publishInventoryRestocked(
-        { inventory: buildResponseInventory(inventory), delta, reason: context.reason || 'manual-restock' },
+        { inventory: buildResponseInventory(inventory), delta, reason: movementDetails.reason || 'manual-restock' },
         { ...context, source: 'inventory-service' }
       );
     }
   }
 
-  return buildResponseInventory(inventory);
+  return { inventory: buildResponseInventory(inventory), movementId, status: movementDetails.status || 'COMPLETED' };
 };
 
-const increaseStock = async (productId, { amount, unit }, context = {}) => {
-  const current = await requireInventory(productId);
+const adjustStock = async (productId, payload, context = {}) => {
+  const { amount, reason, warehouseId, movementType, referenceType, referenceId, remarks } = payload;
+  if (!warehouseId) throw new BadRequestError('warehouseId is required');
+
+  const delta = Number(amount);
+  if (isNaN(delta)) {
+    throw new BadRequestError('amount must be a valid number');
+  }
+
+  const isDamage = movementType === 'DAMAGE' || reason === 'DAMAGE';
+  const requiresApproval = isDamage && Math.abs(delta) > 100;
+  
+  const status = requiresApproval && !context.isSystem ? 'PENDING' : 'COMPLETED';
+
+  const movementDetails = {
+    movementType: movementType || (delta > 0 ? 'STOCK_IN' : 'STOCK_OUT'),
+    reason: reason || 'SYSTEM_CORRECTION',
+    warehouseId,
+    referenceType: referenceType || 'MANUAL',
+    referenceId: referenceId || 'NONE',
+    remarks: remarks || '',
+    transactionId: context.correlationId || context.transactionId,
+    status,
+  };
+
+  return processAdjustment(productId, delta, context, movementDetails, true);
+};
+
+const approveAdjustment = async (productId, movementId, context = {}) => {
+  const movement = await inventoryRepository.getMovement(productId, movementId);
+  if (!movement) {
+    throw new NotFoundError(`Movement ${movementId} not found`);
+  }
+  if (movement.status !== 'PENDING') {
+    throw new ConflictError(`Movement is in status ${movement.status} and cannot be approved.`);
+  }
+
+  const delta = movement.quantity; // amount to apply
+  const movementDetails = {
+    ...movement,
+    status: 'COMPLETED',
+    approvedBy: context.userId || 'SYSTEM',
+    remarks: (movement.remarks ? movement.remarks + ' ' : '') + '[APPROVED]',
+    referenceType: 'PREVIOUS_MOVEMENT',
+    referenceId: movementId,
+    transactionId: movement.transactionId,
+  };
+
+  return processAdjustment(productId, delta, context, movementDetails, true);
+};
+
+const rejectAdjustment = async (productId, movementId, context = {}) => {
+  const movement = await inventoryRepository.getMovement(productId, movementId);
+  if (!movement) {
+    throw new NotFoundError(`Movement ${movementId} not found`);
+  }
+  if (movement.status !== 'PENDING') {
+    throw new ConflictError(`Movement is in status ${movement.status} and cannot be rejected.`);
+  }
+
+  const movementDetails = {
+    ...movement,
+    status: 'REJECTED',
+    approvedBy: context.userId || 'SYSTEM',
+    remarks: (movement.remarks ? movement.remarks + ' ' : '') + '[REJECTED]',
+    referenceType: 'PREVIOUS_MOVEMENT',
+    referenceId: movementId,
+    transactionId: movement.transactionId,
+  };
+
+  return processAdjustment(productId, 0, context, movementDetails, false);
+};
+
+const increaseStock = async (productId, { amount, unit, reason, warehouseId, referenceType, referenceId }, context = {}) => {
   const increment = normalizeQuantity(amount, 'amount');
-  const inventory = await inventoryRepository.updateInventory({
-    productId,
-    currentStock: Number(current.currentStock) + increment,
-    minimumStock: Number(current.minimumStock),
-    reservedStock: Number(current.reservedStock || 0),
-    unit: unit || current.unit,
-    expectedVersion: Number(current.version || 0),
-    inventoryId: current.inventoryId,
-    createdAt: current.createdAt,
-  });
-
-  await publishInventoryState(inventory, context);
-  await publishInventoryRestocked(
-    { inventory: buildResponseInventory(inventory), delta: increment },
-    { ...context, source: 'inventory-service' }
-  );
-  return buildResponseInventory(inventory);
+  return adjustStock(productId, {
+    amount: increment,
+    reason: reason || 'PURCHASE',
+    movementType: 'STOCK_IN',
+    warehouseId,
+    referenceType,
+    referenceId,
+  }, context);
 };
 
-const decreaseStock = async (productId, { amount }, context = {}) =>
-  adjustStock(productId, -normalizeQuantity(amount, 'amount'), context);
+const decreaseStock = async (productId, { amount, reason, warehouseId, referenceType, referenceId }, context = {}) => {
+  const decrement = normalizeQuantity(amount, 'amount');
+  return adjustStock(productId, {
+    amount: -decrement,
+    reason: reason || 'SALE',
+    movementType: 'STOCK_OUT',
+    warehouseId,
+    referenceType,
+    referenceId,
+  }, context);
+};
 
-const validateStockForOrderInConn = async (_conn, { productId, foodId, quantity }) => {
+const listMovements = async (productId, options) => {
+  return inventoryRepository.listMovements(productId, options);
+};
+
+const listAllMovements = async (options) => {
+  return inventoryRepository.listAllMovements(options);
+};
+
+const validateStockForOrderInConn = async (_conn, { productId, foodId, warehouseId, quantity }) => {
   const id = productId || foodId;
-  const inventory = await requireInventory(id);
+  if (!warehouseId) throw new BadRequestError('warehouseId is required for order validation');
+  const inventory = await requireInventory(id, warehouseId);
   const requested = normalizeQuantity(quantity, 'quantity');
   if (Number(inventory.currentStock) < requested) {
     throw new BadRequestError(
-      `Insufficient stock for product '${id}'. Available: ${inventory.currentStock}, requested: ${requested}`
+      `Insufficient stock for product '${id}' in warehouse '${warehouseId}'. Available: ${inventory.currentStock}, requested: ${requested}`
     );
   }
   return inventory;
 };
 
-const deductStockAfterOrderInConn = async (_conn, { productId, foodId, quantity }) => {
+const deductStockAfterOrderInConn = async (_conn, { productId, foodId, warehouseId, quantity }, context = {}) => {
   const id = productId || foodId;
+  if (!warehouseId) throw new BadRequestError('warehouseId is required for order deduction');
   const requested = normalizeQuantity(quantity, 'quantity');
-  let inventory;
+  
+  let result;
   try {
-    inventory = await adjustStock(id, -requested, {}, { publish: false });
+    result = await processAdjustment(id, -requested, context, {
+      movementType: 'STOCK_OUT',
+      reason: 'SALE',
+      warehouseId,
+      referenceType: 'ORDER',
+      referenceId: context.orderId || 'NONE',
+      transactionId: context.correlationId || context.orderId,
+    }, false);
   } catch (error) {
     if (error?.code === 'INSUFFICIENT_STOCK') {
       throw new BadRequestError(error.message);
     }
     throw error;
   }
-  return inventory;
+  return result.inventory;
 };
 
-const restoreStockAfterOrderCancellationInConn = async (_conn, { productId, foodId, quantity }, context = {}) => {
+const restoreStockAfterOrderCancellationInConn = async (_conn, { productId, foodId, warehouseId, quantity }, context = {}) => {
   const id = productId || foodId;
-  return adjustStock(id, normalizeQuantity(quantity, 'quantity'), context, {
-    eventId: context.eventId || null,
-    publish: true,
-  });
+  if (!warehouseId) throw new BadRequestError('warehouseId is required for order cancellation');
+  const result = await processAdjustment(id, normalizeQuantity(quantity, 'quantity'), context, {
+    movementType: 'RETURN',
+    reason: 'RETURN',
+    warehouseId,
+    referenceType: 'ORDER_CANCELLED',
+    referenceId: context.orderId || context.eventId || 'NONE',
+    transactionId: context.correlationId || context.eventId,
+  }, true);
+  return result.inventory;
 };
 
 const listLowStockAlerts = async () => {
@@ -267,9 +400,10 @@ const handleOrderPlacedEvent = async (payload = {}, context = {}) => {
   const inventorySnapshots = [];
   for (const item of items) {
     const id = item?.productId || item?.foodId;
-    if (!id) continue;
+    const whId = item?.warehouseId;
+    if (!id || !whId) continue;
     // eslint-disable-next-line no-await-in-loop
-    const inventory = await requireInventory(id).catch(() => null);
+    const inventory = await requireInventory(id, whId).catch(() => null);
     if (inventory) inventorySnapshots.push(buildResponseInventory(inventory));
   }
 
@@ -287,14 +421,15 @@ const handleOrderCancelledEvent = async (payload = {}, context = {}) => {
   const inventorySnapshots = [];
   for (const item of items) {
     const id = item?.productId || item?.foodId;
-    if (!id) {
-      throw new BadRequestError("Invalid payload for 'OrderCancelled'. Missing required field: order.items.productId");
+    const whId = item?.warehouseId;
+    if (!id || !whId) {
+      throw new BadRequestError("Invalid payload for 'OrderCancelled'. Missing required field: order.items.productId/warehouseId");
     }
     // eslint-disable-next-line no-await-in-loop
     const restored = await restoreStockAfterOrderCancellationInConn(
       null,
-      { productId: id, quantity: item.quantity || 1 },
-      { ...context, reason: 'order-cancelled' }
+      { productId: id, warehouseId: whId, quantity: item.quantity || 1 },
+      { ...context, orderId: order.orderId }
     );
     inventorySnapshots.push(restored);
   }
@@ -311,6 +446,11 @@ module.exports = {
   updateInventory,
   increaseStock,
   decreaseStock,
+  adjustStock,
+  approveAdjustment,
+  rejectAdjustment,
+  listMovements,
+  listAllMovements,
   validateStockForOrderInConn,
   deductStockAfterOrderInConn,
   restoreStockAfterOrderCancellationInConn,

@@ -27,7 +27,7 @@ resource "aws_lambda_function" "this" {
   timeout                        = var.timeout
   memory_size                    = var.memory_size
   architectures                  = [var.architecture]
-  publish                        = var.publish
+  publish                        = false
   reserved_concurrent_executions = var.reserved_concurrent_executions
   package_type                   = "Zip"
   tags                           = local.merged_tags

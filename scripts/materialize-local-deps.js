@@ -50,6 +50,9 @@ const copyDirRecursive = (src, dest) => {
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     // Skip symlinked node_modules (and other node_modules folders) to keep artifacts deterministic.
     if (entry.isDirectory() && entry.name === 'node_modules') continue;
+    // Skip build artifacts and source control directories
+    if (entry.isDirectory() && ['.git', 'build', '.serverless'].includes(entry.name)) continue;
+    if (entry.isFile() && (entry.name === 'lambda.zip' || entry.name.endsWith('.zip'))) continue;
 
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
@@ -66,6 +69,9 @@ const copyDirRecursive = (src, dest) => {
 
 const main = () => {
   const serviceDir = process.cwd();
+  const localDepsBaseDir = process.env.LOCAL_DEPS_BASE_DIR
+    ? path.resolve(process.env.LOCAL_DEPS_BASE_DIR)
+    : serviceDir;
   const nodeModulesDir = path.join(serviceDir, 'node_modules');
 
   if (!fs.existsSync(nodeModulesDir)) {
@@ -102,7 +108,7 @@ const main = () => {
       return [];
     }
 
-    const sourceDir = path.resolve(serviceDir, depSpec.slice('file:'.length));
+    const sourceDir = path.resolve(localDepsBaseDir, depSpec.slice('file:'.length));
     if (!fs.existsSync(path.join(sourceDir, 'package.json'))) {
       throw new Error(`materialize-local-deps: missing local dependency ${depName}: ${sourceDir}`);
     }

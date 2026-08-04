@@ -1,19 +1,11 @@
-const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { documentClient, config } = require('@freshmart/service-shared').aws;
 
 const tableName = () => {
-  const name = config.dynamodb.tables.carts;
-  if (!name) throw new Error('Missing DDB_TABLE_CARTS');
-  return name;
+  return config.dynamodb.tables.carts || process.env.DDB_TABLE_CARTS || 'freshmart-dev-carts';
 };
 
-const cartPk = (userId) => `USER#${userId}`;
-const cartSk = (cartId) => `CART#${cartId}`;
-const itemSk = (cartId, productId) => `ITEM#${productId}`;
-const cartGsiPk = (cartId) => `CART#${cartId}`;
-const cartGsiSk = (productId) => `ITEM#${productId}`;
-const productGsiPk = (productId) => `PRODUCT#${productId}`;
-const productGsiSk = (userId, cartId) => `USER#${userId}#CART#${cartId}`;
+const HEADER_PRODUCT_ID = '_HEADER_';
 
 const isConditionalFailure = (error) =>
   error?.name === 'ConditionalCheckFailedException' ||
@@ -23,7 +15,7 @@ const isConditionalFailure = (error) =>
 const toCart = (item) => {
   if (!item) return null;
   return {
-    cartId: item.cartId,
+    cartId: item.cartId || 'default',
     userId: item.userId,
     subtotal: Number(item.subtotal || 0),
     tax: Number(item.tax || 0),
@@ -34,41 +26,40 @@ const toCart = (item) => {
 };
 
 const toItem = (item) => {
-  if (!item) return null;
+  if (!item || item.productId === HEADER_PRODUCT_ID) return null;
   return {
-    cartItemId: item.cartItemId,
-    cartId: item.cartId,
+    cartItemId: item.cartItemId || `${item.userId}_${item.productId}`,
+    cartId: item.cartId || 'default',
     userId: item.userId,
     productId: item.productId,
     productName: item.productName || item.name || null,
     imageUrl: item.imageUrl || null,
-    available: !!item.available,
-    quantity: Number(item.quantity),
-    price: Number(item.price),
+    available: item.available !== false,
+    quantity: Number(item.quantity || 1),
+    price: Number(item.price || 0),
+    lineTotal: Number(item.price || 0) * Number(item.quantity || 1),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
 };
 
 const findCartByUserId = async (userId) => {
+  if (!userId) return null;
   const result = await documentClient.send(
-    new QueryCommand({
+    new GetCommand({
       TableName: tableName(),
-      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
-      ExpressionAttributeValues: { ':pk': cartPk(userId), ':sk': 'CART#' },
-      Limit: 1,
+      Key: { userId, productId: HEADER_PRODUCT_ID },
     })
   );
-  return toCart(result.Items?.[0] || null);
+  return toCart(result.Item || null);
 };
 
 const findCartById = async (cartId) => {
   const result = await documentClient.send(
-    new QueryCommand({
+    new ScanCommand({
       TableName: tableName(),
-      IndexName: 'gsiCart',
-      KeyConditionExpression: 'gsiCartPk = :pk AND begins_with(gsiCartSk, :sk)',
-      ExpressionAttributeValues: { ':pk': cartGsiPk(cartId), ':sk': 'ROOT' },
+      FilterExpression: 'cartId = :cartId AND productId = :header',
+      ExpressionAttributeValues: { ':cartId': cartId, ':header': HEADER_PRODUCT_ID },
       Limit: 1,
     })
   );
@@ -78,25 +69,20 @@ const findCartById = async (cartId) => {
 const createCart = async (cartId, userId) => {
   const now = new Date().toISOString();
   const item = {
-    pk: cartPk(userId),
-    sk: cartSk(cartId),
-    cartId,
     userId,
+    productId: HEADER_PRODUCT_ID,
+    cartId: cartId || 'default',
     subtotal: 0,
     tax: 0,
     totalAmount: 0,
     createdAt: now,
     updatedAt: now,
-    gsiCartPk: cartGsiPk(cartId),
-    gsiCartSk: 'ROOT',
-    entityType: 'CART',
   };
 
   await documentClient.send(
     new PutCommand({
       TableName: tableName(),
       Item: item,
-      ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
     })
   );
 
@@ -116,61 +102,43 @@ const getOrCreateCart = async (cartId, userId) => {
 };
 
 const findItems = async (cartId, userId = null) => {
-  const cart = userId ? await findCartByUserId(userId) : await findCartById(cartId);
-  if (!cart) return [];
+  if (!userId) {
+    const cart = await findCartById(cartId);
+    if (!cart) return [];
+    userId = cart.userId;
+  }
 
   const result = await documentClient.send(
     new QueryCommand({
       TableName: tableName(),
-      IndexName: 'gsiCart',
-      KeyConditionExpression: 'gsiCartPk = :pk AND begins_with(gsiCartSk, :sk)',
-      ExpressionAttributeValues: { ':pk': cartGsiPk(cart.cartId), ':sk': 'ITEM#' },
+      KeyConditionExpression: 'userId = :u',
+      ExpressionAttributeValues: { ':u': userId },
     })
   );
 
-  return (result.Items || []).map((item) => ({
-    cartItemId: item.cartItemId,
-    cartId: item.cartId,
-    userId: item.userId,
-    productId: item.productId,
-    productName: item.productName || item.name || null,
-    imageUrl: item.imageUrl || null,
-    available: !!item.available,
-    quantity: Number(item.quantity),
-    price: Number(item.price),
-    lineTotal: Number(item.price) * Number(item.quantity),
-  }));
+  return (result.Items || [])
+    .filter((item) => item.productId !== HEADER_PRODUCT_ID)
+    .map(toItem)
+    .filter(Boolean);
 };
 
 const findItemsByProductId = async (productId) => {
   const result = await documentClient.send(
-    new QueryCommand({
+    new ScanCommand({
       TableName: tableName(),
-      IndexName: 'gsiProduct',
-      KeyConditionExpression: 'gsiProductPk = :pk',
-      ExpressionAttributeValues: { ':pk': productGsiPk(productId) },
+      FilterExpression: 'productId = :pid',
+      ExpressionAttributeValues: { ':pid': productId },
     })
   );
 
-  return (result.Items || []).map((item) => ({
-    cartItemId: item.cartItemId,
-    cartId: item.cartId,
-    userId: item.userId,
-    productId: item.productId,
-    productName: item.productName || item.name || null,
-    imageUrl: item.imageUrl || null,
-    available: !!item.available,
-    quantity: Number(item.quantity),
-    price: Number(item.price),
-    lineTotal: Number(item.price) * Number(item.quantity),
-  }));
+  return (result.Items || []).map(toItem).filter(Boolean);
 };
 
 const findItem = async (cartId, userId, productId) => {
   const result = await documentClient.send(
     new GetCommand({
       TableName: tableName(),
-      Key: { pk: cartPk(userId), sk: itemSk(cartId, productId) },
+      Key: { userId, productId },
     })
   );
   return toItem(result.Item || null);
@@ -179,31 +147,23 @@ const findItem = async (cartId, userId, productId) => {
 const putItem = async ({ cartItemId, cartId, userId, productId, quantity, price, productName, imageUrl, available }) => {
   const now = new Date().toISOString();
   const item = {
-    pk: cartPk(userId),
-    sk: itemSk(cartId, productId),
-    cartItemId,
-    cartId,
     userId,
     productId,
+    cartItemId: cartItemId || `${userId}_${productId}`,
+    cartId: cartId || 'default',
     quantity: Number(quantity),
     price: Number(price),
     productName: productName || null,
     imageUrl: imageUrl || null,
-    available: !!available,
+    available: available !== false,
     createdAt: now,
     updatedAt: now,
-    gsiCartPk: cartGsiPk(cartId),
-    gsiCartSk: cartGsiSk(productId),
-    gsiProductPk: productGsiPk(productId),
-    gsiProductSk: productGsiSk(userId, cartId),
-    entityType: 'CART_ITEM',
   };
 
   await documentClient.send(
     new PutCommand({
       TableName: tableName(),
       Item: item,
-      ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
     })
   );
 
@@ -218,23 +178,13 @@ const upsertItem = async (
   const now = new Date().toISOString();
 
   if (!existing) {
-    try {
-      return await putItem({ cartItemId, cartId, userId, productId, quantity, price, productName, imageUrl, available });
-    } catch (error) {
-      if (isConditionalFailure(error) && _retries < 3) {
-        return upsertItem(
-          { cartItemId, cartId, userId, productId, quantity, price, productName, imageUrl, available },
-          _retries + 1
-        );
-      }
-      throw error;
-    }
+    return await putItem({ cartItemId, cartId, userId, productId, quantity, price, productName, imageUrl, available });
   }
 
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
-      Key: { pk: cartPk(userId), sk: itemSk(cartId, productId) },
+      Key: { userId, productId },
       UpdateExpression:
         'SET quantity = :quantity, price = :price, productName = :productName, imageUrl = :imageUrl, available = :available, updatedAt = :updatedAt',
       ExpressionAttributeValues: {
@@ -242,7 +192,7 @@ const upsertItem = async (
         ':price': Number(price),
         ':productName': productName || existing.productName || null,
         ':imageUrl': imageUrl || existing.imageUrl || null,
-        ':available': !!available,
+        ':available': available !== false,
         ':updatedAt': now,
       },
       ReturnValues: 'ALL_NEW',
@@ -256,9 +206,8 @@ const setItemQuantity = async (cartId, userId, productId, quantity) => {
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
-      Key: { pk: cartPk(userId), sk: itemSk(cartId, productId) },
+      Key: { userId, productId },
       UpdateExpression: 'SET quantity = :quantity, updatedAt = :updatedAt',
-      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       ExpressionAttributeValues: {
         ':quantity': Number(quantity),
         ':updatedAt': new Date().toISOString(),
@@ -273,11 +222,10 @@ const updateItemAvailability = async (cartId, userId, productId, available) => {
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
-      Key: { pk: cartPk(userId), sk: itemSk(cartId, productId) },
+      Key: { userId, productId },
       UpdateExpression: 'SET available = :available, updatedAt = :updatedAt',
-      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       ExpressionAttributeValues: {
-        ':available': !!available,
+        ':available': available !== false,
         ':updatedAt': new Date().toISOString(),
       },
       ReturnValues: 'ALL_NEW',
@@ -287,13 +235,10 @@ const updateItemAvailability = async (cartId, userId, productId, available) => {
 };
 
 const removeItem = async (cartId, userId, productId) => {
-  const existing = await findItem(cartId, userId, productId);
-  if (!existing) return false;
-
   await documentClient.send(
     new DeleteCommand({
       TableName: tableName(),
-      Key: { pk: cartPk(userId), sk: itemSk(cartId, productId) },
+      Key: { userId, productId },
     })
   );
   return true;
@@ -302,24 +247,20 @@ const removeItem = async (cartId, userId, productId) => {
 const clearItems = async (cartId, userId = null) => {
   const items = await findItems(cartId, userId);
   for (const item of items) {
-    // eslint-disable-next-line no-await-in-loop
     await documentClient.send(
       new DeleteCommand({
         TableName: tableName(),
-        Key: { pk: cartPk(item.userId), sk: itemSk(item.cartId, item.productId) },
+        Key: { userId: item.userId, productId: item.productId },
       })
     );
   }
 };
 
 const updateTotals = async (cartId, userId, { subtotal, tax, totalAmount }) => {
-  const cart = userId ? await findCartByUserId(userId) : await findCartById(cartId);
-  if (!cart) return null;
-
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
-      Key: { pk: cartPk(cart.userId), sk: cartSk(cart.cartId) },
+      Key: { userId, productId: HEADER_PRODUCT_ID },
       UpdateExpression:
         'SET subtotal = :subtotal, tax = :tax, totalAmount = :totalAmount, updatedAt = :updatedAt',
       ExpressionAttributeValues: {
