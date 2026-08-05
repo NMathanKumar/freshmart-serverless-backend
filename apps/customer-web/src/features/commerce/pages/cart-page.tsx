@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import { ArrowRight, CheckCircle2, Heart, Minus, Plus, ShieldCheck, Tag, Trash2 } from 'lucide-react';
 import { Button, Input } from '@freshmart/design-system';
 import { Link } from 'react-router-dom';
-import { formatCurrency } from '@freshmart/shared';
 import { useGetCartQuery, useRemoveCartItemMutation, useUpdateCartItemMutation } from '../api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
+
+const formatUSD = (amount: number) => `$${Number(amount || 0).toFixed(2)}`;
 
 export function CartContent() {
   const { data: cartItems = [] } = useGetCartQuery();
@@ -18,7 +19,7 @@ export function CartContent() {
 
   const totalQuantity = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantityInCart, 0), [cartItems]);
   const subtotal = useMemo(() => cartItems.reduce((sum, item) => sum + item.price * item.quantityInCart, 0), [cartItems]);
-  
+
   const deliveryFee = 0;
   const platformFee = 1.50;
   const taxes = 1.35;
@@ -42,27 +43,27 @@ export function CartContent() {
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
       <HomeHeader />
 
-      <main className="mx-auto max-w-7xl px-6 md:px-8 pb-16 pt-24 space-y-8">
-        
-        {/* Header Title & Subtitle */}
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#171d16]">Your Cart</h1>
-          <p className="mt-1 text-sm font-semibold text-[#8b9888]">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pb-16 pt-24 space-y-8">
+
+        {/* Page Title & Subtitle matching Figma */}
+        <div className="space-y-1">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171d16]">Your Cart</h1>
+          <p className="text-sm font-semibold text-[#8b9888]">
             You have {totalQuantity} item{totalQuantity === 1 ? '' : 's'} ready for checkout
           </p>
         </div>
 
         {cartItems.length === 0 ? (
-          <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-12 text-center space-y-4">
+          <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-12 text-center space-y-4 shadow-xs">
             <p className="text-base font-extrabold text-[#171d16]">Your cart is empty.</p>
-            <p className="text-xs text-[#8b9888]">Add fresh groceries to check out quickly!</p>
-            <Link className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#006b2c] px-6 text-xs font-black text-white hover:bg-[#005422]" to="/">
+            <p className="text-xs font-semibold text-[#8b9888]">Add fresh groceries to check out quickly!</p>
+            <Link className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#006b2c] px-6 text-xs font-black text-white hover:bg-[#005422] transition-all shadow-xs" to="/">
               Explore Fresh Produce
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 items-start">
-            
+          <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-start">
+
             {/* Left Column: Cart Items List */}
             <div className="space-y-4">
               {cartItems.map((item) => (
@@ -70,8 +71,8 @@ export function CartContent() {
                   key={item.productId}
                   className="rounded-[24px] border border-[#e2ebdE] bg-white p-5 shadow-xs transition-all hover:shadow-md flex flex-col sm:flex-row gap-5"
                 >
-                  {/* Thumbnail Image */}
-                  <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#f4fcf0] p-2 border border-[#e2ebdE]">
+                  {/* Thumbnail Image Box */}
+                  <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eff6ea] p-2 border border-[#bdcaba]/30 flex items-center justify-center">
                     <img
                       alt={item.name}
                       className="h-full w-full object-contain mix-blend-multiply"
@@ -86,9 +87,9 @@ export function CartContent() {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <h3 className="text-base font-extrabold text-[#171d16]">{item.name}</h3>
-                          <p className="text-xs font-bold text-[#8b9888]">{item.brand}</p>
+                          <p className="text-xs font-bold text-[#8b9888] mt-0.5">{item.brand}</p>
                         </div>
-                        <span className="text-base font-black text-[#006c4a]">{formatCurrency(item.price)}</span>
+                        <span className="text-base font-black text-[#006c4a]">{formatUSD(item.price)}</span>
                       </div>
 
                       <p className="mt-1 flex items-center gap-1 text-[11px] font-extrabold text-[#006c4a]">
@@ -99,11 +100,11 @@ export function CartContent() {
 
                     {/* Bottom Actions Row */}
                     <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-                      {/* Quantity Selector */}
-                      <div className="flex items-center gap-3 rounded-full border border-[#bdcaba]/60 bg-[#f8fbf5] px-3 py-1 shadow-xs">
+                      {/* Quantity Selector Pill */}
+                      <div className="flex items-center gap-3 rounded-full border border-[#bdcaba]/60 bg-[#eff6ea] px-3.5 py-1 shadow-xs">
                         <button
                           aria-label="Decrease quantity"
-                          className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#171d16] shadow-xs hover:bg-[#eff6ea] active:scale-95 transition-all"
+                          className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#171d16] shadow-xs hover:bg-[#d8f4ce] active:scale-95 transition-all"
                           onClick={() => void handleUpdateQuantity(item.productId, item.quantityInCart, -1)}
                           type="button"
                         >
@@ -112,7 +113,7 @@ export function CartContent() {
                         <span className="w-5 text-center text-xs font-black text-[#171d16]">{item.quantityInCart}</span>
                         <button
                           aria-label="Increase quantity"
-                          className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#171d16] shadow-xs hover:bg-[#eff6ea] active:scale-95 transition-all"
+                          className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#171d16] shadow-xs hover:bg-[#d8f4ce] active:scale-95 transition-all"
                           onClick={() => void handleUpdateQuantity(item.productId, item.quantityInCart, 1)}
                           type="button"
                         >
@@ -148,51 +149,53 @@ export function CartContent() {
               ))}
             </div>
 
-            {/* Right Column: Price Details & Checkout */}
-            <div className="space-y-4">
-              
+            {/* Right Column: Price Details Card & Checkout */}
+            <div className="sticky top-24 space-y-4">
+
               <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-6 md:p-8 shadow-xs space-y-6">
                 <h2 className="text-lg font-black tracking-tight text-[#171d16]">Price Details</h2>
 
                 <div className="space-y-3 text-xs font-extrabold text-[#3e4a3d]">
                   <div className="flex items-center justify-between">
                     <span>Item Subtotal ({totalQuantity} items)</span>
-                    <span className="text-[#171d16] font-black">{formatCurrency(subtotal)}</span>
+                    <span className="text-[#171d16] font-black">{formatUSD(subtotal)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span>Delivery Fee</span>
                     <span className="text-[#006c4a] font-black">
-                      <span className="line-through text-[#8b9888] mr-1.5">{formatCurrency(2.50)}</span>
+                      <span className="line-through text-[#8b9888] mr-1.5">{formatUSD(2.50)}</span>
                       Free
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span>Platform Fee</span>
-                    <span className="text-[#171d16] font-black">{formatCurrency(platformFee)}</span>
+                    <span className="text-[#171d16] font-black">{formatUSD(platformFee)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span>Taxes</span>
-                    <span className="text-[#171d16] font-black">{formatCurrency(taxes)}</span>
+                    <span className="text-[#171d16] font-black">{formatUSD(taxes)}</span>
                   </div>
                 </div>
 
-                {/* Grand Total & Estimated Savings */}
+                {/* Grand Total & Savings Badge */}
                 <div className="border-t border-[#e2ebdE] pt-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-base font-black text-[#171d16]">Grand Total</span>
-                    <span className="text-xl font-black text-[#006c4a]">{formatCurrency(grandTotal)}</span>
+                    <span className="text-xl font-black text-[#006c4a]">{formatUSD(grandTotal)}</span>
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-[#e3f5ea] px-3.5 py-1.5 text-xs font-extrabold text-[#006c4a]">
-                    <Tag className="h-3.5 w-3.5" />
-                    <span>Estimated Savings: {formatCurrency(2.50 + discount)}</span>
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#d8f4ce] px-3.5 py-1.5 text-xs font-black text-[#2b4c1d]">
+                      <Tag className="h-3.5 w-3.5" />
+                      <span>Estimated Savings: {formatUSD(2.50 + discount)}</span>
+                    </span>
                   </div>
                 </div>
 
-                {/* Apply Coupon Input */}
+                {/* Apply Coupon Row */}
                 <div className="flex gap-2">
                   <Input
                     className="h-11 rounded-xl border border-[#bdcaba]/60 bg-[#f8fbf5] px-4 text-xs font-bold placeholder:text-[#8b9888] focus:bg-white focus:ring-2 focus:ring-[#006b2c] flex-1"
@@ -209,7 +212,7 @@ export function CartContent() {
                   </Button>
                 </div>
 
-                {/* Proceed to Checkout CTA */}
+                {/* Proceed to Checkout CTA Button */}
                 <div className="space-y-3 pt-1">
                   <Link
                     className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#006b2c] text-sm font-extrabold text-white shadow-md hover:bg-[#005422] transition-all active:scale-98"
@@ -225,9 +228,9 @@ export function CartContent() {
                 </div>
               </div>
 
-              {/* Secure Transactions Info Card */}
-              <div className="rounded-[24px] border border-[#e2ebdE] bg-[#f8fbf5] p-4.5 flex items-center gap-4 shadow-xs">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e3f5ea] text-[#006c4a]">
+              {/* Secure Transactions Banner */}
+              <div className="rounded-[24px] border border-[#bdcaba]/30 bg-[#eff6ea] p-4.5 flex items-center gap-4 shadow-xs">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#006c4a] shadow-xs">
                   <ShieldCheck className="h-6 w-6 stroke-[2.5]" />
                 </div>
                 <div>

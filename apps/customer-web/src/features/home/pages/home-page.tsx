@@ -20,7 +20,7 @@ const HomePage = () => {
 
   return (
     <div className="home-page min-h-screen bg-[#f4fcf0] text-[#171d16] w-full">
-      <HomeHeader cartCount={cartCount} />
+      <HomeHeader />
       <main className="mx-auto max-w-7xl space-y-10 px-4 md:px-8 pb-12 pt-20">
         <HeroCarousel banners={query.data?.heroBanners} error={hasError} loading={query.isLoading} retry={retry} />
         <section className="space-y-6" aria-labelledby="categories-heading"><div className="flex items-center justify-between gap-4"><h2 className="text-2xl md:text-[32px] font-bold leading-10 tracking-[-0.01em]" id="categories-heading">Shop by Category</h2><button className="text-right text-sm font-semibold text-[#006b2c] hover:underline" type="button">View All Categories</button></div><CategoryGrid categories={categories} error={hasError} loading={query.isLoading} retry={retry} /></section>
