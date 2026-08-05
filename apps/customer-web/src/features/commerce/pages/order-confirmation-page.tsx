@@ -1,10 +1,8 @@
 import { Suspense } from 'react';
-import { Download, MapPin, Share2, ShoppingCart, Truck, CreditCard, Plus } from 'lucide-react';
+import { Download, MapPin, Share2, ShoppingCart, Truck, CreditCard } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
-import { CommerceProductCard } from '../components/commerce-product-card.js';
-import { orderConfirmationProducts, searchProducts } from '../model/commerce-content.js';
 import { useGetOrderQuery } from '../api/commerce-api.js';
 
 const formatUSD = (amount: number) => `$${Number(amount || 0).toFixed(2)}`;
@@ -106,43 +104,6 @@ const OrderConfirmationContent = () => {
             </div>
           </div>
 
-        </div>
-
-        {/* Buy It Again Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black text-[#171d16]">Buy It Again</h2>
-            <Link className="text-xs font-extrabold text-[#006b2c] hover:underline" to="/orders">
-              View History
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {orderConfirmationProducts.map((prod) => (
-              <div key={prod.productId} className="rounded-[20px] border border-[#e2ebdE] bg-white p-3 shadow-xs space-y-2">
-                <div className="h-28 w-full rounded-xl bg-[#eff6ea] p-2 flex items-center justify-center overflow-hidden">
-                  <img alt={prod.name} className="h-full w-full object-contain mix-blend-multiply" src={prod.imageUrl} />
-                </div>
-                <h3 className="text-xs font-extrabold text-[#171d16] truncate">{prod.name}</h3>
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs font-black text-[#006c4a]">{formatUSD(prod.price)}</span>
-                  <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#d8f4ce] text-[#2b4c1d] hover:bg-[#b8e5cd] transition-all" type="button">
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recommended for You Section */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-black text-[#171d16]">Recommended for You</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {searchProducts.slice(0, 3).map((product) => (
-              <CommerceProductCard key={product.productId} product={product} />
-            ))}
-          </div>
         </div>
 
       </main>
