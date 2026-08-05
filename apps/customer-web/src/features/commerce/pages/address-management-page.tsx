@@ -74,10 +74,12 @@ const AddressManagementContent = () => {
     ? [...apiAddresses, ...localAddresses.filter((l) => !apiAddresses.some((a) => a.addressId === l.addressId))]
     : (localAddresses.length > 0 ? localAddresses : SAMPLE_ADDRESSES);
 
-  const { formState: { errors, isSubmitSuccessful }, handleSubmit, register, reset, setValue } = useForm<FormValues>({
+  const { formState: { errors, isSubmitSuccessful }, handleSubmit, register, reset, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { city: 'San Francisco', isDefault: false, label: 'Home', state: 'California' }
   });
+
+  const isDefaultValue = watch('isDefault');
 
   const save = async (values: FormValues) => {
     try {
@@ -319,25 +321,34 @@ const AddressManagementContent = () => {
               </div>
 
               {/* Default Address Checkbox Switch */}
-              <div className="flex items-center justify-between rounded-2xl bg-[#eff6ea] p-4 border border-[#bdcaba]/30 cursor-pointer" onClick={() => setValue('isDefault', !type)}>
+              <div className="flex items-center justify-between rounded-2xl bg-[#eff6ea] p-4 border border-[#bdcaba]/30 cursor-pointer" onClick={() => setValue('isDefault', !isDefaultValue)}>
                 <span className="flex items-center gap-2 text-xs font-extrabold text-[#171d16]">
-                  <CheckCircle2 className="h-4 w-4 text-[#006b2c]" />
+                  <CheckCircle2 className={`h-4 w-4 transition-colors ${isDefaultValue ? 'text-[#006b2c]' : 'text-[#8b9888]'}`} />
                   <span>Set as default address</span>
                 </span>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input className="sr-only peer" type="checkbox" {...register('isDefault')} />
-                  <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#006b2c]" />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006b2c]" />
                 </label>
               </div>
 
               {/* Submit / Cancel Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button className="flex-1 h-12 rounded-2xl bg-[#006b2c] text-xs font-extrabold text-white hover:bg-[#005422] transition-all shadow-xs" disabled={addState.isLoading} type="submit">
-                  Save Address
-                </Button>
-                <Button className="sm:w-1/3 h-12 rounded-2xl border border-[#bdcaba] bg-white text-xs font-extrabold text-[#3e4a3d] hover:bg-[#f8fbf5] transition-all" onClick={() => reset()} type="button" variant="secondary">
+              <div className="flex flex-col sm:flex-row gap-3 pt-3">
+                <button
+                  className="flex-1 h-12 rounded-2xl bg-[#006b2c] text-sm font-extrabold text-white hover:bg-[#005422] transition-all shadow-md active:scale-98 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                  disabled={addState.isLoading}
+                  type="submit"
+                >
+                  <span>{addState.isLoading ? 'Saving Address...' : 'Save Address'}</span>
+                  <Check className="h-4 w-4 stroke-[3]" />
+                </button>
+                <button
+                  className="sm:w-1/3 h-12 rounded-2xl border-2 border-[#bdcaba]/60 bg-white text-xs font-black text-[#3e4a3d] hover:bg-[#f8fbf5] hover:border-[#006b2c] transition-all cursor-pointer"
+                  onClick={() => reset()}
+                  type="button"
+                >
                   Cancel
-                </Button>
+                </button>
               </div>
 
               {addState.isError && <p className="text-xs font-bold text-rose-600">Unable to save address. Please retry.</p>}
