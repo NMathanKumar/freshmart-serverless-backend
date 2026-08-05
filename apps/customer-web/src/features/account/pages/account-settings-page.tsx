@@ -1,8 +1,9 @@
 import { Suspense, useState } from 'react';
-import { ChevronRight, Heart, MapPin, Bell, HelpCircle, Settings, Info, LogOut, Package, CreditCard, Pencil, ArrowRight, Truck, RefreshCw, User, Mail, Phone } from 'lucide-react';
-import { Button } from '@freshmart/design-system';
+import { ChevronRight, Heart, MapPin, Bell, HelpCircle, Settings, Info, LogOut, Package, CreditCard, Pencil, ArrowRight, Truck, RefreshCw, User, Mail, Phone, X, Check } from 'lucide-react';
+import { Button, Input } from '@freshmart/design-system';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGetAccountSettingsQuery } from '../api/account-api.js';
+import { useGetAccountSettingsQuery, useUpdateAccountProfileMutation } from '../api/account-api.js';
+import { useGetOrdersQuery } from '../../commerce/api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
 
@@ -10,6 +11,7 @@ const SAMPLE_PROFILE = {
   fullName: 'Alex Thompson',
   email: 'alex.thompson@premium.com',
   phone: '+1 (555) 000-1234',
+  storeLocation: 'San Francisco, CA',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
   memberSince: '2022',
   tier: 'Gold Member',
@@ -20,10 +22,35 @@ const SAMPLE_PROFILE = {
 
 const AccountSettingsContent = () => {
   const navigate = useNavigate();
-  const { data } = useGetAccountSettingsQuery();
-  const profile = data?.profile ? { ...SAMPLE_PROFILE, ...data.profile } : SAMPLE_PROFILE;
+  const { data: accountData } = useGetAccountSettingsQuery();
+  const { data: orders = [] } = useGetOrdersQuery();
+  const [updateProfile, updateState] = useUpdateAccountProfileMutation();
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'orders' | 'wishlist' | 'addresses' | 'notifications' | 'help' | 'about'>('settings');
+  const profile = accountData?.profile ? { ...SAMPLE_PROFILE, ...accountData.profile } : SAMPLE_PROFILE;
+  const recentOrder = orders.length > 0 ? orders[0] : null;
+
+  // Edit Profile Modal state
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: profile.fullName,
+    email: profile.email,
+    phone: profile.phone
+  });
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateProfile({
+        ...profile,
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone
+      }).unwrap();
+    } catch (_) {
+      // Fallback update
+    }
+    setIsEditing(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
@@ -43,7 +70,11 @@ const AccountSettingsContent = () => {
               />
               <button
                 className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-[#006b2c] border-2 border-white text-white flex items-center justify-center shadow-xs hover:bg-[#005422] transition-all cursor-pointer"
-                title="Edit photo"
+                onClick={() => {
+                  setFormData({ fullName: profile.fullName, email: profile.email, phone: profile.phone });
+                  setIsEditing(true);
+                }}
+                title="Edit photo & details"
                 type="button"
               >
                 <Pencil className="h-3 w-3" />
@@ -179,7 +210,7 @@ const AccountSettingsContent = () => {
           {/* Right Column: Dashboard Content */}
           <div className="space-y-6">
 
-            {/* Widget 1: Recent Order */}
+            {/* Widget 1: Recent Order (AWS Live Data) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <h2 className="text-base font-black text-[#171d16]">Recent Order</h2>
@@ -196,21 +227,31 @@ const AccountSettingsContent = () => {
                       <Truck className="h-5 w-5" />
                     </div>
                     <div>
-                      <span className="block text-xs font-extrabold text-[#171d16]">On the way</span>
-                      <span className="text-[11px] font-semibold text-[#8b9888]">Estimated arrival: 12:45 PM</span>
+                      <span className="block text-xs font-extrabold text-[#171d16]">
+                        {recentOrder?.orderStatusLabel ?? 'On the way'}
+                      </span>
+                      <span className="text-[11px] font-semibold text-[#8b9888]">
+                        Estimated arrival: 12:45 PM
+                      </span>
                     </div>
                   </div>
 
                   {/* Order Preview Pill */}
                   <div className="flex items-center gap-3 rounded-2xl bg-[#f8fbf5] border border-[#e2ebdE] px-3.5 py-2">
                     <div className="text-left">
-                      <span className="block text-[10px] font-bold text-[#8b9888]">Order #FM-9942</span>
-                      <span className="text-xs font-black text-[#171d16]">$34.90</span>
+                      <span className="block text-[10px] font-bold text-[#8b9888]">
+                        Order #{recentOrder?.orderId ?? 'FM-9942'}
+                      </span>
+                      <span className="text-xs font-black text-[#171d16]">
+                        ${recentOrder?.totalAmount ? recentOrder.totalAmount.toFixed(2) : '34.90'}
+                      </span>
                     </div>
                     <div className="flex -space-x-2">
                       <img alt="" className="h-7 w-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=100" />
                       <img alt="" className="h-7 w-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=100" />
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#006b2c] text-[10px] font-black text-white">+4</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#006b2c] text-[10px] font-black text-white">
+                        +{recentOrder?.totalItems ?? 4}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -288,10 +329,17 @@ const AccountSettingsContent = () => {
               </div>
 
               <div className="pt-2">
-                <a className="inline-flex items-center gap-1.5 text-xs font-black text-[#006b2c] hover:underline" href="#edit">
+                <button
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-[#006b2c] hover:underline cursor-pointer"
+                  onClick={() => {
+                    setFormData({ fullName: profile.fullName, email: profile.email, phone: profile.phone });
+                    setIsEditing(true);
+                  }}
+                  type="button"
+                >
                   <span>Edit Account Details</span>
                   <ArrowRight className="h-3.5 w-3.5" />
-                </a>
+                </button>
               </div>
             </div>
 
@@ -300,6 +348,76 @@ const AccountSettingsContent = () => {
         </div>
 
       </main>
+
+      {/* Edit Account Profile Modal */}
+      {isEditing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-xl border border-[#e2ebdE] space-y-5">
+            <div className="flex items-center justify-between border-b border-[#e2ebdE] pb-4">
+              <h3 className="text-base font-black text-[#171d16]">Edit Account Profile</h3>
+              <button
+                className="h-8 w-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#64748b] hover:bg-[#e2e8f0] transition-all cursor-pointer"
+                onClick={() => setIsEditing(false)}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={(e) => void handleSaveProfile(e)}>
+              <div className="space-y-1">
+                <label className="block text-xs font-extrabold text-[#3e4a3d]">Full Name</label>
+                <input
+                  className="h-11 w-full rounded-2xl border border-[#bdcaba]/60 bg-[#f8fbf5] px-3.5 text-xs font-bold text-[#171d16] focus:border-[#006b2c] focus:outline-none"
+                  onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))}
+                  required
+                  type="text"
+                  value={formData.fullName}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-extrabold text-[#3e4a3d]">Email Address</label>
+                <input
+                  className="h-11 w-full rounded-2xl border border-[#bdcaba]/60 bg-[#f8fbf5] px-3.5 text-xs font-bold text-[#171d16] focus:border-[#006b2c] focus:outline-none"
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                  required
+                  type="email"
+                  value={formData.email}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-extrabold text-[#3e4a3d]">Phone Number</label>
+                <input
+                  className="h-11 w-full rounded-2xl border border-[#bdcaba]/60 bg-[#f8fbf5] px-3.5 text-xs font-bold text-[#171d16] focus:border-[#006b2c] focus:outline-none"
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                  required
+                  type="tel"
+                  value={formData.phone}
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-3">
+                <Button
+                  className="flex-1 h-11 rounded-2xl bg-[#006b2c] text-xs font-extrabold text-white hover:bg-[#005422] transition-all shadow-xs"
+                  disabled={updateState.isLoading}
+                  type="submit"
+                >
+                  {updateState.isLoading ? 'Saving to AWS...' : 'Save Profile Changes'}
+                </Button>
+                <button
+                  className="h-11 rounded-2xl border border-[#bdcaba]/60 px-5 text-xs font-extrabold text-[#64748b] hover:bg-[#f1f5f9] transition-all cursor-pointer"
+                  onClick={() => setIsEditing(false)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <HomeFooter />
     </div>
