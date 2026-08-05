@@ -15,9 +15,33 @@ const controller = createUserController(new UserService(new DynamoUserRepository
 export const routes: RouteDefinition[] = [
   {
     method: 'GET',
+    path: '/users/profile',
+    authorize: true,
+    handler: ({ auth }) => controller.getProfile(auth.subject ?? '')
+  },
+  {
+    method: 'GET',
+    path: '/v1/users/profile',
+    authorize: true,
+    handler: ({ auth }) => controller.getProfile(auth.subject ?? '')
+  },
+  {
+    method: 'GET',
     path: '/api/v1/users/profile',
     authorize: true,
     handler: ({ auth }) => controller.getProfile(auth.subject ?? '')
+  },
+  {
+    method: 'PUT',
+    path: '/users/profile',
+    authorize: true,
+    handler: ({ auth, body }) => controller.upsertProfile(auth.subject ?? '', body)
+  },
+  {
+    method: 'PUT',
+    path: '/v1/users/profile',
+    authorize: true,
+    handler: ({ auth, body }) => controller.upsertProfile(auth.subject ?? '', body)
   },
   {
     method: 'PUT',
@@ -27,9 +51,33 @@ export const routes: RouteDefinition[] = [
   },
   {
     method: 'POST',
+    path: '/users/addresses',
+    authorize: true,
+    handler: ({ auth, body }) => controller.addAddress(auth.subject ?? '', body)
+  },
+  {
+    method: 'POST',
+    path: '/v1/users/addresses',
+    authorize: true,
+    handler: ({ auth, body }) => controller.addAddress(auth.subject ?? '', body)
+  },
+  {
+    method: 'POST',
     path: '/api/v1/users/addresses',
     authorize: true,
     handler: ({ auth, body }) => controller.addAddress(auth.subject ?? '', body)
+  },
+  {
+    method: 'DELETE',
+    path: '/users/addresses/:addressId',
+    authorize: true,
+    handler: ({ auth, params }) => controller.deleteAddress(auth.subject ?? '', params?.addressId ?? '')
+  },
+  {
+    method: 'DELETE',
+    path: '/v1/users/addresses/:addressId',
+    authorize: true,
+    handler: ({ auth, params }) => controller.deleteAddress(auth.subject ?? '', params?.addressId ?? '')
   },
   {
     method: 'DELETE',
