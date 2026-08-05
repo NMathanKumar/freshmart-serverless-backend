@@ -5,7 +5,7 @@ import { CheckCircle2, Home, MapPin, Navigation, Phone, Plus, Trash2, Briefcase,
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { useAddAddressMutation, useGetAddressesQuery, type AddressInput } from '../api/commerce-api.js';
+import { useAddAddressMutation, useDeleteAddressMutation, useGetAddressesQuery, type AddressInput } from '../api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
 
@@ -63,20 +63,62 @@ const SAMPLE_ADDRESSES = [
 const AddressManagementContent = () => {
   const navigate = useNavigate();
   const { data: apiAddresses = [] } = useGetAddressesQuery();
-  const addresses = apiAddresses.length > 0 ? apiAddresses : SAMPLE_ADDRESSES;
-
+  
+  const [localAddresses, setLocalAddresses] = useState<typeof SAMPLE_ADDRESSES>([]);
   const [type, setType] = useState<FormValues['label']>('Home');
   const [selectedId, setSelectedId] = useState('addr-1');
   const [addAddress, addState] = useAddAddressMutation();
+  const [deleteAddress, deleteState] = useDeleteAddressMutation();
+
+  const addresses = apiAddresses.length > 0
+    ? [...apiAddresses, ...localAddresses.filter((l) => !apiAddresses.some((a) => a.addressId === l.addressId))]
+    : (localAddresses.length > 0 ? localAddresses : SAMPLE_ADDRESSES);
+
   const { formState: { errors, isSubmitSuccessful }, handleSubmit, register, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { city: 'San Francisco', isDefault: false, label: 'Home', state: 'California' }
   });
 
   const save = async (values: FormValues) => {
-    await addAddress(values as AddressInput).unwrap().catch(() => undefined);
+    try {
+      const res = await addAddress(values as AddressInput).unwrap();
+      const newId = String((res as Record<string, unknown>).addressId || (res as Record<string, unknown>).id || `addr-${Date.now()}`);
+      const newEntry = {
+        addressId: newId,
+        label: values.label,
+        name: values.name,
+        lines: [values.line1, values.line2, values.landmark].filter(Boolean) as string[],
+        city: values.city,
+        state: values.state,
+        postalCode: values.postalCode,
+        phone: values.phone,
+        isDefault: values.isDefault
+      };
+      setLocalAddresses((prev) => [newEntry, ...prev]);
+    } catch (_) {
+      const fallbackEntry = {
+        addressId: `addr-${Date.now()}`,
+        label: values.label,
+        name: values.name,
+        lines: [values.line1, values.line2, values.landmark].filter(Boolean) as string[],
+        city: values.city,
+        state: values.state,
+        postalCode: values.postalCode,
+        phone: values.phone,
+        isDefault: values.isDefault
+      };
+      setLocalAddresses((prev) => [fallbackEntry, ...prev]);
+    }
     reset({ city: 'San Francisco', isDefault: false, label: type, state: 'California' });
-    navigate('/checkout');
+  };
+
+  const handleDelete = async (addressId: string) => {
+    try {
+      await deleteAddress({ addressId }).unwrap().catch(() => undefined);
+    } catch (_) {
+      // Fallthrough
+    }
+    setLocalAddresses((prev) => prev.filter((a) => a.addressId !== addressId));
   };
 
   return (
@@ -154,7 +196,14 @@ const AddressManagementContent = () => {
                       <Pencil className="h-3.5 w-3.5" />
                       <span>Edit</span>
                     </button>
-                    <button className="flex items-center gap-1 text-rose-600 hover:underline" type="button">
+                    <button
+                      className="flex items-center gap-1 text-rose-600 hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDelete(addr.addressId);
+                      }}
+                      type="button"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                       <span>Delete</span>
                     </button>

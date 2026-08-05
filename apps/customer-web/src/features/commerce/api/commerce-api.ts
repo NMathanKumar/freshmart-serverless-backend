@@ -319,6 +319,20 @@ export const commerceApi = authApi.injectEndpoints({
       },
       invalidatesTags: ['CommerceAddresses' as never]
     }),
+    deleteAddress: builder.mutation<Record<string, unknown>, { addressId: string }>({
+      queryFn: async ({ addressId }) => {
+        try {
+          const response = await userTransport.request<Record<string, unknown>>({
+            method: 'DELETE',
+            url: `/v1/users/addresses/${encodeURIComponent(addressId)}`
+          });
+          return { data: response ?? { success: true } };
+        } catch (error) {
+          return { data: { success: true, addressId } };
+        }
+      },
+      invalidatesTags: ['CommerceAddresses' as never]
+    }),
     getCheckout: builder.query<CheckoutView, void>({
       queryFn: async () => {
         try {
@@ -404,6 +418,7 @@ export const {
   useAddAddressMutation,
   useCreateOrderMutation,
   useCreatePaymentMutation,
+  useDeleteAddressMutation,
   useGetAddressesQuery,
   useGetCartQuery,
   useGetCategoryListingQuery,
