@@ -1,8 +1,9 @@
 import { Suspense, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input } from '@freshmart/design-system';
-import { CheckCircle2, Home, MapPin, Navigation, Phone, Plus, Trash2, Briefcase, Pencil, Check } from 'lucide-react';
+import { CheckCircle2, Home, MapPin, Navigation, Phone, Plus, Trash2, Briefcase, Pencil, Check, ArrowRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAddAddressMutation, useGetAddressesQuery, type AddressInput } from '../api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
@@ -60,6 +61,7 @@ const SAMPLE_ADDRESSES = [
 ];
 
 const AddressManagementContent = () => {
+  const navigate = useNavigate();
   const { data: apiAddresses = [] } = useGetAddressesQuery();
   const addresses = apiAddresses.length > 0 ? apiAddresses : SAMPLE_ADDRESSES;
 
@@ -74,6 +76,7 @@ const AddressManagementContent = () => {
   const save = async (values: FormValues) => {
     await addAddress(values as AddressInput).unwrap().catch(() => undefined);
     reset({ city: 'San Francisco', isDefault: false, label: type, state: 'California' });
+    navigate('/checkout');
   };
 
   return (
@@ -159,6 +162,18 @@ const AddressManagementContent = () => {
                 </div>
               );
             })}
+          </div>
+
+          {/* Deliver to Selected Address CTA */}
+          <div className="flex justify-end pt-2">
+            <button
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#006b2c] px-8 text-xs font-extrabold text-white shadow-md hover:bg-[#005422] transition-all active:scale-98 cursor-pointer"
+              onClick={() => navigate('/checkout')}
+              type="button"
+            >
+              <span>Deliver to Selected Address</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
 

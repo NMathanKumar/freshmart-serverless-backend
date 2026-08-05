@@ -216,7 +216,7 @@ export function CartContent() {
                 <div className="space-y-3 pt-1">
                   <Link
                     className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#006b2c] text-sm font-extrabold text-white shadow-md hover:bg-[#005422] transition-all active:scale-98"
-                    to="/checkout"
+                    to="/addresses"
                   >
                     <span>Proceed to Checkout</span>
                     <ArrowRight className="h-4 w-4" />
