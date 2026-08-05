@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Share2, ShoppingBag, ShoppingCart, Trash2, X } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
 import { formatCurrency } from '@freshmart/shared';
+import { useUpdateCartItemMutation } from '../api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
 
@@ -75,14 +76,35 @@ const RECOMMENDED = [
 
 export function WishlistContent() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>(INITIAL_WISHLIST);
+  const [updateCart] = useUpdateCartItemMutation();
 
-  const removeItem = (id: string) => {
+  const handleAddToCart = async (item: WishlistItem) => {
+    const { addOrUpdateStoredCartItem } = await import('../model/commerce-content.js');
+    addOrUpdateStoredCartItem({
+      productId: item.id,
+      name: item.name,
+      price: item.price,
+      brand: item.tag,
+      imageUrl: item.imageUrl
+    });
+
+    await updateCart({
+      productId: item.id,
+      quantity: 1
+    }).unwrap().catch(() => undefined);
+
+    setWishlist((prev) => prev.filter((i) => i.id !== item.id));
+  };
+
+  const handleRemove = (id: string) => {
     setWishlist((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const removeItem = handleRemove;
+
   return (
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
-      <HomeHeader cartCount={3} />
+      <HomeHeader />
 
       <main className="mx-auto max-w-7xl px-6 md:px-8 pb-16 pt-24 space-y-12">
         {/* Breadcrumbs & Header */}

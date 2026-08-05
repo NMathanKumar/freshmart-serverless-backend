@@ -275,6 +275,69 @@ const text = (record: Record<string, unknown>, keys: string[], fallback = '') =>
 const numberValue = (record: Record<string, unknown>, keys: string[], fallback = 0) =>
   keys.map((key) => record[key]).find((value): value is number => typeof value === 'number' && Number.isFinite(value)) ?? fallback;
 
+const CART_STORAGE_KEY = 'freshmart_active_cart_v1';
+
+export const getStoredCart = (): CartLine[] => {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed as CartLine[];
+      }
+    }
+  } catch (_) {
+    // Fallback if localStorage is unavailable
+  }
+  return cartLines;
+};
+
+export const saveStoredCart = (items: CartLine[]): void => {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch (_) {
+    // Storage quota fallback
+  }
+};
+
+export const addOrUpdateStoredCartItem = (newItem: Record<string, unknown>): CartLine[] => {
+  const current = getStoredCart();
+  const productId = String(newItem.productId || newItem.id || `prod-${Date.now()}`);
+  const existingIdx = current.findIndex((item) => item.productId === productId);
+
+  let updated: CartLine[];
+  if (existingIdx >= 0) {
+    const target = current[existingIdx];
+    const newQty = typeof newItem.quantity === 'number' ? newItem.quantity : (target.quantityInCart + 1);
+    updated = current.map((item, idx) =>
+      idx === existingIdx ? { ...item, quantityInCart: newQty } : item
+    );
+  } else {
+    const fullItem: CartLine = {
+      productId,
+      name: String(newItem.name || newItem.productName || 'FreshMart Organic Product'),
+      brand: String(newItem.brand || 'FreshMart'),
+      quantity: String(newItem.quantity || '1 Unit'),
+      price: Number(newItem.price ?? 4.99),
+      originalPrice: typeof newItem.originalPrice === 'number' ? newItem.originalPrice : undefined,
+      imageUrl: typeof newItem.imageUrl === 'string' ? newItem.imageUrl : 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png',
+      quantityInCart: typeof newItem.quantity === 'number' ? newItem.quantity : 1,
+      stockLabel: 'In stock - Delivery in 15 mins'
+    };
+    updated = [...current, fullItem];
+  }
+
+  saveStoredCart(updated);
+  return updated;
+};
+
+export const removeStoredCartItem = (productId: string): CartLine[] => {
+  const current = getStoredCart();
+  const updated = current.filter((item) => item.productId !== productId);
+  saveStoredCart(updated);
+  return updated;
+};
+
 export const mergeProducts = (remote: unknown, fallback: CommerceProduct[]): CommerceProduct[] => {
   const items = Array.isArray(remote)
     ? remote
@@ -304,12 +367,15 @@ export const mergeProducts = (remote: unknown, fallback: CommerceProduct[]): Com
 export const mergeCart = (remote: unknown): CartLine[] => {
   const data = isRecord(remote) && isRecord(remote.cart) ? remote.cart : remote;
   const items = isRecord(data) && Array.isArray(data.items) ? data.items : [];
-  if (items.length === 0) return cartLines;
+  if (items.length === 0) return getStoredCart();
 
-  return mergeProducts(items, cartLines).map((product, index) => ({
+  const merged = mergeProducts(items, getStoredCart()).map((product, index) => ({
     ...product,
-    quantityInCart: isRecord(items[index]) ? numberValue(items[index], ['quantity', 'quantityInCart'], cartLines[index]?.quantityInCart ?? 1) : cartLines[index]?.quantityInCart ?? 1
+    quantityInCart: isRecord(items[index]) ? numberValue(items[index], ['quantity', 'quantityInCart'], 1) : 1
   }));
+
+  saveStoredCart(merged);
+  return merged;
 };
 
 export const mergeAddresses = (remote: unknown): AddressView[] => {

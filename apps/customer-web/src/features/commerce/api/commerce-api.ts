@@ -222,34 +222,54 @@ export const commerceApi = authApi.injectEndpoints({
     getCart: builder.query<CartLine[], void>({
       queryFn: async () => {
         try {
-          return { data: mergeCart(await sdk.cart.getCart()) };
-        } catch (error) {
-          return { error: toApiError(error) };
+          const remoteCart = await sdk.cart.getCart();
+          return { data: mergeCart(remoteCart) };
+        } catch (_) {
+          const { getStoredCart } = await import('../model/commerce-content.js');
+          return { data: getStoredCart() };
         }
       },
-      providesTags: ['CommerceCart' as never]
+      providesTags: ['CommerceCart' as never, 'Cart' as never]
     }),
     updateCartItem: builder.mutation<Record<string, unknown>, { productId: string; quantity: number }>({
       queryFn: async ({ productId, quantity }) => {
-        try {
-          return quantity > 1
-            ? { data: await sdk.cart.updateItem(productId, { quantity }) }
-            : { data: await sdk.cart.saveCart({ ...(await loadProductSnapshot(productId)), quantity }) };
-        } catch (error) {
-          return { error: toApiError(error) };
+        const { addOrUpdateStoredCartItem, removeStoredCartItem } = await import('../model/commerce-content.js');
+        if (quantity <= 0) {
+          removeStoredCartItem(productId);
+        } else {
+          addOrUpdateStoredCartItem({ productId, quantity });
         }
+
+        try {
+          if (quantity > 1) {
+            await sdk.cart.updateItem(productId, { quantity });
+          } else if (quantity === 1) {
+            await sdk.cart.saveCart({ ...(await loadProductSnapshot(productId)), quantity });
+          } else {
+            await sdk.cart.removeItem(productId);
+          }
+        } catch (_) {
+          // Ignore remote unauthenticated errors; local cart is updated
+        }
+
+        return { data: { productId, quantity, success: true } };
       },
-      invalidatesTags: ['CommerceCart' as never]
+      invalidatesTags: ['CommerceCart' as never, 'Cart' as never, 'CustomerHome' as never]
     }),
     removeCartItem: builder.mutation<Record<string, unknown>, { productId: string }>({
       queryFn: async ({ productId }) => {
+        const { removeStoredCartItem } = await import('../model/commerce-content.js');
+        removeStoredCartItem(productId);
+
         try {
-          return { data: await sdk.cart.removeItem(productId) };
-        } catch (error) {
-          return { error: toApiError(error) };
+          await sdk.cart.removeItem(productId);
+        } catch (_) {
+          // Ignore remote errors
         }
+
+        return { data: { productId, success: true } };
       },
-      invalidatesTags: ['CommerceCart' as never]
+      invalidatesTags: ['CommerceCart' as never, 'Cart' as never, 'CustomerHome' as never]
     }),
     getAddresses: builder.query<AddressView[], void>({
       queryFn: async () => {

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ChevronDown, Heart, LayoutGrid, List, Minus, Plus, SlidersHorizontal, Star } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
 import { formatCurrency } from '@freshmart/shared';
-import { useSearchProductsQuery } from '../api/commerce-api.js';
+import { useSearchProductsQuery, useUpdateCartItemMutation } from '../api/commerce-api.js';
 import { categoryProducts, searchProducts as defaultSearchProducts, wishlistProducts, cartLines } from '../model/commerce-content.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
@@ -119,19 +119,19 @@ export function SearchResultsContent() {
   const rawQuery = searchParams.get('q') || 'Organic Avocados';
   const query = rawQuery.trim();
 
-  // Connect to live SDK search query
+  // Connect to live SDK search query & cart mutations
   const { data: apiSearchResults } = useSearchProductsQuery({ query });
+  const [updateCart] = useUpdateCartItemMutation();
 
   const [selectedChip, setSelectedChip] = useState('All Results');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
-  const [cartQuantities, setCartQuantities] = useState<Record<string, number>>({ 'srch-3': 1 });
+  const [cartQuantities, setCartQuantities] = useState<Record<string, number>>({});
 
   // Filter items dynamically based on search query
   const searchResultsList = useMemo(() => {
     const searchTerm = query.toLowerCase();
 
-    // 1. If API returns results, merge them
     if (apiSearchResults && apiSearchResults.length > 0) {
       return apiSearchResults.map((p, idx) => ({
         id: p.productId || `api-prod-${idx}`,
@@ -147,7 +147,6 @@ export function SearchResultsContent() {
       }));
     }
 
-    // 2. Dynamic filter across master product pool
     const matched = MASTER_PRODUCT_POOL.filter(
       (item) =>
         item.name.toLowerCase().includes(searchTerm) ||
@@ -159,7 +158,6 @@ export function SearchResultsContent() {
     return matched.length > 0 ? matched : MASTER_PRODUCT_POOL;
   }, [query, apiSearchResults]);
 
-  // Dynamic filter chips derived from results
   const chips = useMemo(() => {
     const baseChips = ['All Results'];
     searchResultsList.forEach((item) => {
@@ -171,7 +169,6 @@ export function SearchResultsContent() {
     return baseChips.slice(0, 6);
   }, [searchResultsList]);
 
-  // Apply chip filter
   const filteredProducts = useMemo(() => {
     if (selectedChip === 'All Results') return searchResultsList;
     return searchResultsList.filter((item) =>
@@ -183,17 +180,31 @@ export function SearchResultsContent() {
     setLikedIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const updateQuantity = (id: string, delta: number) => {
-    setCartQuantities((prev) => {
-      const current = prev[id] || 0;
-      const next = Math.max(0, current + delta);
-      return { ...prev, [id]: next };
-    });
+  const updateQuantity = async (id: string, delta: number, item?: SearchProductItem) => {
+    const current = cartQuantities[id] || 0;
+    const next = Math.max(0, current + delta);
+    setCartQuantities((prev) => ({ ...prev, [id]: next }));
+
+    if (item && delta > 0) {
+      const { addOrUpdateStoredCartItem } = await import('../model/commerce-content.js');
+      addOrUpdateStoredCartItem({
+        productId: id,
+        name: item.name,
+        price: item.price,
+        brand: item.tag,
+        imageUrl: item.imageUrl
+      });
+    }
+
+    await updateCart({
+      productId: id,
+      quantity: next
+    }).unwrap().catch(() => undefined);
   };
 
   return (
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
-      <HomeHeader cartCount={3} />
+      <HomeHeader />
 
       <main className="mx-auto max-w-7xl px-6 md:px-8 pb-16 pt-24 space-y-6">
         {/* Title Header & Toolbar */}
@@ -332,18 +343,18 @@ export function SearchResultsContent() {
                   {/* Add or Quantity Counter Button */}
                   {quantityInCart > 0 ? (
                     <div className="flex h-10 w-full items-center justify-between rounded-xl bg-[#e3f5ea] px-3 font-extrabold text-[#006c4a] shadow-xs">
-                      <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, -1)} type="button">
+                      <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, -1, item)} type="button">
                         <Minus className="h-3.5 w-3.5 stroke-[3]" />
                       </button>
                       <span className="text-xs font-black">{quantityInCart}</span>
-                      <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, 1)} type="button">
+                      <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, 1, item)} type="button">
                         <Plus className="h-3.5 w-3.5 stroke-[3]" />
                       </button>
                     </div>
                   ) : (
                     <Button
                       className="w-full h-10 rounded-xl bg-[#006b2c] text-xs font-extrabold text-white hover:bg-[#005422] transition-all flex items-center justify-center gap-1 active:scale-95 shadow-xs"
-                      onClick={() => updateQuantity(item.id, 1)}
+                      onClick={() => updateQuantity(item.id, 1, item)}
                       type="button"
                     >
                       <Plus className="h-4 w-4 stroke-[3]" />

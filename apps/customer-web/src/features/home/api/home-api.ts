@@ -193,8 +193,18 @@ export const homeApi = authApi.injectEndpoints({
           }
         }
 
+        // Add to local persistent cart storage
+        const { addOrUpdateStoredCartItem } = await import('../../commerce/model/commerce-content.js');
+        const updatedLocalCart = addOrUpdateStoredCartItem({
+          productId,
+          productName,
+          name: productName,
+          price,
+          imageUrl
+        });
+
         try {
-          const result = await sdk.cart.saveCart({
+          await sdk.cart.saveCart({
             productId,
             quantity: 1,
             price,
@@ -202,12 +212,13 @@ export const homeApi = authApi.injectEndpoints({
             imageUrl,
             available: true
           });
-          return { data: result ?? { productId, quantity: 1, success: true } };
         } catch (_) {
-          return { data: { productId, quantity: 1, success: true } };
+          // Ignore remote unauthenticated errors; local cart is saved
         }
+
+        return { data: { productId, quantity: 1, items: updatedLocalCart, success: true } };
       },
-      invalidatesTags: ['CustomerHome', 'Cart']
+      invalidatesTags: ['CustomerHome' as never, 'Cart' as never, 'CommerceCart' as never]
     })
   }),
   overrideExisting: true
