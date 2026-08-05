@@ -31,6 +31,16 @@ export class UserService {
     return this.repository.saveProfile(profile);
   }
 
+  async deleteAddress(userId: string, addressId: string): Promise<UserProfile> {
+    const profile = await this.repository.getProfile(userId);
+    if (!profile) {
+      throw new DomainError('User profile not found.', 404);
+    }
+    profile.addresses = profile.addresses.filter((a) => a.addressId !== addressId && (a as { id?: string }).id !== addressId);
+    profile.updatedAt = new Date().toISOString();
+    return this.repository.saveProfile(profile);
+  }
+
   async getProfile(userId: string): Promise<UserProfile> {
     const profile = await this.repository.getProfile(userId);
     if (!profile) {

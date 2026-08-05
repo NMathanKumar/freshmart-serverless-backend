@@ -30,6 +30,12 @@ export const routes: RouteDefinition[] = [
     path: '/api/v1/users/addresses',
     authorize: true,
     handler: ({ auth, body }) => controller.addAddress(auth.subject ?? '', body)
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/users/addresses/:addressId',
+    authorize: true,
+    handler: ({ auth, params }) => controller.deleteAddress(auth.subject ?? '', params?.addressId ?? '')
   }
 ];
 
