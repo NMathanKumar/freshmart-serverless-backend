@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronDown, Heart, LayoutGrid, List, Minus, Plus, SlidersHorizontal, Star } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
 import { formatCurrency } from '@freshmart/shared';
+import { useSearchProductsQuery } from '../api/commerce-api.js';
+import { categoryProducts, searchProducts as defaultSearchProducts, wishlistProducts, cartLines } from '../model/commerce-content.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
 
-interface SearchProduct {
+interface SearchProductItem {
   id: string;
   badge?: string;
   badgeTone?: 'discount' | 'new';
@@ -20,7 +23,8 @@ interface SearchProduct {
   imageUrl: string;
 }
 
-const SEARCH_RESULTS: SearchProduct[] = [
+// Full master pool of products across the system for real-time dynamic searching
+const MASTER_PRODUCT_POOL: SearchProductItem[] = [
   {
     id: 'srch-1',
     badge: '-15% OFF',
@@ -52,7 +56,6 @@ const SEARCH_RESULTS: SearchProduct[] = [
     reviews: '420 reviews',
     deliveryTime: '12 min',
     price: 5.49,
-    quantityInCart: 1,
     imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR'
   },
   {
@@ -64,32 +67,128 @@ const SEARCH_RESULTS: SearchProduct[] = [
     deliveryTime: '15 min',
     price: 6.99,
     imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAocIVc-EoYCbFmS10USZQHrW2cBY3jC44RL3aegAleg9zH39V0IHSWwM6MIKPQO6ifSz4gqZNGdwbezCWTwpjY26PgUPmNirsv572TsUAyQLu6A8XrYc_0UG8v0nwTw-VYaT0SMJPhU_zb_d9e0nSrxGxXQbl6Lx_YXZsdI0Y_-NYBK5I62D_ProCKkx-hG1xm3k6nMB89NGrtr-8Z1cQoVuXM7LxVdoQLwhsZlw2KSjnxaqws6Q_tmOCTfNEAnRlce3LxYTMFdXYO'
+  },
+  {
+    id: 'srch-5',
+    badge: 'FRESH',
+    tag: 'DAIRY FARM',
+    name: 'Whole Grass-Fed Milk',
+    rating: 4.9,
+    reviews: '1.8k reviews',
+    deliveryTime: '10 min',
+    price: 3.49,
+    imageUrl: cartLines[1].imageUrl
+  },
+  {
+    id: 'srch-6',
+    badge: 'ORGANIC',
+    tag: 'LOCAL FARMS',
+    name: 'Organic Vine Tomatoes',
+    rating: 4.8,
+    reviews: '920 reviews',
+    deliveryTime: '15 min',
+    price: 4.50,
+    imageUrl: categoryProducts[1].imageUrl
+  },
+  {
+    id: 'srch-7',
+    badge: 'BAKERY',
+    tag: 'FRESH BAKED',
+    name: 'Artisan Sourdough Loaf',
+    rating: 4.7,
+    reviews: '640 reviews',
+    deliveryTime: '20 min',
+    price: 5.50,
+    imageUrl: wishlistProducts[1].imageUrl
+  },
+  {
+    id: 'srch-8',
+    badge: 'BESTSELLER',
+    tag: 'BERRIES',
+    name: 'Organic Blueberries',
+    rating: 4.9,
+    reviews: '2.1k reviews',
+    deliveryTime: '12 min',
+    price: 4.95,
+    imageUrl: categoryProducts[2].imageUrl
   }
 ];
 
-const CHIPS = ['All Results', 'Hass Avocados', 'Avocado Oil', 'Organic Dips', 'Ready to Eat', 'Bulk Packs'];
-
 export function SearchResultsContent() {
-  const [products, setProducts] = useState<SearchProduct[]>(SEARCH_RESULTS);
+  const [searchParams] = useSearchParams();
+  const rawQuery = searchParams.get('q') || 'Organic Avocados';
+  const query = rawQuery.trim();
+
+  // Connect to live SDK search query
+  const { data: apiSearchResults } = useSearchProductsQuery({ query });
+
   const [selectedChip, setSelectedChip] = useState('All Results');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
+  const [cartQuantities, setCartQuantities] = useState<Record<string, number>>({ 'srch-3': 1 });
+
+  // Filter items dynamically based on search query
+  const searchResultsList = useMemo(() => {
+    const searchTerm = query.toLowerCase();
+
+    // 1. If API returns results, merge them
+    if (apiSearchResults && apiSearchResults.length > 0) {
+      return apiSearchResults.map((p, idx) => ({
+        id: p.productId || `api-prod-${idx}`,
+        badge: p.badge,
+        tag: p.brand || 'FRESHMART',
+        name: p.name,
+        rating: p.rating || 4.8,
+        reviews: p.reviewCount ? `${p.reviewCount} reviews` : '150 reviews',
+        deliveryTime: p.deliveryTime || '15 min',
+        price: p.price,
+        originalPrice: p.originalPrice,
+        imageUrl: p.imageUrl
+      }));
+    }
+
+    // 2. Dynamic filter across master product pool
+    const matched = MASTER_PRODUCT_POOL.filter(
+      (item) =>
+        item.name.toLowerCase().includes(searchTerm) ||
+        item.tag.toLowerCase().includes(searchTerm) ||
+        searchTerm.includes('avocado') ||
+        searchTerm === ''
+    );
+
+    return matched.length > 0 ? matched : MASTER_PRODUCT_POOL;
+  }, [query, apiSearchResults]);
+
+  // Dynamic filter chips derived from results
+  const chips = useMemo(() => {
+    const baseChips = ['All Results'];
+    searchResultsList.forEach((item) => {
+      const words = item.name.split(' ');
+      if (words.length > 1 && !baseChips.includes(words[0])) {
+        baseChips.push(words[0]);
+      }
+    });
+    return baseChips.slice(0, 6);
+  }, [searchResultsList]);
+
+  // Apply chip filter
+  const filteredProducts = useMemo(() => {
+    if (selectedChip === 'All Results') return searchResultsList;
+    return searchResultsList.filter((item) =>
+      item.name.toLowerCase().includes(selectedChip.toLowerCase())
+    );
+  }, [searchResultsList, selectedChip]);
 
   const toggleWishlist = (id: string) => {
     setLikedIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          const currentQty = p.quantityInCart ?? 0;
-          const nextQty = Math.max(0, currentQty + delta);
-          return { ...p, quantityInCart: nextQty === 0 ? undefined : nextQty };
-        }
-        return p;
-      })
-    );
+    setCartQuantities((prev) => {
+      const current = prev[id] || 0;
+      const next = Math.max(0, current + delta);
+      return { ...prev, [id]: next };
+    });
   };
 
   return (
@@ -100,8 +199,12 @@ export function SearchResultsContent() {
         {/* Title Header & Toolbar */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#171d16]">Results for "Organic Avocados"</h1>
-            <p className="mt-1 text-sm font-semibold text-[#8b9888]">Showing 24 premium organic items</p>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#171d16]">
+              Results for "{query}"
+            </h1>
+            <p className="mt-1 text-sm font-semibold text-[#8b9888]">
+              Showing {filteredProducts.length} premium organic items
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -148,7 +251,7 @@ export function SearchResultsContent() {
 
         {/* Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {CHIPS.map((chip) => {
+          {chips.map((chip) => {
             const isSelected = selectedChip === chip;
             return (
               <button
@@ -167,86 +270,90 @@ export function SearchResultsContent() {
           })}
         </div>
 
-        {/* 4-Card Search Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((item) => (
-            <div
-              key={item.id}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-[#e2ebdE] bg-white p-4 shadow-xs transition-all duration-300 hover:shadow-xl hover:border-[#bdcaba]"
-            >
-              {/* Wishlist Heart Button */}
-              <button
-                aria-label="Wishlist"
-                className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#8b9888] shadow-xs backdrop-blur-md hover:scale-110 transition-all"
-                onClick={() => toggleWishlist(item.id)}
-                type="button"
+        {/* Dynamic Product Grid */}
+        <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`}>
+          {filteredProducts.map((item) => {
+            const quantityInCart = cartQuantities[item.id] || 0;
+
+            return (
+              <div
+                key={item.id}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-[#e2ebdE] bg-white p-4 shadow-xs transition-all duration-300 hover:shadow-xl hover:border-[#bdcaba]"
               >
-                <Heart className={`h-4 w-4 ${likedIds[item.id] ? 'fill-rose-500 text-rose-500' : 'text-[#8b9888]'}`} />
-              </button>
+                {/* Wishlist Heart Button */}
+                <button
+                  aria-label="Wishlist"
+                  className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#8b9888] shadow-xs backdrop-blur-md hover:scale-110 transition-all"
+                  onClick={() => toggleWishlist(item.id)}
+                  type="button"
+                >
+                  <Heart className={`h-4 w-4 ${likedIds[item.id] ? 'fill-rose-500 text-rose-500' : 'text-[#8b9888]'}`} />
+                </button>
 
-              {/* Discount Badge */}
-              {item.badge && (
-                <span className="absolute left-3 top-3 z-10 rounded-full bg-[#ffd9de] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[#a72d51]">
-                  {item.badge}
-                </span>
-              )}
+                {/* Discount Badge */}
+                {item.badge && (
+                  <span className="absolute left-3 top-3 z-10 rounded-full bg-[#ffd9de] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[#a72d51]">
+                    {item.badge}
+                  </span>
+                )}
 
-              {/* Product Image */}
-              <div className="h-44 w-full overflow-hidden rounded-2xl bg-[#f4fcf0]/80 p-3 mb-3">
-                <img
-                  alt={item.name}
-                  className="h-full w-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-108"
-                  src={item.imageUrl}
-                  onError={(e) => { e.currentTarget.src = 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png'; }}
-                />
-              </div>
-
-              {/* Product Info */}
-              <div className="space-y-3">
-                <div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-[#006c4a]">{item.tag}</span>
-                  <h3 className="text-sm font-extrabold text-[#171d16] truncate group-hover:text-[#006b2c] transition-colors">{item.name}</h3>
-
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#8b9888] mt-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    <span className="text-[#171d16]">{item.rating}</span>
-                    <span>({item.reviews})</span>
-                    <span>•</span>
-                    <span>{item.deliveryTime}</span>
-                  </div>
-
-                  <div className="flex items-baseline gap-2 mt-2">
-                    <span className="text-lg font-black text-[#171d16]">{formatCurrency(item.price)}</span>
-                    {item.originalPrice && (
-                      <span className="text-xs font-bold text-[#8b9888] line-through">{formatCurrency(item.originalPrice)}</span>
-                    )}
-                  </div>
+                {/* Product Image */}
+                <div className="h-44 w-full overflow-hidden rounded-2xl bg-[#f4fcf0]/80 p-3 mb-3">
+                  <img
+                    alt={item.name}
+                    className="h-full w-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-108"
+                    src={item.imageUrl}
+                    onError={(e) => { e.currentTarget.src = 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png'; }}
+                  />
                 </div>
 
-                {/* Add or Quantity Counter Button */}
-                {item.quantityInCart ? (
-                  <div className="flex h-10 w-full items-center justify-between rounded-xl bg-[#e3f5ea] px-3 font-extrabold text-[#006c4a] shadow-xs">
-                    <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, -1)} type="button">
-                      <Minus className="h-3.5 w-3.5 stroke-[3]" />
-                    </button>
-                    <span className="text-xs font-black">{item.quantityInCart}</span>
-                    <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, 1)} type="button">
-                      <Plus className="h-3.5 w-3.5 stroke-[3]" />
-                    </button>
+                {/* Product Info */}
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#006c4a]">{item.tag}</span>
+                    <h3 className="text-sm font-extrabold text-[#171d16] truncate group-hover:text-[#006b2c] transition-colors">{item.name}</h3>
+
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#8b9888] mt-1">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <span className="text-[#171d16]">{item.rating}</span>
+                      <span>({item.reviews})</span>
+                      <span>•</span>
+                      <span>{item.deliveryTime}</span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-lg font-black text-[#171d16]">{formatCurrency(item.price)}</span>
+                      {item.originalPrice && (
+                        <span className="text-xs font-bold text-[#8b9888] line-through">{formatCurrency(item.originalPrice)}</span>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <Button
-                    className="w-full h-10 rounded-xl bg-[#006b2c] text-xs font-extrabold text-white hover:bg-[#005422] transition-all flex items-center justify-center gap-1 active:scale-95 shadow-xs"
-                    onClick={() => updateQuantity(item.id, 1)}
-                    type="button"
-                  >
-                    <Plus className="h-4 w-4 stroke-[3]" />
-                    <span>Add</span>
-                  </Button>
-                )}
+
+                  {/* Add or Quantity Counter Button */}
+                  {quantityInCart > 0 ? (
+                    <div className="flex h-10 w-full items-center justify-between rounded-xl bg-[#e3f5ea] px-3 font-extrabold text-[#006c4a] shadow-xs">
+                      <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, -1)} type="button">
+                        <Minus className="h-3.5 w-3.5 stroke-[3]" />
+                      </button>
+                      <span className="text-xs font-black">{quantityInCart}</span>
+                      <button className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#006c4a] hover:bg-[#c5edd8]" onClick={() => updateQuantity(item.id, 1)} type="button">
+                        <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button
+                      className="w-full h-10 rounded-xl bg-[#006b2c] text-xs font-extrabold text-white hover:bg-[#005422] transition-all flex items-center justify-center gap-1 active:scale-95 shadow-xs"
+                      onClick={() => updateQuantity(item.id, 1)}
+                      type="button"
+                    >
+                      <Plus className="h-4 w-4 stroke-[3]" />
+                      <span>Add</span>
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 
