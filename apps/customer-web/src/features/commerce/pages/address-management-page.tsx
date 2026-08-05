@@ -26,26 +26,12 @@ type FormValues = z.infer<typeof schema>;
 
 const AddressManagementContent = () => {
   const navigate = useNavigate();
-  const { data: apiAddresses = [] } = useGetAddressesQuery();
+  const { data: addresses = [], isLoading } = useGetAddressesQuery();
   
-  const [localAddresses, setLocalAddresses] = useState<Array<{
-    addressId: string;
-    label: 'Home' | 'Work' | 'Other';
-    name: string;
-    lines: string[];
-    city: string;
-    state: string;
-    postalCode: string;
-    phone: string;
-    isDefault: boolean;
-  }>>([]);
-
   const [type, setType] = useState<FormValues['label']>('Home');
   const [selectedId, setSelectedId] = useState<string>('');
   const [addAddress, addState] = useAddAddressMutation();
   const [deleteAddress] = useDeleteAddressMutation();
-
-  const addresses = [...apiAddresses, ...localAddresses.filter((l) => !apiAddresses.some((a) => a.addressId === l.addressId))];
 
   const { formState: { errors, isSubmitSuccessful }, handleSubmit, register, reset, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -57,45 +43,20 @@ const AddressManagementContent = () => {
   const save = async (values: FormValues) => {
     try {
       const res = await addAddress(values as AddressInput).unwrap();
-      const newId = String((res as Record<string, unknown>).addressId || (res as Record<string, unknown>).id || `addr-${Date.now()}`);
-      const newEntry = {
-        addressId: newId,
-        label: values.label,
-        name: values.name,
-        lines: [values.line1, values.line2, values.landmark].filter(Boolean) as string[],
-        city: values.city,
-        state: values.state,
-        postalCode: values.postalCode,
-        phone: values.phone,
-        isDefault: values.isDefault
-      };
-      setLocalAddresses((prev) => [newEntry, ...prev]);
-      if (!selectedId) setSelectedId(newId);
+      const newId = String((res as Record<string, unknown>).addressId || (res as Record<string, unknown>).id || '');
+      if (newId) setSelectedId(newId);
     } catch (_) {
-      const fallbackEntry = {
-        addressId: `addr-${Date.now()}`,
-        label: values.label,
-        name: values.name,
-        lines: [values.line1, values.line2, values.landmark].filter(Boolean) as string[],
-        city: values.city,
-        state: values.state,
-        postalCode: values.postalCode,
-        phone: values.phone,
-        isDefault: values.isDefault
-      };
-      setLocalAddresses((prev) => [fallbackEntry, ...prev]);
-      if (!selectedId) setSelectedId(fallbackEntry.addressId);
+      // Error handling by RTK Query addState
     }
     reset({ city: 'San Francisco', isDefault: false, label: type, state: 'California' });
   };
 
   const handleDelete = async (addressId: string) => {
     try {
-      await deleteAddress({ addressId }).unwrap().catch(() => undefined);
+      await deleteAddress({ addressId }).unwrap();
     } catch (_) {
-      // Fallthrough
+      // Error handling by RTK Query
     }
-    setLocalAddresses((prev) => prev.filter((a) => a.addressId !== addressId));
     if (selectedId === addressId) setSelectedId('');
   };
 
