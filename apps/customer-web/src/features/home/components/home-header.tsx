@@ -50,7 +50,7 @@ export const HomeHeader = ({ cartCount: overrideCartCount, variant }: { cartCoun
           </div>
 
           {/* Clean Figma Navigation Links */}
-          <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-8 text-sm font-semibold text-[#3e4a3d]">
+          <nav aria-label="Main Navigation" className="flex items-center gap-5 sm:gap-8 text-xs sm:text-sm font-semibold text-[#3e4a3d]">
             <Link className="hover:text-[#006b2c] transition-colors" to="/">Shop</Link>
             <Link className="hover:text-[#006b2c] transition-colors" to="/search">Search</Link>
             <Link className="hover:text-[#006b2c] transition-colors" to="/orders">Orders</Link>

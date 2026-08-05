@@ -62,10 +62,10 @@ export function CartContent() {
             </Link>
           </div>
         ) : (
-          <div className="flex flex-row gap-6 lg:gap-8 items-start w-full">
+          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] lg:grid-cols-[1.6fr_1fr] gap-6 lg:gap-8 items-start w-full">
 
             {/* Left Column: Cart Products (Guaranteed Left Column) */}
-            <div className="flex-1 space-y-4 min-w-0">
+            <div className="space-y-4 min-w-0 w-full">
               {cartItems.map((item) => (
                 <div
                   key={item.productId}
@@ -150,7 +150,7 @@ export function CartContent() {
             </div>
 
             {/* Right Column: Price Details Card & Checkout (Guaranteed Right Column) */}
-            <div className="w-[320px] sm:w-[350px] lg:w-[380px] shrink-0 sticky top-24 space-y-4">
+            <div className="space-y-4 min-w-0 w-full sticky top-24">
 
               <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-5 sm:p-6 shadow-xs space-y-6">
                 <h2 className="text-lg font-black tracking-tight text-[#171d16]">Price Details</h2>
