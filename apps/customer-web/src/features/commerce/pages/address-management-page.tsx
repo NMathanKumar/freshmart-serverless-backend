@@ -24,55 +24,28 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const SAMPLE_ADDRESSES = [
-  {
-    addressId: 'addr-1',
-    label: 'Home',
-    name: 'Jane Doe',
-    lines: ['Apt 4B, Emerald Heights', '7th Cross, Green Park Extension', 'Near Central Metro Station'],
-    city: 'San Francisco',
-    state: 'CA',
-    postalCode: '94105',
-    phone: '+1 555-0123',
-    isDefault: true
-  },
-  {
-    addressId: 'addr-2',
-    label: 'Work',
-    name: 'Jane Doe',
-    lines: ['Level 12, Tech Tower Alpha', '45 Silicon Way, North Tech District', 'Main Entrance Lobby'],
-    city: 'San Francisco',
-    state: 'CA',
-    postalCode: '94102',
-    phone: '+1 555-9876',
-    isDefault: false
-  },
-  {
-    addressId: 'addr-3',
-    label: 'Other',
-    name: "Robert Doe (Parent's Home)",
-    lines: ['House 12-A, Rose Villas', 'Maple Avenue, South Bay Area', 'Near Sunset High School'],
-    city: 'Oakland',
-    state: 'CA',
-    postalCode: '94601',
-    phone: '+1 555-4422',
-    isDefault: false
-  }
-];
-
 const AddressManagementContent = () => {
   const navigate = useNavigate();
   const { data: apiAddresses = [] } = useGetAddressesQuery();
   
-  const [localAddresses, setLocalAddresses] = useState<typeof SAMPLE_ADDRESSES>([]);
-  const [type, setType] = useState<FormValues['label']>('Home');
-  const [selectedId, setSelectedId] = useState('addr-1');
-  const [addAddress, addState] = useAddAddressMutation();
-  const [deleteAddress, deleteState] = useDeleteAddressMutation();
+  const [localAddresses, setLocalAddresses] = useState<Array<{
+    addressId: string;
+    label: 'Home' | 'Work' | 'Other';
+    name: string;
+    lines: string[];
+    city: string;
+    state: string;
+    postalCode: string;
+    phone: string;
+    isDefault: boolean;
+  }>>([]);
 
-  const addresses = apiAddresses.length > 0
-    ? [...apiAddresses, ...localAddresses.filter((l) => !apiAddresses.some((a) => a.addressId === l.addressId))]
-    : (localAddresses.length > 0 ? localAddresses : SAMPLE_ADDRESSES);
+  const [type, setType] = useState<FormValues['label']>('Home');
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [addAddress, addState] = useAddAddressMutation();
+  const [deleteAddress] = useDeleteAddressMutation();
+
+  const addresses = [...apiAddresses, ...localAddresses.filter((l) => !apiAddresses.some((a) => a.addressId === l.addressId))];
 
   const { formState: { errors, isSubmitSuccessful }, handleSubmit, register, reset, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -97,6 +70,7 @@ const AddressManagementContent = () => {
         isDefault: values.isDefault
       };
       setLocalAddresses((prev) => [newEntry, ...prev]);
+      if (!selectedId) setSelectedId(newId);
     } catch (_) {
       const fallbackEntry = {
         addressId: `addr-${Date.now()}`,
@@ -110,6 +84,7 @@ const AddressManagementContent = () => {
         isDefault: values.isDefault
       };
       setLocalAddresses((prev) => [fallbackEntry, ...prev]);
+      if (!selectedId) setSelectedId(fallbackEntry.addressId);
     }
     reset({ city: 'San Francisco', isDefault: false, label: type, state: 'California' });
   };
@@ -121,6 +96,7 @@ const AddressManagementContent = () => {
       // Fallthrough
     }
     setLocalAddresses((prev) => prev.filter((a) => a.addressId !== addressId));
+    if (selectedId === addressId) setSelectedId('');
   };
 
   return (
@@ -144,76 +120,86 @@ const AddressManagementContent = () => {
             <span>Saved Addresses</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {addresses.map((addr) => {
-              const isSelected = selectedId === addr.addressId || addr.isDefault;
-              const Icon = addr.label === 'Home' ? Home : addr.label === 'Work' ? Briefcase : MapPin;
-              return (
-                <div
-                  key={addr.addressId}
-                  className={`rounded-[24px] bg-white p-5 shadow-xs transition-all flex flex-col justify-between space-y-4 ${
-                    isSelected ? 'border-2 border-[#006b2c]' : 'border border-[#e2ebdE]'
-                  }`}
-                  onClick={() => setSelectedId(addr.addressId)}
-                >
-                  <div className="space-y-3">
-                    {/* Card Header Tag & Checkmark */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-[#006b2c]" />
-                        <span className="text-sm font-black text-[#171d16]">{addr.label}</span>
-                        {addr.isDefault && (
-                          <span className="rounded-full bg-[#d8f4ce] px-2.5 py-0.5 text-[10px] font-black text-[#2b4c1d]">
-                            DEFAULT
-                          </span>
-                        )}
+          {addresses.length === 0 ? (
+            <div className="rounded-[24px] border border-[#e2ebdE] bg-white p-8 text-center space-y-3 shadow-xs">
+              <MapPin className="mx-auto h-10 w-10 text-[#8b9888]" />
+              <h3 className="text-base font-extrabold text-[#171d16]">No saved addresses found</h3>
+              <p className="text-xs font-semibold text-[#8b9888] max-w-md mx-auto">
+                You have not added any delivery locations yet. Fill out the form below to add your first address.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {addresses.map((addr) => {
+                const isSelected = selectedId === addr.addressId || addr.isDefault;
+                const Icon = addr.label === 'Home' ? Home : addr.label === 'Work' ? Briefcase : MapPin;
+                return (
+                  <div
+                    key={addr.addressId}
+                    className={`rounded-[24px] bg-white p-5 shadow-xs transition-all flex flex-col justify-between space-y-4 ${
+                      isSelected ? 'border-2 border-[#006b2c]' : 'border border-[#e2ebdE]'
+                    }`}
+                    onClick={() => setSelectedId(addr.addressId)}
+                  >
+                    <div className="space-y-3">
+                      {/* Card Header Tag & Checkmark */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4 text-[#006b2c]" />
+                          <span className="text-sm font-black text-[#171d16]">{addr.label}</span>
+                          {addr.isDefault && (
+                            <span className="rounded-full bg-[#d8f4ce] px-2.5 py-0.5 text-[10px] font-black text-[#2b4c1d]">
+                              DEFAULT
+                            </span>
+                          )}
+                        </div>
+
+                        <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
+                          isSelected ? 'border-[#006b2c] bg-[#006b2c] text-white' : 'border-[#bdcaba]'
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
                       </div>
 
-                      <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
-                        isSelected ? 'border-[#006b2c] bg-[#006b2c] text-white' : 'border-[#bdcaba]'
-                      }`}>
-                        {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                      {/* Address Body */}
+                      <div>
+                        <h3 className="text-sm font-extrabold text-[#171d16]">{addr.name}</h3>
+                        <p className="text-xs font-semibold text-[#8b9888] leading-relaxed mt-1">
+                          {addr.lines.map((line) => (
+                            <span key={line} className="block">{line}</span>
+                          ))}
+                          <span className="block">{addr.city}, {addr.state} {addr.postalCode}</span>
+                        </p>
+                        <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-[#171d16]">
+                          <Phone className="h-3.5 w-3.5 text-[#006b2c]" />
+                          <span>{addr.phone}</span>
+                        </p>
                       </div>
                     </div>
 
-                    {/* Address Body */}
-                    <div>
-                      <h3 className="text-sm font-extrabold text-[#171d16]">{addr.name}</h3>
-                      <p className="text-xs font-semibold text-[#8b9888] leading-relaxed mt-1">
-                        {addr.lines.map((line) => (
-                          <span key={line} className="block">{line}</span>
-                        ))}
-                        <span className="block">{addr.city}, {addr.state} {addr.postalCode}</span>
-                      </p>
-                      <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-[#171d16]">
-                        <Phone className="h-3.5 w-3.5 text-[#006b2c]" />
-                        <span>{addr.phone}</span>
-                      </p>
+                    {/* Actions Footer */}
+                    <div className="flex items-center justify-around border-t border-[#e2ebdE] pt-3 text-xs font-extrabold">
+                      <button className="flex items-center gap-1 text-[#006b2c] hover:underline cursor-pointer" type="button">
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        className="flex items-center gap-1 text-rose-600 hover:underline cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDelete(addr.addressId);
+                        }}
+                        type="button"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Actions Footer */}
-                  <div className="flex items-center justify-around border-t border-[#e2ebdE] pt-3 text-xs font-extrabold">
-                    <button className="flex items-center gap-1 text-[#006b2c] hover:underline" type="button">
-                      <Pencil className="h-3.5 w-3.5" />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      className="flex items-center gap-1 text-rose-600 hover:underline cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleDelete(addr.addressId);
-                      }}
-                      type="button"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Deliver to Selected Address CTA */}
           <div className="flex justify-end pt-2">
