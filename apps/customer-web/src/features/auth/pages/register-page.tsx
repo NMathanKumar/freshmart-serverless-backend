@@ -21,7 +21,7 @@ const RegisterPage = () => {
   const submit = handleSubmit(async (values) => {
     try {
       await createAccount(values).unwrap();
-      navigate('/login', { state: { email: values.email, message: 'Account created successfully! Please sign in.' } });
+      window.location.assign('/');
     } catch {
       // RTK Query exposes the API error through request for the form alert.
     }
