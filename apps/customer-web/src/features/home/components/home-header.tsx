@@ -1,12 +1,21 @@
 import { Input } from '@freshmart/design-system';
-import { Bell, LogOut, MapPin, Search, ShoppingCart, UserRound, LogIn, UserPlus, ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, LogOut, MapPin, Search, ShoppingCart, UserRound, LogIn, UserPlus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { isAuthenticated, getCurrentUser, logout } from '@freshmart/shared';
 import { useState, useEffect } from 'react';
+import { useGetCartQuery } from '../../commerce/api/commerce-api.js';
 
-export const HomeHeader = ({ cartCount }: { cartCount: number }) => {
+export const HomeHeader = ({ cartCount: overrideCartCount }: { cartCount?: number }) => {
+  const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [, setUserEmail] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const { data: cartItems = [] } = useGetCartQuery();
+
+  const liveCartCount = overrideCartCount !== undefined
+    ? overrideCartCount
+    : cartItems.reduce((sum, item) => sum + (item.quantityInCart || 1), 0);
 
   useEffect(() => {
     const isAuth = isAuthenticated();
@@ -20,6 +29,13 @@ export const HomeHeader = ({ cartCount }: { cartCount: number }) => {
   const handleLogout = () => {
     logout();
     setAuthed(false);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+    }
   };
 
   return (
@@ -36,21 +52,27 @@ export const HomeHeader = ({ cartCount }: { cartCount: number }) => {
           </div>
         </div>
 
-        <label className="relative mx-6 flex-1 block max-w-xl">
+        <form className="relative mx-6 flex-1 max-w-xl hidden md:block" onSubmit={handleSearchSubmit}>
           <span className="sr-only">Search FreshMart</span>
           <Search aria-hidden="true" className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6e7b6c]" />
-          <Input className="h-11 rounded-full border border-[#bdcaba]/40 bg-white/90 pl-11 pr-4 text-sm placeholder:text-[#6e7b6c] focus:bg-white focus:ring-2 focus:ring-[#006b2c] focus:border-transparent w-full block shadow-xs transition-all" placeholder="Search for fresh groceries, organic fruits, snacks..." type="search" />
-        </label>
+          <Input
+            className="h-11 rounded-full border border-[#bdcaba]/40 bg-white/90 pl-11 pr-4 text-sm placeholder:text-[#6e7b6c] focus:bg-white focus:ring-2 focus:ring-[#006b2c] focus:border-transparent w-full block shadow-xs transition-all"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search for fresh groceries, organic fruits, snacks..."
+            type="search"
+            value={searchTerm}
+          />
+        </form>
 
         <nav aria-label="Account actions" className="flex items-center gap-2">
-          <Link aria-label={`Cart with ${cartCount} items`} className="relative flex items-center justify-center p-2.5 text-[#006b2c] hover:bg-[#eff6ea] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b2c] rounded-full" to="/cart">
+          <Link aria-label={`Cart with ${liveCartCount} items`} className="relative flex items-center justify-center p-2.5 text-[#006b2c] hover:bg-[#eff6ea] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b2c] rounded-full" to="/cart">
             <ShoppingCart aria-hidden="true" className="h-5 w-5" />
-            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[9px] font-extrabold text-white shadow-sm">{cartCount}</span>
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[9px] font-extrabold text-white shadow-sm">{liveCartCount}</span>
           </Link>
 
-          <button aria-label="Notifications" className="p-2.5 text-[#006b2c] hover:bg-[#eff6ea] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b2c] rounded-full" type="button">
+          <Link aria-label="Notifications" className="p-2.5 text-[#006b2c] hover:bg-[#eff6ea] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b2c] rounded-full" to="/notifications">
             <Bell aria-hidden="true" className="h-5 w-5" />
-          </button>
+          </Link>
           
           {authed ? (
             <>
