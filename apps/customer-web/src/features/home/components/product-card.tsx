@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Card } from '@freshmart/design-system';
-import { Check, LoaderCircle, Plus } from 'lucide-react';
+import { Check, Heart, LoaderCircle, Plus } from 'lucide-react';
 import { formatCurrency } from '@freshmart/shared';
 import { useAddHomeProductToCartMutation } from '../api/home-api.js';
 import type { ProductViewModel } from '../model/home-content.js';
 
 export const ProductCard = ({ product }: { product: ProductViewModel }) => {
   const [added, setAdded] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const [addToCart, request] = useAddHomeProductToCartMutation();
   const add = async () => {
     try {
@@ -19,9 +20,20 @@ export const ProductCard = ({ product }: { product: ProductViewModel }) => {
   };
 
   return (
-    <Card className="home-product-card group w-[220px] sm:w-[230px] md:w-[240px] flex-none overflow-hidden rounded-[22px] border border-[#e2ebdE] bg-white p-0 shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 hover:shadow-xl hover:border-[#bdcaba]/70">
+    <Card className="home-product-card group w-[220px] sm:w-[230px] md:w-[240px] flex-none overflow-hidden rounded-[22px] border border-[#e2ebdE] bg-white p-0 shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 hover:shadow-xl hover:border-[#bdcaba]/70 relative">
       <div className="relative h-44 overflow-hidden bg-[#f4fcf0]/80">
         {product.badge && <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider shadow-xs ${product.badgeTone === 'bestseller' ? 'bg-[#006c4a] text-white' : 'bg-[#ffd9de] text-[#a72d51]'}`}>{product.badge}</span>}
+        
+        {/* Heart Wishlist Button Top Right */}
+        <button
+          aria-label={isLiked ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+          className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-md transition-all hover:scale-110 active:scale-95"
+          onClick={() => setIsLiked(!isLiked)}
+          type="button"
+        >
+          <Heart className={`h-4 w-4 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : 'text-[#8b9888] hover:text-rose-500'}`} />
+        </button>
+
         <img alt={product.name} className="h-full w-full object-contain mix-blend-multiply p-3 transition-transform duration-500 group-hover:scale-108" decoding="async" loading="lazy" src={product.imageUrl} onError={(e) => { e.currentTarget.src = 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png'; }} />
       </div>
       <div className="space-y-2 p-3.5 md:p-4">

@@ -12,6 +12,7 @@ const productUrl = (productId: string) => customerRoutePaths.productDetails.repl
 
 export const CommerceProductCard = ({ product, variant = 'grid' }: { product: CommerceProduct; variant?: 'grid' | 'category' | 'compact' }) => {
   const [added, setAdded] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const [updateCart, updateState] = useUpdateCartItemMutation();
   const add = async () => {
     try {
@@ -25,7 +26,15 @@ export const CommerceProductCard = ({ product, variant = 'grid' }: { product: Co
 
   if (variant === 'compact') {
     return (
-      <article className="min-w-[160px] rounded-xl border border-[#bdcaba]/20 bg-white p-3 shadow-sm">
+      <article className="min-w-[160px] rounded-xl border border-[#bdcaba]/20 bg-white p-3 shadow-sm relative">
+        <button
+          aria-label={isLiked ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+          className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-md transition-all hover:scale-110 active:scale-95"
+          onClick={() => setIsLiked(!isLiked)}
+          type="button"
+        >
+          <Heart className={`h-3.5 w-3.5 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : 'text-[#8b9888] hover:text-rose-500'}`} />
+        </button>
         <Link to={productUrl(product.productId)}>
           <div className="mb-2 h-32 overflow-hidden rounded-lg bg-[#eff6ea]"><img alt={product.name} className="h-full w-full object-cover" loading="lazy" src={product.imageUrl} /></div>
           <h3 className="truncate text-sm font-semibold text-[#171d16]">{product.name}</h3>
@@ -43,8 +52,13 @@ export const CommerceProductCard = ({ product, variant = 'grid' }: { product: Co
   return (
     <article className={`commerce-card commerce-lift group relative flex h-full flex-col overflow-hidden p-4 ${variant === 'category' ? 'rounded-xl' : 'rounded-xl'}`}>
       {product.badge && <span className={`absolute left-4 top-4 z-10 rounded-full px-3 py-1 text-[10px] font-bold uppercase ${product.badgeTone === 'fresh' ? 'bg-[#d8f4ce] text-[#2b4c1d]' : 'bg-[#ffd9de] text-[#3f0016]'}`}>{product.badge}</span>}
-      <button aria-disabled="true" aria-label={`Save ${product.name} coming soon`} className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-[#9aa59a] shadow-sm backdrop-blur-md" disabled title="Wishlist is coming soon" type="button">
-        <Heart aria-hidden="true" className="h-5 w-5" />
+      <button
+        aria-label={isLiked ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+        className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-md transition-all hover:scale-110 active:scale-95"
+        onClick={() => setIsLiked(!isLiked)}
+        type="button"
+      >
+        <Heart className={`h-4.5 w-4.5 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : 'text-[#8b9888] hover:text-rose-500'}`} />
       </button>
       <Link className="commerce-focus" to={productUrl(product.productId)}>
         <div className="mb-4 aspect-square overflow-hidden rounded-lg bg-[#eff6ea]">
