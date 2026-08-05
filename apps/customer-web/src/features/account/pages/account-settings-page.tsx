@@ -110,7 +110,7 @@ const AccountSettingsContent = () => {
         </div>
 
         {/* Main 2-Column Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-7 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-7 items-start">
 
           {/* Left Column: Sidebar Menu */}
           <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-3 shadow-xs space-y-1">
