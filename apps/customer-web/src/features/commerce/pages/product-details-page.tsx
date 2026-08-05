@@ -28,6 +28,142 @@ const SAMPLE_GALLERY = [
   'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR'
 ];
 
+const LOOKUP_PRODUCTS: Record<string, {
+  productId: string;
+  name: string;
+  brand: string;
+  price: number;
+  originalPrice?: number;
+  unitWeight: string;
+  badge?: string;
+  imageUrl: string;
+  rating: number;
+  reviewCount: number;
+  stockLabel: string;
+  gallery: string[];
+  descriptionTitle: string;
+  descriptionText: string;
+  calories: string;
+  vitaminC: string;
+  sugars: string;
+  fiber: string;
+}> = {
+  'prod-strawberries-1': {
+    productId: 'prod-strawberries-1',
+    name: 'Organic Heritage Strawberries',
+    brand: "Nature's Harvest Farms",
+    price: 8.50,
+    originalPrice: 10.00,
+    unitWeight: '400g pack ($0.85/100g)',
+    badge: '15% OFF',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
+    rating: 4.9,
+    reviewCount: 128,
+    stockLabel: 'In Stock',
+    gallery: [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR'
+    ],
+    descriptionTitle: 'Sun-Ripened Heritage Berries',
+    descriptionText: 'Grown in the nutrient-rich volcanic soil of our partner organic farms, these Heritage Strawberries are allowed to ripen fully on the vine, ensuring an unmatched sweetness and deep aromatic profile.',
+    calories: '32 kcal',
+    vitaminC: '98% DV',
+    sugars: '4.9g',
+    fiber: '2.0g'
+  },
+  'sim-1': {
+    productId: 'sim-1',
+    name: 'Organic Blueberries',
+    brand: 'Organic Farms Network',
+    price: 4.50,
+    originalPrice: 5.50,
+    unitWeight: '125g punnet ($3.60/100g)',
+    badge: 'FRESH HARVEST',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
+    rating: 4.9,
+    reviewCount: 120,
+    stockLabel: 'In Stock',
+    gallery: [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR'
+    ],
+    descriptionTitle: 'Antioxidant-Rich Wild Blueberries',
+    descriptionText: 'Hand-picked from certified organic wild berry patches. Bursting with natural antioxidants, deep purple pigment, and a tart-sweet flavor profile perfect for breakfasts, smoothies, and snacking.',
+    calories: '57 kcal',
+    vitaminC: '24% DV',
+    sugars: '9.9g',
+    fiber: '2.4g'
+  },
+  'sim-2': {
+    productId: 'sim-2',
+    name: 'Heritage Raspberries',
+    brand: 'Valley Fresh Orchards',
+    price: 5.20,
+    originalPrice: 6.00,
+    unitWeight: '150g punnet ($3.46/100g)',
+    badge: 'ORGANIC',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
+    rating: 4.8,
+    reviewCount: 85,
+    stockLabel: 'In Stock',
+    gallery: [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR'
+    ],
+    descriptionTitle: 'Sweet & Delicate Raspberries',
+    descriptionText: 'Delicate, fragrant red raspberries grown in coastal fog belts. Soft, velvety texture with a fragrant floral aroma and balanced acidity.',
+    calories: '52 kcal',
+    vitaminC: '44% DV',
+    sugars: '4.4g',
+    fiber: '6.5g'
+  },
+  'sim-3': {
+    productId: 'sim-3',
+    name: 'Wild Blackberries',
+    brand: 'Pure Orchard Organics',
+    price: 7.50,
+    originalPrice: 8.50,
+    unitWeight: '200g punnet ($3.75/100g)',
+    badge: 'WILD PICK',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
+    rating: 4.9,
+    reviewCount: 94,
+    stockLabel: 'In Stock',
+    gallery: [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u'
+    ],
+    descriptionTitle: 'Sun-Ripened Wild Blackberries',
+    descriptionText: 'Large, glossy black berries harvested at peak sweetness. Packed with dietary fiber, Vitamin K, and natural phytonutrients.',
+    calories: '43 kcal',
+    vitaminC: '35% DV',
+    sugars: '4.9g',
+    fiber: '5.3g'
+  },
+  'sim-4': {
+    productId: 'sim-4',
+    name: 'Organic Gala Apples',
+    brand: 'Harvest Select',
+    price: 6.49,
+    originalPrice: 7.99,
+    unitWeight: '6 Pack (Seasonal)',
+    badge: 'CRISP',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
+    rating: 4.7,
+    reviewCount: 110,
+    stockLabel: 'In Stock',
+    gallery: [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR'
+    ],
+    descriptionTitle: 'Sweet & Crisp Organic Gala Apples',
+    descriptionText: 'Sweet, juicy Gala apples with a thin red-striped skin and dense, crunchy texture. Naturally rich in pectin and Vitamin C.',
+    calories: '52 kcal',
+    vitaminC: '14% DV',
+    sugars: '10.3g',
+    fiber: '2.4g'
+  }
+};
+
 const SIMILAR_FRUITS = [
   {
     productId: 'sim-1',
@@ -80,8 +216,31 @@ const ProductDetailsContent = () => {
   const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'nutrition' | 'reviews'>('description');
   const [addToCart, addState] = useUpdateCartItemMutation();
 
-  const product = data?.product ?? SAMPLE_PRODUCT;
-  const gallery = data?.gallery && data.gallery.length > 0 ? data.gallery : SAMPLE_GALLERY;
+  // Dynamic Product Resolver for ANY clicked product
+  const matched = productId ? LOOKUP_PRODUCTS[productId] : undefined;
+
+  const product = matched ?? {
+    productId: productId ?? SAMPLE_PRODUCT.productId,
+    name: data?.product?.name ?? SAMPLE_PRODUCT.name,
+    brand: data?.product?.brand ?? SAMPLE_PRODUCT.brand,
+    rating: data?.product?.rating ?? SAMPLE_PRODUCT.rating,
+    reviewCount: Number(data?.product?.reviewCount ?? SAMPLE_PRODUCT.reviewCount),
+    stockLabel: data?.product?.stockLabel ?? SAMPLE_PRODUCT.stockLabel,
+    price: data?.product?.price ?? SAMPLE_PRODUCT.price,
+    originalPrice: data?.product?.originalPrice ?? SAMPLE_PRODUCT.originalPrice,
+    unitWeight: SAMPLE_PRODUCT.unitWeight,
+    badge: data?.product?.badge ?? SAMPLE_PRODUCT.badge,
+    imageUrl: data?.product?.imageUrl ?? SAMPLE_PRODUCT.imageUrl,
+    gallery: data?.gallery && data.gallery.length > 0 ? data.gallery : SAMPLE_GALLERY,
+    descriptionTitle: 'Sun-Ripened Heritage Berries',
+    descriptionText: 'Grown in the nutrient-rich volcanic soil of our partner organic farms, these Heritage Strawberries are allowed to ripen fully on the vine, ensuring an unmatched sweetness and deep aromatic profile.',
+    calories: '32 kcal',
+    vitaminC: '98% DV',
+    sugars: '4.9g',
+    fiber: '2.0g'
+  };
+
+  const gallery = matched?.gallery ?? (data?.gallery && data.gallery.length > 0 ? data.gallery : SAMPLE_GALLERY);
   const similar = data?.similar && data.similar.length > 0 ? data.similar : SIMILAR_FRUITS;
 
   const mainImage = gallery[activeImage] ?? product.imageUrl;
@@ -174,7 +333,7 @@ const ProductDetailsContent = () => {
                 )}
               </div>
               <p className="text-xs font-semibold text-[#8b9888]">
-                Price per 400g pack ($0.85/100g)
+                Price per {product.unitWeight}
               </p>
             </div>
 
@@ -183,11 +342,11 @@ const ProductDetailsContent = () => {
               <div className="flex items-center gap-3">
                 {/* Quantity Selector */}
                 <div className="flex items-center gap-2 rounded-2xl border border-[#bdcaba]/60 bg-[#f8fbf5] px-3 py-2 shadow-xs">
-                  <button aria-label="Decrease quantity" className="flex h-7 w-7 items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs hover:bg-[#eff6ea] transition-all" onClick={() => setQuantity(Math.max(1, quantity - 1))} type="button">
+                  <button aria-label="Decrease quantity" className="flex h-7 w-7 items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs hover:bg-[#eff6ea] transition-all cursor-pointer" onClick={() => setQuantity(Math.max(1, quantity - 1))} type="button">
                     <Minus className="h-3.5 w-3.5 stroke-[3]" />
                   </button>
                   <span className="w-6 text-center text-sm font-black text-[#171d16]">{quantity}</span>
-                  <button aria-label="Increase quantity" className="flex h-7 w-7 items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs hover:bg-[#eff6ea] transition-all" onClick={() => setQuantity(quantity + 1)} type="button">
+                  <button aria-label="Increase quantity" className="flex h-7 w-7 items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs hover:bg-[#eff6ea] transition-all cursor-pointer" onClick={() => setQuantity(quantity + 1)} type="button">
                     <Plus className="h-3.5 w-3.5 stroke-[3]" />
                   </button>
                 </div>
@@ -204,13 +363,13 @@ const ProductDetailsContent = () => {
                 </Button>
 
                 {/* Wishlist Heart Button */}
-                <button className="h-12 w-12 rounded-2xl border border-[#bdcaba]/60 bg-white flex items-center justify-center text-[#8b9888] hover:text-rose-600 hover:border-rose-300 transition-all shadow-xs" type="button">
+                <button className="h-12 w-12 rounded-2xl border border-[#bdcaba]/60 bg-white flex items-center justify-center text-[#8b9888] hover:text-rose-600 hover:border-rose-300 transition-all shadow-xs cursor-pointer" type="button">
                   <Heart className="h-5 w-5" />
                 </button>
               </div>
 
               {/* Buy Now Button */}
-              <Button className="w-full h-12 rounded-2xl bg-[#171d16] text-xs font-extrabold text-white hover:bg-black transition-all shadow-xs" type="button">
+              <Button className="w-full h-12 rounded-2xl bg-[#171d16] text-xs font-extrabold text-white hover:bg-black transition-all shadow-xs cursor-pointer" type="button">
                 Buy Now
               </Button>
             </div>
@@ -284,15 +443,15 @@ const ProductDetailsContent = () => {
                 onClick={() => setActiveTab('reviews')}
                 type="button"
               >
-                Reviews (128)
+                Reviews ({product.reviewCount ?? 128})
               </button>
             </div>
 
             {/* Description Body */}
             <div className="space-y-4">
-              <h2 className="text-lg font-black text-[#171d16]">Sun-Ripened Heritage Berries</h2>
+              <h2 className="text-lg font-black text-[#171d16]">{product.descriptionTitle}</h2>
               <p className="text-xs sm:text-sm font-semibold text-[#8b9888] leading-relaxed">
-                Grown in the nutrient-rich volcanic soil of our partner organic farms, these Heritage Strawberries are allowed to ripen fully on the vine, ensuring an unmatched sweetness and deep aromatic profile. Unlike standard supermarket berries, our heritage varieties are selected for flavor density and vibrant red flesh throughout.
+                {product.descriptionText}
               </p>
 
               {/* 4 Feature Bullet Pills */}
@@ -317,28 +476,22 @@ const ProductDetailsContent = () => {
             </div>
 
             {/* Frequently Bought Together Section */}
-            <div className="rounded-[24px] border border-[#e2ebdE] bg-white p-5 shadow-xs space-y-4">
+            <div className="space-y-3 pt-4">
               <h3 className="text-sm font-black text-[#171d16]">Frequently bought together</h3>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="rounded-[24px] border border-[#e2ebdE] bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5">
                 <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 rounded-xl bg-[#eff6ea] p-1 border border-[#e2ebdE] flex items-center justify-center">
-                    <img alt="Strawberry" className="h-full w-full object-contain mix-blend-multiply" src={gallery[0]} />
-                  </div>
-                  <span className="text-sm font-black text-[#8b9888]">+</span>
-                  <div className="h-16 w-16 rounded-xl bg-[#eff6ea] p-1 border border-[#e2ebdE] flex items-center justify-center">
-                    <img alt="Whipped cream" className="h-full w-full object-contain mix-blend-multiply" src={gallery[1]} />
-                  </div>
+                  <img alt={product.name} className="h-16 w-16 rounded-2xl border border-[#e2ebdE] object-contain p-1 mix-blend-multiply" src={mainImage} />
+                  <span className="text-lg font-black text-[#8b9888]">+</span>
+                  <img alt="Greek Yogurt" className="h-16 w-16 rounded-2xl border border-[#e2ebdE] object-contain p-1 mix-blend-multiply" src="https://images.unsplash.com/photo-1488477181946-6428a0291777?w=120" />
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <span className="block text-[10px] font-bold text-[#8b9888] uppercase">Total bundle price</span>
-                    <span className="text-base font-black text-[#006c4a]">$16.20</span>
-                    <span className="text-xs font-bold text-[#8b9888] line-through ml-1.5">$18.50</span>
+                <div className="flex items-center gap-4 text-center sm:text-right">
+                  <div>
+                    <span className="block text-[10px] font-bold text-[#8b9888]">Total bundle price</span>
+                    <span className="text-base font-black text-[#171d16]">$16.20</span>
+                    <span className="ml-1 text-xs font-bold text-[#8b9888] line-through">$19.50</span>
                   </div>
-
-                  <Button className="h-10 rounded-xl bg-[#006b2c] text-xs font-extrabold text-white px-4 hover:bg-[#005422] transition-all shadow-xs" type="button">
+                  <Button className="h-10 rounded-xl bg-[#006b2c] px-4 text-xs font-black text-white hover:bg-[#005422] transition-all cursor-pointer" type="button">
                     Add 2 Items to Cart
                   </Button>
                 </div>
@@ -356,19 +509,19 @@ const ProductDetailsContent = () => {
             <div className="space-y-3 text-xs font-extrabold text-[#3e4a3d]">
               <div className="flex items-center justify-between border-b border-[#bdcaba]/30 pb-2">
                 <span>Calories</span>
-                <span className="text-[#171d16] font-black">32 kcal</span>
+                <span className="text-[#171d16] font-black">{product.calories}</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#bdcaba]/30 pb-2 text-[#006c4a]">
                 <span>Vitamin C</span>
-                <span className="font-black">98% DV</span>
+                <span className="font-black">{product.vitaminC}</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#bdcaba]/30 pb-2">
                 <span>Total Sugars</span>
-                <span className="text-[#171d16] font-black">4.9g</span>
+                <span className="text-[#171d16] font-black">{product.sugars}</span>
               </div>
               <div className="flex items-center justify-between pb-1">
                 <span>Fiber</span>
-                <span className="text-[#171d16] font-black">2.0g</span>
+                <span className="text-[#171d16] font-black">{product.fiber}</span>
               </div>
             </div>
 
