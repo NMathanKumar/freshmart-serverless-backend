@@ -7,6 +7,47 @@ import { useGetOrderQuery } from '../api/commerce-api.js';
 
 const formatUSD = (amount: number) => `$${Number(amount || 0).toFixed(2)}`;
 
+const CONFETTI_PIECES = Array.from({ length: 45 }, (_, i) => ({
+  id: i,
+  left: `${(i * 2.2 + (i % 5) * 3) % 98}%`,
+  delay: `${(i * 0.15) % 4.5}s`,
+  duration: `${3 + (i % 4) * 0.8}s`,
+  color: ['#006b2c', '#005422', '#2b4c1d', '#e05263', '#b81d13', '#f4b400', '#0f9d58', '#4285f4'][i % 8],
+  size: i % 3 === 0 ? 'w-2.5 h-2.5 rounded-full' : i % 3 === 1 ? 'w-3 h-1.5 rounded-xs' : 'w-2 h-2 rotate-45'
+}));
+
+const ConfettiRain = () => (
+  <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden" aria-hidden="true">
+    <style>{`
+      @keyframes confettiRain {
+        0% {
+          transform: translateY(-20px) rotate(0deg);
+          opacity: 1;
+        }
+        80% {
+          opacity: 0.8;
+        }
+        100% {
+          transform: translateY(105vh) rotate(720deg);
+          opacity: 0;
+        }
+      }
+    `}</style>
+    {CONFETTI_PIECES.map((piece) => (
+      <span
+        key={piece.id}
+        className={`absolute top-0 opacity-0 shadow-xs ${piece.size}`}
+        style={{
+          left: piece.left,
+          backgroundColor: piece.color,
+          animation: `confettiRain ${piece.duration} linear infinite`,
+          animationDelay: piece.delay
+        }}
+      />
+    ))}
+  </div>
+);
+
 const OrderConfirmationContent = () => {
   const [searchParams] = useSearchParams();
   const rawOrderId = searchParams.get('orderId') || 'FM-102938';
@@ -17,7 +58,8 @@ const OrderConfirmationContent = () => {
   const displayTotal = realOrder?.totalAmount ?? 42.85;
 
   return (
-    <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
+    <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans relative overflow-hidden">
+      <ConfettiRain />
       <HomeHeader variant="cart" />
 
       <main className="mx-auto max-w-4xl px-4 sm:px-6 md:px-8 pb-16 pt-24 space-y-8">
