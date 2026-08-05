@@ -2,6 +2,7 @@ import { Suspense, useMemo, useState } from 'react';
 import { Building2, ChevronRight, CreditCard, HandCoins, LoaderCircle, Lock, Plus, ShieldCheck, Smartphone, WalletCards } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@freshmart/shared';
 import { useCreatePaymentMutation, useGetCheckoutQuery } from '../api/commerce-api.js';
 import { CommerceShell } from '../components/commerce-layout.js';
 import { CommerceState, ListSkeleton } from '../components/commerce-state.js';
@@ -51,14 +52,14 @@ const CheckoutPaymentContent = () => {
               <div className="commerce-card flex flex-col gap-6 p-6">
                 <h2 className="border-b border-[#bdcaba]/30 pb-4 text-xl font-semibold">Order Summary</h2>
                 <div className="space-y-4 text-[#3e4a3d]">
-                  <Row label={`Items Total (${data.cart.reduce((count, item) => count + item.quantityInCart, 0)} items)`} value={`$${totals.subtotal.toFixed(2)}`} />
-                  <Row label="Discount Applied (FRESH20)" value={`- $${totals.discount.toFixed(2)}`} success />
-                  <Row label="Delivery Fee" value="FREE" muted="$2.50" />
-                  <Row label="Platform Fee" value="$2.00" />
-                  <div className="flex items-center justify-between border-t border-[#bdcaba]/40 pt-4"><span className="text-xl font-semibold text-[#171d16]">Grand Total</span><span className="text-xl font-semibold text-[#006b2c]">${totals.total.toFixed(2)}</span></div>
+                  <Row label={`Items Total (${data.cart.reduce((count, item) => count + item.quantityInCart, 0)} items)`} value={formatCurrency(totals.subtotal)} />
+                  <Row label="Discount Applied (FRESH20)" value={`-${formatCurrency(totals.discount)}`} success />
+                  <Row label="Delivery Fee" value="FREE" muted={formatCurrency(2.5)} />
+                  <Row label="Platform Fee" value={formatCurrency(2.0)} />
+                  <div className="flex items-center justify-between border-t border-[#bdcaba]/40 pt-4"><span className="text-xl font-semibold text-[#171d16]">Grand Total</span><span className="text-xl font-semibold text-[#006b2c]">{formatCurrency(totals.total)}</span></div>
                 </div>
                 <div className="flex items-center gap-4 rounded-lg bg-[#d8f4ce]/50 p-4"><ShieldCheck className="h-5 w-5 text-[#006b2c]" /><p className="text-xs leading-5 text-[#2b4c1d]">Your payment is secured with 256-bit SSL encryption for a safe transaction.</p></div>
-                <Button className="w-full gap-3 rounded-xl py-5 text-lg" disabled={paymentState.isLoading} onClick={() => void pay()} type="button">{paymentState.isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : null}Pay ${totals.total.toFixed(2)}<Lock className="h-5 w-5" /></Button>
+                <Button className="w-full gap-3 rounded-xl py-5 text-lg" disabled={paymentState.isLoading} onClick={() => void pay()} type="button">{paymentState.isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : null}Pay {formatCurrency(totals.total)}<Lock className="h-5 w-5" /></Button>
               </div>
             </aside>
           </div>

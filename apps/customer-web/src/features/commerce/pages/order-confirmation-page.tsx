@@ -3,7 +3,7 @@ import { Download, MapPin, Share2, ShoppingCart, Truck, CreditCard, Plus } from 
 import { Link } from 'react-router-dom';
 import * as shared from '@freshmart/shared';
 
-const { customerRoutePaths } = shared;
+const { customerRoutePaths, formatCurrency } = shared;
 import { CommerceShell } from '../components/commerce-layout.js';
 import { CommerceProductCard } from '../components/commerce-product-card.js';
 import { ProductGridSkeleton } from '../components/commerce-state.js';
@@ -27,7 +27,7 @@ const OrderConfirmationContent = () => (
         </div>
         <div className="mb-6 grid grid-cols-1 gap-6 border-b border-[#bdcaba]/40 pb-6 md:grid-cols-2">
           <Info icon={<MapPin />} label="Delivery Address" text={<>242 Luxury Avenue, Apt 4B<br />Manhattan, NY 10001</>} />
-          <Info icon={<CreditCard />} label="Payment & Total" text={<>Apple Pay (•••• 4920)<br /><strong className="text-[#006b2c]">$42.85 Paid</strong></>} />
+          <Info icon={<CreditCard />} label="Payment & Total" text={<>Apple Pay (•••• 4920)<br /><strong className="text-[#006b2c]">{formatCurrency(42.85)} Paid</strong></>} />
         </div>
         <div className="flex flex-col gap-3">
           <Link className="inline-flex w-full items-center justify-center rounded-full bg-[color:var(--color-fresh-500)] px-5 py-4 text-lg font-semibold text-white shadow-lg shadow-[color:rgba(26,127,55,0.22)] transition-colors hover:bg-[color:var(--color-fresh-600)]" to={customerRoutePaths.orders}>Track Order</Link>
@@ -40,7 +40,7 @@ const OrderConfirmationContent = () => (
       </section>
       <section className="mb-8">
         <div className="mb-4 flex items-end justify-between"><h2 className="text-xl font-semibold">Buy It Again</h2><a className="text-sm font-bold text-[#006b2c]" href="#history">View History</a></div>
-        <div className="commerce-no-scrollbar flex gap-4 overflow-x-auto pb-4">{orderConfirmationProducts.map((product) => <article className="min-w-[160px] rounded-xl border border-[#bdcaba]/20 bg-white p-3 shadow-sm" key={product.productId}><img alt={product.name} className="mb-2 h-32 w-full rounded-lg object-cover" src={product.imageUrl} /><p className="truncate text-sm font-semibold">{product.name}</p><div className="mt-2 flex items-center justify-between"><span className="font-bold">${product.price.toFixed(2)}</span><button aria-label={`Add ${product.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#d8f4ce] text-[#2b4c1d]" type="button"><Plus className="h-4 w-4" /></button></div></article>)}</div>
+        <div className="commerce-no-scrollbar flex gap-4 overflow-x-auto pb-4">{orderConfirmationProducts.map((product) => <article className="min-w-[160px] rounded-xl border border-[#bdcaba]/20 bg-white p-3 shadow-sm" key={product.productId}><img alt={product.name} className="mb-2 h-32 w-full rounded-lg object-cover" src={product.imageUrl} /><p className="truncate text-sm font-semibold">{product.name}</p><div className="mt-2 flex items-center justify-between"><span className="font-bold">{formatCurrency(product.price)}</span><button aria-label={`Add ${product.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#d8f4ce] text-[#2b4c1d]" type="button"><Plus className="h-4 w-4" /></button></div></article>)}</div>
       </section>
       <section><h2 className="mb-4 text-xl font-semibold">Recommended for You</h2><div className="grid grid-cols-2 gap-4 md:grid-cols-3">{searchProducts.slice(0, 3).map((product) => <CommerceProductCard key={product.productId} product={product} />)}</div></section>
     </main>

@@ -41,6 +41,7 @@ const unwrap = <T,>(value: ApiEnvelope<T>): T =>
 
 export const authApi = createApi({
   reducerPath: 'authApi',
+  tagTypes: ['CustomerHome', 'Cart'],
   baseQuery: fakeBaseQuery<ReturnType<typeof toApiError>>(),
   endpoints: (builder) => ({
     login: builder.mutation<AuthSessionResponse, LoginInput>({

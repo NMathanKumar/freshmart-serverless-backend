@@ -4,7 +4,7 @@ import { CheckCircle2, Heart, LoaderCircle, Minus, Plus, ShoppingCart, Star, Tra
 import { Link } from 'react-router-dom';
 import * as shared from '@freshmart/shared';
 
-const { customerRoutePaths } = shared;
+const { customerRoutePaths, formatCurrency } = shared;
 import { useRemoveCartItemMutation, useUpdateCartItemMutation } from '../api/commerce-api.js';
 import type { CartLine, CommerceProduct } from '../model/commerce-content.js';
 
@@ -31,7 +31,7 @@ export const CommerceProductCard = ({ product, variant = 'grid' }: { product: Co
           <h3 className="truncate text-sm font-semibold text-[#171d16]">{product.name}</h3>
         </Link>
         <div className="mt-2 flex items-center justify-between">
-          <span className="font-bold text-[#171d16]">${product.price.toFixed(2)}</span>
+          <span className="font-bold text-[#171d16]">{formatCurrency(product.price)}</span>
           <button aria-label={`Add ${product.name} to cart`} className="commerce-focus flex h-8 w-8 items-center justify-center rounded-lg bg-[#d8f4ce] text-[#2b4c1d] hover:bg-[#006b2c] hover:text-white" onClick={() => void add()} type="button">
             {updateState.isLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           </button>
@@ -60,8 +60,8 @@ export const CommerceProductCard = ({ product, variant = 'grid' }: { product: Co
         </p>
         <div className="mt-auto flex items-center justify-between gap-3">
           <div className="flex flex-col">
-            <span className="text-xl font-bold text-[#006b2c]">${product.price.toFixed(2)}</span>
-            {product.originalPrice && <span className="text-xs text-[#6e7b6c] line-through">${product.originalPrice.toFixed(2)}</span>}
+            <span className="text-xl font-bold text-[#006b2c]">{formatCurrency(product.price)}</span>
+            {product.originalPrice && <span className="text-xs text-[#6e7b6c] line-through">{formatCurrency(product.originalPrice)}</span>}
           </div>
           <Button aria-label={added ? `${product.name} added` : `Add ${product.name}`} className="gap-1 rounded-xl px-4" disabled={updateState.isLoading} onClick={() => void add()} type="button">
             {updateState.isLoading ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" /> : added ? <CheckCircle2 aria-hidden="true" className="h-4 w-4" /> : <Plus aria-hidden="true" className="h-4 w-4" />}
@@ -94,7 +94,7 @@ export const CartItemCard = ({ item }: { item: CartLine }) => {
       <div className="flex flex-1 flex-col justify-between">
         <div className="flex justify-between gap-4">
           <div><h3 className="text-xl font-semibold text-[#171d16]">{item.name}</h3><p className="text-sm font-semibold text-[#3e4a3d]">{item.brand}</p></div>
-          <span className="text-xl font-semibold text-[#006b2c]">${item.price.toFixed(2)}</span>
+          <span className="text-xl font-semibold text-[#006b2c]">{formatCurrency(item.price)}</span>
         </div>
         <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-[#3f6d2a]"><CheckCircle2 className="h-4 w-4" />{item.stockLabel}</p>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4">

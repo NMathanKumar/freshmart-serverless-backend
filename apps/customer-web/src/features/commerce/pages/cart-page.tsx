@@ -4,7 +4,7 @@ import { Button, Input } from '@freshmart/design-system';
 import { Link } from 'react-router-dom';
 import * as shared from '@freshmart/shared';
 
-const { customerRoutePaths } = shared;
+const { customerRoutePaths, formatCurrency } = shared;
 import { useGetCartQuery } from '../api/commerce-api.js';
 import { CommerceShell } from '../components/commerce-layout.js';
 import { CartItemCard } from '../components/commerce-product-card.js';
@@ -32,15 +32,15 @@ const CartContent = () => {
               <div className="commerce-card sticky top-28 p-6">
                 <h2 className="mb-6 text-xl font-semibold">Price Details</h2>
                 <div className="mb-6 space-y-3 text-[#3e4a3d]">
-                  <Row label={`Item Subtotal (${data.reduce((count, item) => count + item.quantityInCart, 0)} items)`} value={`$${subtotal.toFixed(2)}`} />
-                  <Row label="Delivery Fee" value="Free" muted="$2.50" />
-                  <Row label="Platform Fee" value="$1.00" />
-                  <Row label="Taxes" value={`$${taxes.toFixed(2)}`} />
-                  {discount > 0 && <Row label="Coupon Discount (FRESH20)" value={`-$${discount.toFixed(2)}`} success />}
+                  <Row label={`Item Subtotal (${data.reduce((count, item) => count + item.quantityInCart, 0)} items)`} value={formatCurrency(subtotal)} />
+                  <Row label="Delivery Fee" value="Free" muted={formatCurrency(2.5)} />
+                  <Row label="Platform Fee" value={formatCurrency(1.0)} />
+                  <Row label="Taxes" value={formatCurrency(taxes)} />
+                  {discount > 0 && <Row label="Coupon Discount (FRESH20)" value={`-${formatCurrency(discount)}`} success />}
                 </div>
                 <div className="mb-6 border-t border-[#bdcaba]/40 pt-4">
-                  <div className="mb-1 flex items-center justify-between"><span className="text-xl font-semibold">Grand Total</span><span className="text-xl font-semibold text-[#006b2c]">${total.toFixed(2)}</span></div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#d8f4ce] px-3 py-1 text-sm font-semibold text-[#3f6d2a]"><Tag className="h-4 w-4" />Estimated Savings: ${(2.5 + discount).toFixed(2)}</span>
+                  <div className="mb-1 flex items-center justify-between"><span className="text-xl font-semibold">Grand Total</span><span className="text-xl font-semibold text-[#006b2c]">{formatCurrency(total)}</span></div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#d8f4ce] px-3 py-1 text-sm font-semibold text-[#3f6d2a]"><Tag className="h-4 w-4" />Estimated Savings: {formatCurrency(2.5 + discount)}</span>
                 </div>
                 <div className="space-y-4">
                   <div className="relative"><Input className="h-12 rounded-xl pr-24" onChange={(event) => setCoupon(event.target.value)} placeholder="Apply Coupon" value={coupon} /><Button className="absolute bottom-1.5 right-2 top-1.5 rounded-lg px-4" onClick={() => setCoupon('FRESH20')}>Apply</Button></div>
