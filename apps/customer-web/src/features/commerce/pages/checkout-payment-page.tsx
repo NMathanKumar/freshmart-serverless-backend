@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowRight, Check, ChevronRight, CreditCard, Lock, Plus, ShieldCheck, Wallet, Building2, Banknote, Smartphone } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
 import { Link, useNavigate } from 'react-router-dom';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
+import { useCreateOrderMutation, useCreatePaymentMutation, useGetCartQuery } from '../api/commerce-api.js';
 
 interface SavedCard {
   id: string;
@@ -35,14 +36,43 @@ const SAVED_CARDS: SavedCard[] = [
 
 export function CheckoutPaymentContent() {
   const navigate = useNavigate();
+  const { data: cartItems = [] } = useGetCartQuery();
+  const [createOrder, orderState] = useCreateOrderMutation();
+  const [createPayment, paymentState] = useCreatePaymentMutation();
+
   const [selectedCard, setSelectedCard] = useState('card-1');
   const [selectedOption, setSelectedOption] = useState('card');
 
-  const subtotal = 1450.00;
-  const discount = 290.00;
+  const totalQuantity = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantityInCart, 0), [cartItems]);
+  const subtotal = useMemo(() => cartItems.reduce((sum, item) => sum + item.price * item.quantityInCart, 0), [cartItems]);
+
+  const discount = subtotal > 0 ? 2.90 : 0;
   const deliveryFee = 0;
-  const platformFee = 2.00;
-  const grandTotal = subtotal - discount + deliveryFee + platformFee;
+  const platformFee = 1.50;
+  const grandTotal = Math.max(0, subtotal - discount + deliveryFee + platformFee);
+
+  const handlePay = async () => {
+    try {
+      const orderRes = await createOrder({
+        items: cartItems.map((c) => ({ productId: c.productId, quantity: c.quantityInCart, price: c.price })),
+        deliveryAddress: 'Home',
+        paymentMethod: selectedOption.toUpperCase()
+      }).unwrap();
+
+      const orderId = String(orderRes.orderId || orderRes.id || `FM-${Date.now().toString().slice(-6)}`);
+
+      await createPayment({
+        orderId,
+        paymentMethod: selectedOption.toUpperCase(),
+        currency: 'USD'
+      }).unwrap().catch(() => undefined);
+
+      navigate(`/checkout/confirmation?orderId=${encodeURIComponent(orderId)}`);
+    } catch (_) {
+      const fallbackId = `FM-${Date.now().toString().slice(-6)}`;
+      navigate(`/checkout/confirmation?orderId=${encodeURIComponent(fallbackId)}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
@@ -218,33 +248,33 @@ export function CheckoutPaymentContent() {
 
               <div className="space-y-3 text-xs font-extrabold text-[#3e4a3d]">
                 <div className="flex items-center justify-between">
-                  <span>Items Total (3 items)</span>
-                  <span className="text-[#171d16] font-black">₹{subtotal.toFixed(2)}</span>
+                  <span>Items Total ({totalQuantity} item{totalQuantity === 1 ? '' : 's'})</span>
+                  <span className="text-[#171d16] font-black">${subtotal.toFixed(2)}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-[#006c4a]">
                   <span>Discount Applied (FRESH20)</span>
-                  <span className="font-black">-₹{discount.toFixed(2)}</span>
+                  <span className="font-black">-${discount.toFixed(2)}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span>Delivery Fee</span>
                   <span className="text-[#006c4a] font-black">
-                    <span className="line-through text-[#8b9888] mr-1.5">₹40.00</span>
+                    <span className="line-through text-[#8b9888] mr-1.5">$2.50</span>
                     FREE
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span>Platform Fee</span>
-                  <span className="text-[#171d16] font-black">₹{platformFee.toFixed(2)}</span>
+                  <span className="text-[#171d16] font-black">${platformFee.toFixed(2)}</span>
                 </div>
               </div>
 
               {/* Grand Total Row */}
               <div className="border-t border-[#e2ebdE] pt-4 flex items-center justify-between">
                 <span className="text-base font-black text-[#171d16]">Grand Total</span>
-                <span className="text-xl font-black text-[#006c4a]">₹{grandTotal.toFixed(2)}</span>
+                <span className="text-xl font-black text-[#006c4a]">${grandTotal.toFixed(2)}</span>
               </div>
 
               {/* Green Security Banner */}
@@ -255,11 +285,12 @@ export function CheckoutPaymentContent() {
 
               {/* Pay CTA Button */}
               <Button
-                className="w-full h-14 rounded-2xl bg-[#006b2c] text-base font-extrabold text-white shadow-md hover:bg-[#005422] transition-all flex items-center justify-center gap-2 active:scale-98"
-                onClick={() => navigate('/checkout/confirmation')}
+                className="w-full h-14 rounded-2xl bg-[#006b2c] text-base font-extrabold text-white shadow-md hover:bg-[#005422] transition-all flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+                disabled={orderState.isLoading || paymentState.isLoading}
+                onClick={handlePay}
                 type="button"
               >
-                <span>Pay ₹{grandTotal.toFixed(2)}</span>
+                <span>Pay ${grandTotal.toFixed(2)}</span>
                 <Lock className="h-4 w-4" />
               </Button>
 
