@@ -212,13 +212,23 @@ const AddressManagementContent = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Field error={errors.city?.message} label="City">
-                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" {...register('city')} />
+                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="San Francisco" {...register('city')} />
                 </Field>
                 <Field error={errors.state?.message} label="State">
-                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" {...register('state')} />
+                  <select
+                    className="h-11 rounded-xl bg-[#f8fbf5] border border-[#bdcaba]/60 px-4 text-xs font-bold text-[#171d16] w-full focus:ring-2 focus:ring-[#006b2c] focus:bg-white cursor-pointer"
+                    {...register('state')}
+                  >
+                    <option value="California">California</option>
+                    <option value="New York">New York</option>
+                    <option value="Texas">Texas</option>
+                    <option value="Florida">Florida</option>
+                    <option value="Illinois">Illinois</option>
+                    <option value="Washington">Washington</option>
+                  </select>
                 </Field>
                 <Field error={errors.postalCode?.message} label="PIN Code">
-                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" {...register('postalCode')} />
+                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="94105" {...register('postalCode')} />
                 </Field>
               </div>
 
@@ -229,7 +239,7 @@ const AddressManagementContent = () => {
                   {(['Home', 'Work', 'Other'] as const).map((label) => (
                     <button
                       key={label}
-                      className={`flex items-center gap-2 rounded-full border-2 px-5 py-2 text-xs font-extrabold transition-all ${
+                      className={`flex items-center gap-2 rounded-full border-2 px-5 py-2 text-xs font-extrabold transition-all cursor-pointer ${
                         type === label
                           ? 'border-[#006b2c] bg-[#006b2c] text-white shadow-xs'
                           : 'border-[#bdcaba]/60 bg-white text-[#3e4a3d] hover:border-[#006b2c]'
@@ -245,12 +255,15 @@ const AddressManagementContent = () => {
               </div>
 
               {/* Default Address Checkbox Switch */}
-              <div className="flex items-center justify-between rounded-2xl bg-[#eff6ea] p-4 border border-[#bdcaba]/30">
+              <div className="flex items-center justify-between rounded-2xl bg-[#eff6ea] p-4 border border-[#bdcaba]/30 cursor-pointer" onClick={() => setValue('isDefault', !type)}>
                 <span className="flex items-center gap-2 text-xs font-extrabold text-[#171d16]">
                   <CheckCircle2 className="h-4 w-4 text-[#006b2c]" />
                   <span>Set as default address</span>
                 </span>
-                <input className="h-4 w-4 accent-[#006b2c]" type="checkbox" {...register('isDefault')} />
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input className="sr-only peer" type="checkbox" {...register('isDefault')} />
+                  <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#006b2c]" />
+                </label>
               </div>
 
               {/* Submit / Cancel Buttons */}
