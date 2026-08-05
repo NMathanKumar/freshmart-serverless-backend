@@ -309,8 +309,9 @@ export const addOrUpdateStoredCartItem = (newItem: Record<string, unknown>): Car
   if (existingIdx >= 0) {
     const target = current[existingIdx];
     const newQty = typeof newItem.quantity === 'number' ? newItem.quantity : (target.quantityInCart + 1);
+    const newImg = typeof newItem.imageUrl === 'string' && newItem.imageUrl.length > 0 ? newItem.imageUrl : target.imageUrl;
     updated = current.map((item, idx) =>
-      idx === existingIdx ? { ...item, quantityInCart: newQty } : item
+      idx === existingIdx ? { ...item, quantityInCart: newQty, imageUrl: newImg } : item
     );
   } else {
     const fullItem: CartLine = {
@@ -320,7 +321,7 @@ export const addOrUpdateStoredCartItem = (newItem: Record<string, unknown>): Car
       quantity: String(newItem.quantity || '1 Unit'),
       price: Number(newItem.price ?? 4.99),
       originalPrice: typeof newItem.originalPrice === 'number' ? newItem.originalPrice : undefined,
-      imageUrl: typeof newItem.imageUrl === 'string' ? newItem.imageUrl : 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png',
+      imageUrl: typeof newItem.imageUrl === 'string' && newItem.imageUrl.length > 0 ? newItem.imageUrl : 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png',
       quantityInCart: typeof newItem.quantity === 'number' ? newItem.quantity : 1,
       stockLabel: 'In stock - Delivery in 15 mins'
     };

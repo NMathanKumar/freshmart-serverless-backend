@@ -166,40 +166,46 @@ export const homeApi = authApi.injectEndpoints({
       },
       providesTags: ['CustomerHome', 'Cart']
     }),
-    addHomeProductToCart: builder.mutation<Record<string, unknown>, { productId: string }>({
-      queryFn: async ({ productId }) => {
-        let price = 2.99;
-        let productName = 'FreshMart Item';
-        let imageUrl: string | undefined = undefined;
+    addHomeProductToCart: builder.mutation<Record<string, unknown>, { productId: string; name?: string; price?: number; brand?: string; imageUrl?: string | null }>({
+      queryFn: async ({ productId, name: inputName, price: inputPrice, brand: inputBrand, imageUrl: inputImageUrl }) => {
+        let price = inputPrice ?? 2.99;
+        let productName = inputName ?? 'FreshMart Item';
+        let imageUrl: string | undefined = typeof inputImageUrl === 'string' ? inputImageUrl : undefined;
+        let brand = inputBrand ?? 'FreshMart';
 
-        try {
-          const raw = unwrap(await sdk.catalog.getProduct(productId));
-          const detail = typeof raw === 'object' && raw !== null && 'data' in raw
-            ? ((raw as { data: unknown }).data as Record<string, unknown>)
-            : (raw as unknown as Record<string, unknown>);
-          price = Number(detail.price ?? 2.99);
-          productName = String(detail.productName ?? detail.name ?? productId);
-          imageUrl = typeof detail.imageUrl === 'string'
-            ? detail.imageUrl
-            : Array.isArray(detail.images) && typeof detail.images[0] === 'string'
-              ? detail.images[0]
-              : undefined;
-        } catch (_) {
-          const match = defaultProducts.find((p) => p.productId === productId);
-          if (match) {
-            price = match.price;
-            productName = match.name;
-            imageUrl = match.images[0];
+        if (!inputImageUrl || !inputName) {
+          try {
+            const raw = unwrap(await sdk.catalog.getProduct(productId));
+            const detail = typeof raw === 'object' && raw !== null && 'data' in raw
+              ? ((raw as { data: unknown }).data as Record<string, unknown>)
+              : (raw as unknown as Record<string, unknown>);
+            price = Number(detail.price ?? price);
+            productName = String(detail.productName ?? detail.name ?? productName);
+            imageUrl = typeof detail.imageUrl === 'string'
+              ? detail.imageUrl
+              : Array.isArray(detail.images) && typeof detail.images[0] === 'string'
+                ? detail.images[0]
+                : imageUrl;
+            brand = String(detail.brand ?? brand);
+          } catch (_) {
+            const match = defaultProducts.find((p) => p.productId === productId);
+            if (match) {
+              price = match.price;
+              productName = match.name;
+              imageUrl = match.images[0];
+              brand = match.brand;
+            }
           }
         }
 
-        // Add to local persistent cart storage
+        // Add to local persistent cart storage with full image details
         const { addOrUpdateStoredCartItem } = await import('../../commerce/model/commerce-content.js');
         const updatedLocalCart = addOrUpdateStoredCartItem({
           productId,
           productName,
           name: productName,
           price,
+          brand,
           imageUrl
         });
 

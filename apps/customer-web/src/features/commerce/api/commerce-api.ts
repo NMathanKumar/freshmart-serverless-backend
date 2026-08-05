@@ -231,20 +231,27 @@ export const commerceApi = authApi.injectEndpoints({
       },
       providesTags: ['CommerceCart' as never, 'Cart' as never]
     }),
-    updateCartItem: builder.mutation<Record<string, unknown>, { productId: string; quantity: number }>({
-      queryFn: async ({ productId, quantity }) => {
+    updateCartItem: builder.mutation<Record<string, unknown>, { productId: string; quantity: number; name?: string; price?: number; brand?: string; imageUrl?: string }>({
+      queryFn: async ({ productId, quantity, name, price, brand, imageUrl }) => {
         const { addOrUpdateStoredCartItem, removeStoredCartItem } = await import('../model/commerce-content.js');
         if (quantity <= 0) {
           removeStoredCartItem(productId);
         } else {
-          addOrUpdateStoredCartItem({ productId, quantity });
+          addOrUpdateStoredCartItem({ productId, quantity, name, price, brand, imageUrl });
         }
 
         try {
           if (quantity > 1) {
             await sdk.cart.updateItem(productId, { quantity });
           } else if (quantity === 1) {
-            await sdk.cart.saveCart({ ...(await loadProductSnapshot(productId)), quantity });
+            await sdk.cart.saveCart({
+              productId,
+              quantity: 1,
+              price: price ?? 4.99,
+              productName: name ?? productId,
+              imageUrl,
+              available: true
+            });
           } else {
             await sdk.cart.removeItem(productId);
           }

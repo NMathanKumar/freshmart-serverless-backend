@@ -11,7 +11,14 @@ export const ProductCard = ({ product }: { product: ProductViewModel }) => {
   const [addToCart, request] = useAddHomeProductToCartMutation();
   const add = async () => {
     try {
-      await addToCart({ productId: product.productId }).unwrap();
+      const payload = {
+        productId: product.productId,
+        name: product.name,
+        price: product.price,
+        brand: product.brand || undefined,
+        imageUrl: product.imageUrl || undefined
+      };
+      await addToCart(payload as never).unwrap();
       setAdded(true);
       window.setTimeout(() => setAdded(false), 1500);
     } catch {

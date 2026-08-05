@@ -16,7 +16,14 @@ export const CommerceProductCard = ({ product, variant = 'grid' }: { product: Co
   const [updateCart, updateState] = useUpdateCartItemMutation();
   const add = async () => {
     try {
-      await updateCart({ productId: product.productId, quantity: 1 }).unwrap();
+      await updateCart({
+        productId: product.productId,
+        quantity: 1,
+        name: product.name,
+        price: product.price,
+        brand: product.brand,
+        imageUrl: product.imageUrl
+      }).unwrap();
       setAdded(true);
       window.setTimeout(() => setAdded(false), 1400);
     } catch {
