@@ -40,7 +40,7 @@ export function CartContent() {
 
   return (
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
-      <HomeHeader cartCount={totalQuantity} />
+      <HomeHeader />
 
       <main className="mx-auto max-w-7xl px-6 md:px-8 pb-16 pt-24 space-y-8">
         
@@ -135,7 +135,7 @@ export function CartContent() {
 
                         <button
                           className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 transition-colors"
-                          onClick={() => void removeCartItem({ productId: item.productId })}
+                          onClick={() => void removeCartItem({ productId: item.productId }).unwrap().catch(() => undefined)}
                           type="button"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

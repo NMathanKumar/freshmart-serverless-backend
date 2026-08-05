@@ -280,16 +280,16 @@ const CART_STORAGE_KEY = 'freshmart_active_cart_v1';
 export const getStoredCart = (): CartLine[] => {
   try {
     const raw = localStorage.getItem(CART_STORAGE_KEY);
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed as CartLine[];
       }
     }
   } catch (_) {
     // Fallback if localStorage is unavailable
   }
-  return cartLines;
+  return [];
 };
 
 export const saveStoredCart = (items: CartLine[]): void => {
