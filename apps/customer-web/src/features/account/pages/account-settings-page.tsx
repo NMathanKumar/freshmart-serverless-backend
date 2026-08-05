@@ -56,7 +56,7 @@ const AccountSettingsContent = () => {
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
       <HomeHeader variant="cart" />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pb-16 pt-24 space-y-8">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8 pb-16 pt-24 space-y-7">
 
         {/* Top Hero Banner: User Identity & Credit */}
         <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -65,7 +65,7 @@ const AccountSettingsContent = () => {
             <div className="relative">
               <img
                 alt={profile.fullName}
-                className="h-20 w-20 rounded-full object-cover border-2 border-[#006b2c] p-0.5"
+                className="h-20 w-20 rounded-full object-cover border-2 border-white shadow-xs p-0.5"
                 src={profile.avatarUrl}
               />
               <button
@@ -82,7 +82,7 @@ const AccountSettingsContent = () => {
             </div>
 
             {/* Name & Badges */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <h1 className="text-2xl font-black text-[#171d16] tracking-tight">
                 Good afternoon, {profile.fullName.split(' ')[0]}
               </h1>
@@ -90,10 +90,10 @@ const AccountSettingsContent = () => {
                 {profile.email} • Member since {profile.memberSince}
               </p>
               <div className="flex items-center gap-2 pt-1">
-                <span className="rounded-full bg-[#dcfce7] px-3 py-0.5 text-[11px] font-black text-[#006c4a]">
+                <span className="rounded-full bg-[#6ee7b7]/30 px-3 py-0.5 text-[11px] font-extrabold text-[#006c4a]">
                   {profile.tier}
                 </span>
-                <span className="rounded-full bg-[#f1f5f9] px-3 py-0.5 text-[11px] font-black text-[#64748b]">
+                <span className="rounded-full bg-[#e2ebdE]/50 px-3 py-0.5 text-[11px] font-extrabold text-[#6e7b6c]">
                   Free Delivery Active
                 </span>
               </div>
@@ -102,7 +102,7 @@ const AccountSettingsContent = () => {
 
           {/* Wallet Credit Badge Button */}
           <div className="flex sm:justify-end">
-            <div className="inline-flex items-center gap-2.5 rounded-2xl bg-[#006b2c] px-5 py-3 text-xs font-extrabold text-white shadow-md hover:bg-[#005422] transition-all cursor-pointer">
+            <div className="inline-flex items-center gap-2 rounded-2xl bg-[#006b2c] px-5 py-3 text-xs font-extrabold text-white shadow-xs hover:bg-[#005422] transition-all cursor-pointer">
               <CreditCard className="h-4 w-4" />
               <span>Credit: {profile.creditBalance}</span>
             </div>
@@ -110,7 +110,7 @@ const AccountSettingsContent = () => {
         </div>
 
         {/* Main 2-Column Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-7 items-start">
 
           {/* Left Column: Sidebar Menu */}
           <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-3 shadow-xs space-y-1">
@@ -123,7 +123,7 @@ const AccountSettingsContent = () => {
                 <Package className="h-4 w-4 text-[#006b2c]" />
                 <span>My Orders</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#8b9888]" />
+              <ChevronRight className="h-4 w-4 text-[#bdcaba]" />
             </Link>
 
             <Link
@@ -134,7 +134,7 @@ const AccountSettingsContent = () => {
                 <Heart className="h-4 w-4 text-[#006b2c]" />
                 <span>Wishlist</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#8b9888]" />
+              <ChevronRight className="h-4 w-4 text-[#bdcaba]" />
             </Link>
 
             <Link
@@ -145,7 +145,7 @@ const AccountSettingsContent = () => {
                 <MapPin className="h-4 w-4 text-[#006b2c]" />
                 <span>Addresses</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#8b9888]" />
+              <ChevronRight className="h-4 w-4 text-[#bdcaba]" />
             </Link>
 
             <button
@@ -158,7 +158,7 @@ const AccountSettingsContent = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-rose-500" />
-                <ChevronRight className="h-4 w-4 text-[#8b9888]" />
+                <ChevronRight className="h-4 w-4 text-[#bdcaba]" />
               </div>
             </button>
 
@@ -170,11 +170,11 @@ const AccountSettingsContent = () => {
                 <HelpCircle className="h-4 w-4 text-[#006b2c]" />
                 <span>Help Center</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#8b9888]" />
+              <ChevronRight className="h-4 w-4 text-[#bdcaba]" />
             </button>
 
             <button
-              className="w-full flex items-center justify-between rounded-2xl bg-[#eff6ea] px-4 py-3 text-xs font-black text-[#006b2c] shadow-2xs cursor-pointer"
+              className="w-full flex items-center justify-between rounded-2xl bg-[#eff6ea] px-4 py-3 text-xs font-black text-[#006b2c] cursor-pointer"
               type="button"
             >
               <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ const AccountSettingsContent = () => {
                 <Info className="h-4 w-4 text-[#006b2c]" />
                 <span>About FreshMart</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#8b9888]" />
+              <ChevronRight className="h-4 w-4 text-[#bdcaba]" />
             </button>
 
             <div className="pt-2 border-t border-[#e2ebdE]">
@@ -210,7 +210,7 @@ const AccountSettingsContent = () => {
           {/* Right Column: Dashboard Content */}
           <div className="space-y-6">
 
-            {/* Widget 1: Recent Order (AWS Live Data) */}
+            {/* Widget 1: Recent Order */}
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <h2 className="text-base font-black text-[#171d16]">Recent Order</h2>
@@ -223,7 +223,7 @@ const AccountSettingsContent = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* Status */}
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-[#eff6ea] flex items-center justify-center text-[#006b2c]">
+                    <div className="h-10 w-10 rounded-2xl bg-[#006b2c] flex items-center justify-center text-white shadow-xs">
                       <Truck className="h-5 w-5" />
                     </div>
                     <div>
@@ -249,7 +249,7 @@ const AccountSettingsContent = () => {
                     <div className="flex -space-x-2">
                       <img alt="" className="h-7 w-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=100" />
                       <img alt="" className="h-7 w-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=100" />
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#006b2c] text-[10px] font-black text-white">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#e2ebdE] text-[10px] font-black text-[#3e4a3d]">
                         +{recentOrder?.totalItems ?? 4}
                       </span>
                     </div>

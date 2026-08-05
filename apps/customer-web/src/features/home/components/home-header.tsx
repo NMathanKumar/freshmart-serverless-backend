@@ -50,25 +50,29 @@ export const HomeHeader = ({ cartCount: overrideCartCount, variant }: { cartCoun
           </div>
 
           {/* Clean Figma Navigation Links */}
-          <nav aria-label="Main Navigation" className="flex items-center gap-5 sm:gap-8 text-xs sm:text-sm font-semibold text-[#3e4a3d]">
+          <nav aria-label="Main Navigation" className="flex items-center gap-6 sm:gap-10 text-xs sm:text-sm font-bold text-[#3e4a3d]">
             <Link className="hover:text-[#006b2c] transition-colors" to="/">Shop</Link>
-            <Link className="hover:text-[#006b2c] transition-colors" to="/search">Search</Link>
-            <Link className="hover:text-[#006b2c] transition-colors" to="/orders">Orders</Link>
-            <Link className="hover:text-[#006b2c] transition-colors" to="/settings">Account</Link>
+            <Link className="hover:text-[#006b2c] transition-colors" to="/offers">Offers</Link>
+            <Link className="text-[#006b2c] font-black border-b-2 border-[#006b2c] pb-1 transition-colors" to="/settings">Profile</Link>
           </nav>
 
           {/* Right Header Controls matching Figma */}
-          <div className="flex items-center gap-4">
-            <Link aria-label="Location" className="text-[#3e4a3d] hover:text-[#006b2c] transition-colors" to="/">
-              <MapPin className="h-5 w-5" />
+          <div className="flex items-center gap-4 text-[#3e4a3d]">
+            <Link aria-label="Search" className="hover:text-[#006b2c] transition-colors p-1" to="/search">
+              <Search className="h-5 w-5" />
             </Link>
 
-            {/* Green Circular Cart Icon Badge */}
-            <Link aria-label={`Cart with ${liveCartCount} items`} className="relative flex items-center justify-center h-10 w-10 rounded-full bg-[#006b2c] text-white shadow-xs hover:bg-[#005422] transition-all" to="/cart">
+            <Link aria-label={`Cart with ${liveCartCount} items`} className="relative flex items-center justify-center p-1 hover:text-[#006b2c] transition-all" to="/cart">
               <ShoppingBag className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-[#f4fcf0]">
-                {liveCartCount}
-              </span>
+              {liveCartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#006b2c] text-[10px] font-black text-white">
+                  {liveCartCount}
+                </span>
+              )}
+            </Link>
+
+            <Link aria-label="Account Profile" className="hover:text-[#006b2c] transition-colors p-1" to="/settings">
+              <UserRound className="h-5 w-5" />
             </Link>
           </div>
         </div>
