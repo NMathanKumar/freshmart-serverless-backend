@@ -1,6 +1,6 @@
 import { ApiClient, ApiError, createFreshMartSdk } from '@freshmart/api-sdk';
 import { authApi } from '../../auth/api/auth-api.js';
-import { sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
+import { isAuthenticated, sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
 import {
   categoryProducts,
   mergeAddresses,
@@ -221,11 +221,14 @@ export const commerceApi = authApi.injectEndpoints({
     }),
     getCart: builder.query<CartLine[], void>({
       queryFn: async () => {
+        const { getStoredCart } = await import('../model/commerce-content.js');
+        if (!isAuthenticated()) {
+          return { data: getStoredCart() };
+        }
         try {
           const remoteCart = await sdk.cart.getCart();
           return { data: mergeCart(remoteCart) };
         } catch (_) {
-          const { getStoredCart } = await import('../model/commerce-content.js');
           return { data: getStoredCart() };
         }
       },
@@ -240,23 +243,25 @@ export const commerceApi = authApi.injectEndpoints({
           addOrUpdateStoredCartItem({ productId, quantity, name, price, brand, imageUrl });
         }
 
-        try {
-          if (quantity > 1) {
-            await sdk.cart.updateItem(productId, { quantity });
-          } else if (quantity === 1) {
-            await sdk.cart.saveCart({
-              productId,
-              quantity: 1,
-              price: price ?? 4.99,
-              productName: name ?? productId,
-              imageUrl,
-              available: true
-            });
-          } else {
-            await sdk.cart.removeItem(productId);
+        if (isAuthenticated()) {
+          try {
+            if (quantity > 1) {
+              await sdk.cart.updateItem(productId, { quantity });
+            } else if (quantity === 1) {
+              await sdk.cart.saveCart({
+                productId,
+                quantity: 1,
+                price: price ?? 4.99,
+                productName: name ?? productId,
+                imageUrl,
+                available: true
+              });
+            } else {
+              await sdk.cart.removeItem(productId);
+            }
+          } catch (_) {
+            // Silently handle remote sync errors
           }
-        } catch (_) {
-          // Ignore remote unauthenticated errors; local cart is updated
         }
 
         return { data: { productId, quantity, success: true } };
