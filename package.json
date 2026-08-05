@@ -12,7 +12,7 @@
     "scaffold:platform": "node scripts/generate-freshmart-platform.mjs",
     "scaffold:hardening-services": "node scripts/scaffold-hardening-services.mjs",
     "openapi:build": "node scripts/build-openapi.mjs",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=@freshmart/shared && npm run build --workspace=@freshmart/platform-core && npm run build --workspaces --if-present",
     "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",
     "test:integration": "node --test --import tsx tests/integration/**/*.test.ts",

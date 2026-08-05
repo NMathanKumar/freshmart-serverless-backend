@@ -84,7 +84,7 @@ export interface CustomerCheckoutResponse {
     address: Record<string, unknown> | null;
     deliveryEstimate: string;
     availablePaymentMethods: string[];
-    coupons: Array<Record<string, unknown>>;
+    discounts: Array<Record<string, unknown>>;
 }
 export interface WishlistResponse {
     items: Array<Record<string, unknown>>;
@@ -366,23 +366,6 @@ export interface AdminReview {
     createdAt: string;
     updatedAt: string;
 }
-export interface AdminCoupon {
-    adminItemId: string;
-    entityType: 'COUPON';
-    data: {
-        code: string;
-        type: string;
-        value: number;
-        minOrderValue?: number;
-        maxDiscount?: number;
-        usageLimit?: number;
-        usageCount?: number;
-        expiresAt?: string;
-    };
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-}
 export interface AdminSupplier {
     adminItemId: string;
     entityType: 'SUPPLIER';
@@ -457,9 +440,6 @@ export type AdminCategoryListResponse = ApiEnvelope<AdminCategory[]> & {
     meta: Record<string, unknown>;
 };
 export type AdminReviewListResponse = ApiEnvelope<AdminReview[]> & {
-    meta: Record<string, unknown>;
-};
-export type AdminCouponListResponse = ApiEnvelope<AdminCoupon[]> & {
     meta: Record<string, unknown>;
 };
 export type AdminSupplierListResponse = ApiEnvelope<AdminSupplier[]> & {

@@ -132,9 +132,18 @@ export const AuditLogs: React.FC = () => {
           <ErrorState description="Failed to load activity logs" onRetry={() => refetch()} />
         ) : logs.length === 0 ? (
           <EmptyState
+            actionLabel="Clear Filters"
             icon={<Filter className="h-8 w-8 text-slate-500" />}
-            title="No logs found"
             description="Try adjusting your filters or search terms."
+            onAction={() => {
+              setPage(1);
+              setSearchTerm('');
+              setSelectedActivity(null);
+              setSelectedResource('ALL');
+              setSelectedRole('ALL');
+            }}
+            secondaryText="Reset the filters to return to the full preview list."
+            title="No logs found"
           />
         ) : (
           <>

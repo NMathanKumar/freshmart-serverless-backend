@@ -25,7 +25,7 @@ export interface CheckoutView {
   cart: CartLine[];
   addresses: AddressView[];
   paymentMethods: string[];
-  coupons: Array<Record<string, unknown>>;
+  discounts: Array<Record<string, unknown>>;
   deliveryEstimate: string;
 }
 
@@ -297,7 +297,7 @@ export const commerceApi = authApi.injectEndpoints({
               cart: mergeCart(cart),
               addresses: mergeAddresses(profile),
               paymentMethods: ['CARD', 'UPI', 'NET_BANKING', 'WALLET', 'COD'],
-              coupons: [],
+              discounts: [],
               deliveryEstimate: '10-20 minutes'
             }
           };

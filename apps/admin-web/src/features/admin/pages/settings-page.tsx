@@ -19,7 +19,7 @@ const SettingsPage = () => {
         actions={[{ disabled: true, label: 'Save Preferences', icon: Settings2, title: 'Coming Soon - Backend not yet available', tone: 'primary' }]}
       />
       <section className="grid gap-6 px-2 pb-4 lg:grid-cols-3 lg:px-4" aria-busy={state === 'loading'}>
-        {state === 'loading' ? <article className="admin-panel col-span-full"><AdminResourceState loadingLabel="Loading settings" rows={3} state="loading" /></article> : null}
+        {state === 'loading' ? <article className="admin-panel col-span-full"><AdminResourceState loadingLabel="Loading settings" rows={3} secondaryText="Preparing the current configuration records." state="loading" /></article> : null}
         {state === 'ready' ? configs.map((config, index) => {
           const Icon = settingsPlaceholders[index % settingsPlaceholders.length]?.icon ?? Settings2;
           const details = Object.entries(config.data).map(([key, value]) => `${key}: ${String(value)}`).join(' · ');
@@ -31,8 +31,8 @@ const SettingsPage = () => {
             </article>
           );
         }) : null}
-        {state === 'empty' ? <article className="admin-panel col-span-full"><AdminResourceState emptyDescription="No administrative settings have been created." emptyTitle="No configuration records" state="empty" /></article> : null}
-        {state === 'error' ? <article className="admin-panel col-span-full"><AdminResourceState errorTitle="Settings could not be loaded" onRetry={retry} state="error" /></article> : null}
+        {state === 'empty' ? <article className="admin-panel col-span-full"><AdminResourceState emptyDescription="No administrative settings have been created." emptyTitle="No configuration records" secondaryText="These records are typically provisioned by the backend." state="empty" /></article> : null}
+        {state === 'error' ? <article className="admin-panel col-span-full"><AdminResourceState errorDescription="Check the connection and retry loading the configuration records." errorTitle="Settings could not be loaded" onRetry={retry} secondaryText="This view is read-only until the backend responds." state="error" /></article> : null}
       </section>
     </AdminShell>
   );

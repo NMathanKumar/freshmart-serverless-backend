@@ -114,11 +114,11 @@ const DeliveryPage = () => {
           </select>
         </section>
 
-        <div className="delivery-workspace mt-4">
+        <div className="delivery-workspace">
           <section className="delivery-list-card" aria-label="Live delivery log">
             <header><h2>Live Delivery Log ({deliveries.length})</h2></header>
             {state === 'loading' ? (
-              <div className="p-8 text-center">Loading deliveries...</div>
+              <AdminResourceState className="delivery-table-state" loadingLabel="Loading deliveries" skeletonClassName="delivery-row-skeleton" state="loading" />
             ) : visibleDeliveries.length > 0 ? (
               <div className="delivery-table-scroll">
                 <table className="delivery-table">

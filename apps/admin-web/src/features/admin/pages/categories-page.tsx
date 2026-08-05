@@ -128,26 +128,35 @@ const CategoriesPage = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+          <select aria-label="Sort categories" value={sort} onChange={(event) => setSort(event.target.value)}>
+            <option value="default">Sort: Default</option>
+            <option value="name">Sort: Name</option>
+            <option value="products">Sort: Products</option>
+            <option value="updated">Sort: Updated</option>
+          </select>
         </div>
 
         <section className="category-table-card" aria-label="Categories">
           {state === 'loading' ? (
-            <div className="p-8 text-center">Loading categories...</div>
+            <AdminResourceState className="category-table-state" loadingLabel="Loading categories" skeletonClassName="category-row-skeleton" state="loading" />
           ) : visibleCategories.length > 0 ? (
             <div className="category-table-scroll">
               <table className="category-table">
                 <thead>
                   <tr>
+                    <th><input aria-label="Select all" type="checkbox" /></th>
                     <th>Category</th>
                     <th>Description</th>
+                    <th>Products</th>
                     <th>Status</th>
-                    <th>Created</th>
+                    <th>Updated</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visibleCategories.map((category) => (
                     <tr key={category.id}>
+                      <td><input aria-label={`Select ${category.name}`} type="checkbox" /></td>
                       <td>
                         <div className="category-name-cell">
                           <img alt="" src={category.image} />
@@ -155,12 +164,13 @@ const CategoriesPage = () => {
                         </div>
                       </td>
                       <td className="category-description">{category.description}</td>
+                      <td><span className="category-product-count">{category.products}</span></td>
                       <td>
                         <span className={`status-pill ${category.active ? 'active' : 'inactive'}`}>
                           {category.active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="category-date">{category.createdAt}</td>
+                      <td className="category-date">{category.updatedAt}</td>
                       <td className="category-menu-cell">
                         <button type="button" aria-label={`Actions for ${category.name}`} onClick={() => setMenuId((current) => current === category.id ? undefined : category.id)}><MoreVertical aria-hidden="true" /></button>
                         {menuId === category.id ? (
@@ -176,7 +186,26 @@ const CategoriesPage = () => {
                 </tbody>
               </table>
             </div>
-          ) : <AdminResourceState className="category-table-state" emptyTitle="No categories found" icon={Grid2x2} state="empty" />}
+          ) : (
+            <AdminResourceState
+              actionLabel="Add Category"
+              className="category-table-state"
+              emptyDescription="Create a category to keep product hierarchy easy to scan."
+              emptyTitle="No categories found"
+              icon={Grid2x2}
+              onAction={() => setDialog({ kind: 'add' })}
+              secondaryText="Use the primary action to create a new category."
+              state="empty"
+            />
+          )}
+          <footer>
+            <span>Showing {visibleCategories.length} of {categories.length} categories</span>
+            <nav className="category-pagination" aria-label="Category pages">
+              <button type="button" disabled aria-label="Previous page"><ChevronLeft aria-hidden="true" /></button>
+              <button className="active" type="button" aria-current="page">1</button>
+              <button type="button" disabled aria-label="Next page"><ChevronRight aria-hidden="true" /></button>
+            </nav>
+          </footer>
         </section>
       </main>
 

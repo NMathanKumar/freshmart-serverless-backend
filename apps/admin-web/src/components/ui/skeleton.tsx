@@ -29,42 +29,42 @@ export const TableSkeleton: React.FC<{ rows?: number; columns?: number }> = ({
   columns = 7,
 }) => {
   return (
-    <div className="bg-white rounded-2xl border border-[#e9f2e7] shadow-sm overflow-hidden animate-pulse">
+    <div className="overflow-hidden rounded-[28px] border border-[var(--admin-outline-soft)] bg-white/95 shadow-[0_12px_32px_rgba(7,48,16,0.06)] animate-pulse">
       {/* Header bar */}
-      <div className="bg-[#f0f7ee] px-6 py-4 border-b border-[#e9f2e7] flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-[var(--admin-outline-soft)] bg-[#f4faef] px-6 py-5">
         <div className="flex items-center gap-3">
-          <Skeleton className="w-5 h-5 rounded" />
-          <Skeleton className="w-24 h-4 rounded" />
+          <Skeleton className="h-5 w-5 rounded-md" />
+          <Skeleton className="h-4 w-28 rounded-full" />
         </div>
-        <Skeleton className="w-32 h-4 rounded" />
+        <Skeleton className="h-4 w-36 rounded-full" />
       </div>
 
       {/* Rows */}
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-[#eef3eb]">
         {Array.from({ length: rows }).map((_, rIdx) => (
-          <div key={rIdx} className="px-6 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 w-1/4">
-              <Skeleton variant="circular" className="w-8 h-8 shrink-0" />
-              <div className="space-y-1.5 w-full">
-                <Skeleton className="w-3/4 h-3.5" />
-                <Skeleton className="w-1/2 h-2.5" />
+          <div key={rIdx} className="flex items-center gap-4 px-6 py-5">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <Skeleton variant="circular" className="h-10 w-10 shrink-0" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/4 rounded-full" />
+                <Skeleton className="h-3 w-1/2 rounded-full" />
               </div>
             </div>
-            {Array.from({ length: columns - 2 }).map((_, cIdx) => (
-              <Skeleton key={cIdx} className="w-16 h-3.5 rounded-full hidden sm:block" />
+            {Array.from({ length: Math.max(columns - 2, 0) }).map((_, cIdx) => (
+              <Skeleton key={cIdx} className="hidden h-4 w-16 rounded-full sm:block" />
             ))}
-            <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+            <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
           </div>
         ))}
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-[#f4fcf0]/50">
-        <Skeleton className="w-40 h-3.5" />
+      <div className="flex items-center justify-between border-t border-[var(--admin-outline-soft)] bg-[#f7fbf3] px-6 py-5">
+        <Skeleton className="h-4 w-44 rounded-full" />
         <div className="flex gap-2">
-          <Skeleton className="w-8 h-8 rounded-lg" />
-          <Skeleton className="w-8 h-8 rounded-lg" />
-          <Skeleton className="w-8 h-8 rounded-lg" />
+          <Skeleton className="h-9 w-9 rounded-xl" />
+          <Skeleton className="h-9 w-9 rounded-xl" />
+          <Skeleton className="h-9 w-9 rounded-xl" />
         </div>
       </div>
     </div>
@@ -73,15 +73,15 @@ export const TableSkeleton: React.FC<{ rows?: number; columns?: number }> = ({
 
 export const CardSkeleton: React.FC = () => {
   return (
-    <div className="bg-white p-6 rounded-2xl border border-[#e9f2e7] shadow-sm space-y-4 animate-pulse">
+    <div className="space-y-4 rounded-[28px] border border-[var(--admin-outline-soft)] bg-white/95 p-6 shadow-[0_12px_32px_rgba(7,48,16,0.06)] animate-pulse">
       <div className="flex items-center justify-between">
-        <Skeleton className="w-28 h-3.5" />
-        <Skeleton variant="circular" className="w-8 h-8" />
+        <Skeleton className="h-3.5 w-28 rounded-full" />
+        <Skeleton variant="circular" className="h-10 w-10" />
       </div>
-      <Skeleton className="w-36 h-8" />
-      <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-        <Skeleton className="w-12 h-5 rounded-full" />
-        <Skeleton className="w-24 h-3" />
+      <Skeleton className="h-8 w-36 rounded-full" />
+      <div className="flex items-center gap-2 border-t border-[#eef3eb] pt-4">
+        <Skeleton className="h-5 w-12 rounded-full" />
+        <Skeleton className="h-3 w-24 rounded-full" />
       </div>
     </div>
   );

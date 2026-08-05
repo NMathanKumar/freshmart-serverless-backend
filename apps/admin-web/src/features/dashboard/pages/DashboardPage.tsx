@@ -5,7 +5,6 @@ import {
   Users,
   AlertTriangle,
   Plus,
-  Ticket,
   MoreVertical,
   AlertCircle,
   RefreshCw,
@@ -92,10 +91,6 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#e8f3e5] text-xs font-bold text-[#0f172a] border border-[#d4e8d1] hover:bg-[#dcefd8] transition-colors">
-            <Ticket className="w-4 h-4 text-slate-600" />
-            <span>Create Coupon</span>
-          </button>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-xs font-bold text-white shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors">
             <Plus className="w-4 h-4" />
             <span>Add Product</span>

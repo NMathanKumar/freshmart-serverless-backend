@@ -136,7 +136,7 @@ const OrdersTableState = ({ onRetry, state }: { onRetry?: () => void; state?: 'e
     return <AdminResourceState className="orders-table-state" loadingLabel="Loading orders" rows={4} state="loading" />;
   }
 
-  return <AdminResourceState className="orders-table-state" emptyTitle="No orders found" icon={ShoppingCart} state="empty" />;
+  return <AdminResourceState className="orders-table-state" emptyDescription="Adjust the filters or refresh to surface more order records." emptyTitle="No orders found" icon={ShoppingCart} onAction={onRetry} actionLabel="Refresh Orders" state="empty" />;
 };
 
 const OrdersPagination = () => (

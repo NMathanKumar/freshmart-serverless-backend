@@ -14,8 +14,6 @@ import type {
   AdminCategoryListResponse,
   AdminReview,
   AdminReviewListResponse,
-  AdminCoupon,
-  AdminCouponListResponse,
   AdminSupplier,
   AdminSupplierListResponse,
   AdminPurchaseOrder,
@@ -384,7 +382,7 @@ export class AdminClient {
 
   // --- Reviews ---
   listReviews(params: AdminListParams = {}) {
-    return this.client.request<AdminReviewListResponse>({ method: 'GET', url: '/v1/admin/reviews', params });
+    return this.client.request<ApiEnvelope<AdminReview[]>>({ method: 'GET', url: '/v1/admin/reviews', params });
   }
   getReview(id: string) {
     return this.client.request<ApiEnvelope<AdminReview>>({ method: 'GET', url: `/v1/admin/reviews/${encodeURIComponent(id)}` });
@@ -401,21 +399,6 @@ export class AdminClient {
   getReviewStatistics() {
     return this.client.request<ApiEnvelope<Record<string, number>>>({ method: 'GET', url: '/v1/admin/reviews/statistics' });
   }
-
-  // --- Coupons ---
-  listCoupons(params: AdminListParams = {}) {
-    return this.client.request<AdminCouponListResponse>({ method: 'GET', url: '/v1/admin/coupons', params });
-  }
-  getCoupon(id: string) {
-    return this.client.request<AdminCoupon>({ method: 'GET', url: `/v1/admin/coupons/${encodeURIComponent(id)}` });
-  }
-  createCoupon(data: Partial<AdminCoupon>) {
-    return this.client.request<AdminCoupon>({ method: 'POST', url: '/v1/admin/coupons', data });
-  }
-  updateCoupon(id: string, data: Partial<AdminCoupon>) {
-    return this.client.request<AdminCoupon>({ method: 'PUT', url: `/v1/admin/coupons/${encodeURIComponent(id)}`, data });
-  }
-
 
   // --- Purchase Orders ---
   listPurchaseOrders(params: AdminListParams = {}) {

@@ -36,7 +36,7 @@ type SidebarProps = {
   footerPrimaryLabel?: string;
   footerUser?: TopbarUser;
   precision?: boolean;
-  precisionVariant?: 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery' | 'coupons';
+  precisionVariant?: 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery';
 };
 
 export const AdminSidebar = ({
@@ -49,7 +49,7 @@ export const AdminSidebar = ({
   precision = false,
   precisionVariant = 'reviews'
 }: SidebarProps) => (
-  <aside className={cn('admin-sidebar admin-panel flex w-full flex-col justify-between p-6 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:max-w-[320px]', precision && 'admin-sidebar-precision', precisionVariant === 'products' && 'admin-sidebar-products', precisionVariant === 'categories' && 'admin-sidebar-categories', precisionVariant === 'inventory' && 'admin-sidebar-inventory', precisionVariant === 'orders' && 'admin-sidebar-orders', precisionVariant === 'suppliers' && 'admin-sidebar-suppliers', precisionVariant === 'purchase-orders' && 'admin-sidebar-purchase-orders', precisionVariant === 'customers' && 'admin-sidebar-customers', precisionVariant === 'delivery' && 'admin-sidebar-delivery', precisionVariant === 'coupons' && 'admin-sidebar-coupons')}>
+  <aside className={cn('admin-sidebar admin-panel flex w-full flex-col justify-between p-6 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:max-w-[320px]', precision && 'admin-sidebar-precision', precisionVariant === 'products' && 'admin-sidebar-products', precisionVariant === 'categories' && 'admin-sidebar-categories', precisionVariant === 'inventory' && 'admin-sidebar-inventory', precisionVariant === 'orders' && 'admin-sidebar-orders', precisionVariant === 'suppliers' && 'admin-sidebar-suppliers', precisionVariant === 'purchase-orders' && 'admin-sidebar-purchase-orders', precisionVariant === 'customers' && 'admin-sidebar-customers', precisionVariant === 'delivery' && 'admin-sidebar-delivery')}>
     <div>
       <div className={cn('mb-10 flex items-start gap-4', precision && 'admin-brand-precision')}>
         {!precision || precisionVariant === 'inventory' ? (
@@ -111,12 +111,12 @@ type TopbarProps = {
   compactUser?: boolean;
   hideUser?: boolean;
   precision?: boolean;
-  precisionVariant?: 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery' | 'coupons';
+  precisionVariant?: 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery';
   onSearch?: (value: string) => void;
 };
 
 export const AdminTopbar = ({ compactUser = false, hideUser = false, onSearch, placeholder, precision = false, precisionVariant = 'reviews', user }: TopbarProps) => (
-  <header className={cn('admin-topbar admin-panel sticky top-0 z-20 flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8', precision && 'admin-topbar-precision', precisionVariant === 'products' && 'admin-topbar-products', precisionVariant === 'categories' && 'admin-topbar-categories', precisionVariant === 'inventory' && 'admin-topbar-inventory', precisionVariant === 'orders' && 'admin-topbar-orders', precisionVariant === 'suppliers' && 'admin-topbar-suppliers', precisionVariant === 'purchase-orders' && 'admin-topbar-purchase-orders', precisionVariant === 'customers' && 'admin-topbar-customers', precisionVariant === 'delivery' && 'admin-topbar-delivery', precisionVariant === 'coupons' && 'admin-topbar-coupons')}>
+  <header className={cn('admin-topbar admin-panel sticky top-0 z-20 flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8', precision && 'admin-topbar-precision', precisionVariant === 'products' && 'admin-topbar-products', precisionVariant === 'categories' && 'admin-topbar-categories', precisionVariant === 'inventory' && 'admin-topbar-inventory', precisionVariant === 'orders' && 'admin-topbar-orders', precisionVariant === 'suppliers' && 'admin-topbar-suppliers', precisionVariant === 'purchase-orders' && 'admin-topbar-purchase-orders', precisionVariant === 'customers' && 'admin-topbar-customers', precisionVariant === 'delivery' && 'admin-topbar-delivery')}>
     <label className="admin-search flex min-h-[58px] items-center gap-3 rounded-[22px] px-5 lg:w-[580px]">
       <Search className="h-6 w-6 text-[var(--admin-muted)]" aria-hidden="true" />
       <input
@@ -160,11 +160,11 @@ type LayoutProps = {
   topbar: ReactNode;
   children: ReactNode;
   precision?: boolean;
-  precisionVariant?: 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery' | 'coupons';
+  precisionVariant?: 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery';
 };
 
 export const AdminLayout = ({ sidebar, topbar, children, precision = false, precisionVariant = 'reviews' }: LayoutProps) => (
-  <div className={cn('admin-page min-h-screen p-3 lg:p-6', precision && 'admin-reference-layout', precisionVariant === 'products' && 'admin-products-layout', precisionVariant === 'categories' && 'admin-categories-layout', precisionVariant === 'inventory' && 'admin-inventory-layout', precisionVariant === 'orders' && 'admin-orders-layout', precisionVariant === 'suppliers' && 'admin-suppliers-layout', precisionVariant === 'purchase-orders' && 'admin-purchase-orders-layout', precisionVariant === 'customers' && 'admin-customers-layout', precisionVariant === 'delivery' && 'admin-delivery-layout', precisionVariant === 'coupons' && 'admin-coupons-layout')}>
+  <div className={cn('admin-page min-h-screen p-3 lg:p-6', precision && 'admin-reference-layout', precisionVariant === 'products' && 'admin-products-layout', precisionVariant === 'categories' && 'admin-categories-layout', precisionVariant === 'inventory' && 'admin-inventory-layout', precisionVariant === 'orders' && 'admin-orders-layout', precisionVariant === 'suppliers' && 'admin-suppliers-layout', precisionVariant === 'purchase-orders' && 'admin-purchase-orders-layout', precisionVariant === 'customers' && 'admin-customers-layout', precisionVariant === 'delivery' && 'admin-delivery-layout')}>
     <div className="mx-auto flex max-w-[1600px] flex-col gap-4 lg:flex-row">
       {sidebar}
       <div className={cn('min-w-0 flex-1', !precision && 'space-y-4')}>
@@ -192,17 +192,17 @@ type PageHeaderProps = {
 };
 
 export const AdminPageHeader = ({ eyebrow, title, description, actions = [] }: PageHeaderProps) => (
-  <section className="flex flex-col gap-6 px-2 pt-4 lg:flex-row lg:items-start lg:justify-between lg:px-4">
-    <div>
+  <section className="flex flex-col gap-5 px-2 pt-3 lg:flex-row lg:items-end lg:justify-between lg:px-4 lg:pt-4">
+    <div className="max-w-[760px]">
       {eyebrow ? <div className="mb-2 text-[15px] text-[var(--admin-muted)]">{eyebrow}</div> : null}
-      <h1 className="text-[32px] font-bold leading-none tracking-[-0.03em] text-[var(--admin-text)] lg:text-[56px]">{title}</h1>
-      <p className="mt-3 max-w-[760px] text-[18px] text-[#495648] lg:text-[20px]">{description}</p>
+      <h1 className="text-[32px] font-bold leading-[0.95] tracking-[-0.04em] text-[var(--admin-text)] lg:text-[54px]">{title}</h1>
+      <p className="mt-3 text-[16px] leading-7 text-[#4f5c4d] lg:text-[18px]">{description}</p>
     </div>
     {actions.length ? (
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3 lg:items-center">
         {actions.map(({ disabled, label, icon: Icon, onClick, title, tone = 'secondary' }) => (
           <button key={label} type="button" disabled={disabled} onClick={onClick} title={title} className={cn('admin-button', tone === 'primary' ? 'admin-button-primary' : 'admin-button-secondary')}>
-            {Icon ? <Icon className="h-5 w-5" aria-hidden="true" /> : null}
+            {Icon ? <Icon className="h-5 w-5 shrink-0" aria-hidden="true" /> : null}
             {label}
           </button>
         ))}
@@ -220,10 +220,10 @@ const iconToneClasses = {
 export const MetricsGrid = ({ items }: { items: Metric[] }) => (
   <div className="grid gap-5 px-2 lg:grid-cols-4 lg:px-4">
     {items.map(({ badge, icon: Icon, subtitle, title, tone = 'neutral', value }) => (
-      <article key={title} className="admin-metric-card p-6 lg:p-8">
-        <div className="mb-8 flex items-start justify-between gap-3">
-          <span className={cn('inline-flex h-18 w-18 items-center justify-center rounded-[22px]', iconToneClasses[tone])}>
-            <Icon className="h-8 w-8" aria-hidden="true" />
+      <article key={title} className="admin-metric-card p-6 lg:p-7">
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <span className={cn('inline-flex h-16 w-16 items-center justify-center rounded-[22px]', iconToneClasses[tone])}>
+            <Icon className="h-7 w-7" aria-hidden="true" />
           </span>
           {badge ? (
             <span className={cn('admin-stat-badge', tone === 'danger' ? 'bg-[#ffe6eb] text-[var(--admin-danger)]' : 'bg-[#e0f8ea] text-[var(--admin-primary)]')}>
@@ -231,9 +231,9 @@ export const MetricsGrid = ({ items }: { items: Metric[] }) => (
             </span>
           ) : null}
         </div>
-        <div className="text-[18px] text-[#4e5b4d]">{title}</div>
-        <div className={cn('mt-2 text-[34px] font-bold leading-none lg:text-[56px]', tone === 'danger' && 'text-[var(--admin-danger)]')}>{value}</div>
-        {subtitle ? <div className={cn('mt-4 text-[14px] lg:text-[16px]', tone === 'danger' ? 'text-[var(--admin-danger)]' : 'text-[#566253]')}>{subtitle}</div> : null}
+        <div className="text-[17px] text-[#4e5b4d]">{title}</div>
+        <div className={cn('mt-2 text-[32px] font-bold leading-none lg:text-[54px]', tone === 'danger' && 'text-[var(--admin-danger)]')}>{value}</div>
+        {subtitle ? <div className={cn('mt-4 text-[14px] leading-6 lg:text-[15px]', tone === 'danger' ? 'text-[var(--admin-danger)]' : 'text-[#566253]')}>{subtitle}</div> : null}
       </article>
     ))}
   </div>
@@ -281,7 +281,7 @@ export const PanelHeader = ({
   badge?: string;
   actions?: ReactNode;
 }) => (
-  <div className="flex flex-col gap-4 border-b border-[var(--admin-outline-soft)] px-6 py-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+  <div className="flex flex-col gap-4 border-b border-[var(--admin-outline-soft)] px-6 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8">
     <div className="flex items-center gap-4">
       <h2 className="text-[24px] font-semibold tracking-[-0.02em]">{title}</h2>
       {badge ? <span className="admin-mini-tag">{badge}</span> : null}
@@ -373,7 +373,7 @@ export const DataTable = ({
   <div className={cn('grid gap-6', rightPanel && 'lg:grid-cols-[minmax(0,1fr)_380px]')}>
     <div className="admin-panel overflow-hidden">
       <div className="grid min-w-full grid-cols-1">
-        <div className="hidden border-b border-[var(--admin-outline-soft)] px-8 py-7 text-[15px] font-semibold uppercase tracking-[0.08em] text-[#536151] lg:grid" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
+        <div className="hidden border-b border-[var(--admin-outline-soft)] px-8 py-6 text-[14px] font-semibold uppercase tracking-[0.08em] text-[#536151] lg:grid" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
           {columns.map((column) => (
             <div key={column}>{column}</div>
           ))}

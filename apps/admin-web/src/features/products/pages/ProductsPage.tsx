@@ -848,7 +848,14 @@ export const ProductsPage: React.FC = () => {
                   {displayProducts.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="p-0">
-                        <EmptyState title="No products found in database" description="Click 'Add Product' above to create a new product item." icon={<Package className="w-8 h-8 text-slate-300 mx-auto" />} />
+                        <EmptyState
+                          actionLabel="Add Product"
+                          description="Click Add Product to create a new catalog item."
+                          icon={<Package className="w-8 h-8 text-slate-300 mx-auto" />}
+                          onAction={handleOpenCreateForm}
+                          secondaryText="You can also adjust the filters to surface archived or inactive items."
+                          title="No products found in database"
+                        />
                       </td>
                     </tr>
                   ) : (

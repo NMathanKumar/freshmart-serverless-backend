@@ -12,9 +12,9 @@ import { CommerceState, ListSkeleton } from '../components/commerce-state.js';
 
 const CartContent = () => {
   const { data = [], isError, isLoading, refetch } = useGetCartQuery();
-  const [coupon, setCoupon] = useState('');
+  const [promoCode, setPromoCode] = useState('');
   const subtotal = useMemo(() => data.reduce((sum, item) => sum + item.price * item.quantityInCart, 0), [data]);
-  const discount = coupon.trim().toUpperCase() === 'FRESH20' ? subtotal * 0.2 : 0;
+  const discount = promoCode.trim().toUpperCase() === 'FRESH20' ? subtotal * 0.2 : 0;
   const taxes = subtotal * 0.079;
   const total = subtotal + taxes + 1 - discount;
 
@@ -36,14 +36,14 @@ const CartContent = () => {
                   <Row label="Delivery Fee" value="Free" muted="$2.50" />
                   <Row label="Platform Fee" value="$1.00" />
                   <Row label="Taxes" value={`$${taxes.toFixed(2)}`} />
-                  {discount > 0 && <Row label="Coupon Discount (FRESH20)" value={`-$${discount.toFixed(2)}`} success />}
+                  {discount > 0 && <Row label="Promo Discount (FRESH20)" value={`-$${discount.toFixed(2)}`} success />}
                 </div>
                 <div className="mb-6 border-t border-[#bdcaba]/40 pt-4">
                   <div className="mb-1 flex items-center justify-between"><span className="text-xl font-semibold">Grand Total</span><span className="text-xl font-semibold text-[#006b2c]">${total.toFixed(2)}</span></div>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#d8f4ce] px-3 py-1 text-sm font-semibold text-[#3f6d2a]"><Tag className="h-4 w-4" />Estimated Savings: ${(2.5 + discount).toFixed(2)}</span>
                 </div>
                 <div className="space-y-4">
-                  <div className="relative"><Input className="h-12 rounded-xl pr-24" onChange={(event) => setCoupon(event.target.value)} placeholder="Apply Coupon" value={coupon} /><Button className="absolute bottom-1.5 right-2 top-1.5 rounded-lg px-4" onClick={() => setCoupon('FRESH20')}>Apply</Button></div>
+                  <div className="relative"><Input className="h-12 rounded-xl pr-24" onChange={(event) => setPromoCode(event.target.value)} placeholder="Apply Promo" value={promoCode} /><Button className="absolute bottom-1.5 right-2 top-1.5 rounded-lg px-4" onClick={() => setPromoCode('FRESH20')}>Apply</Button></div>
                   <Link className="commerce-focus inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#006b2c] px-5 py-4 text-base font-semibold text-white shadow-lg shadow-[rgba(26,127,55,0.22)] transition-all hover:bg-[#00873a]" to={`${customerRoutePaths.checkout}?step=payment`}>Proceed to Checkout<ArrowRight className="h-4 w-4" /></Link>
                   <Link className="block text-center font-semibold text-[#006b2c] hover:underline" to={customerRoutePaths.home}>Continue Shopping</Link>
                 </div>

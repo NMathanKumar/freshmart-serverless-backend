@@ -20,7 +20,6 @@ const OrdersPage = lazy(() => import('./features/orders').then((m) => ({ default
 const CustomersPage = lazy(() => import('./features/customers').then((m) => ({ default: m.CustomersPage })));
 const SuppliersPage = lazy(() => import('./features/suppliers').then((m) => ({ default: m.SuppliersPage })));
 const PurchaseOrdersPage = lazy(() => import('./features/purchase-orders').then((m) => ({ default: m.PurchaseOrdersPage })));
-const CouponsPage = lazy(() => import('./features/coupons').then((m) => ({ default: m.CouponsPage })));
 const AnalyticsPage = lazy(() => import('./features/analytics').then((m) => ({ default: m.AnalyticsPage })));
 const ProcurementDashboard = lazy(() => import('./features/analytics/pages/ProcurementDashboard').then((m) => ({ default: m.ProcurementDashboard })));
 const ReportsPage = lazy(() => import('./features/reports').then((m) => ({ default: m.ReportsPage })));
@@ -231,12 +230,6 @@ const purchaseOrdersRoute = createRoute({
   component: PurchaseOrdersPage,
 });
 
-const couponsRoute = createRoute({
-  getParentRoute: () => protectedLayoutRoute,
-  path: '/coupons',
-  component: CouponsPage,
-});
-
 const analyticsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/analytics',
@@ -347,7 +340,6 @@ const routeTree = rootRoute.addChildren([
     customersRoute,
     suppliersRoute,
     purchaseOrdersRoute,
-    couponsRoute,
     analyticsRoute,
     procurementAnalyticsRoute,
     reportsRoute,

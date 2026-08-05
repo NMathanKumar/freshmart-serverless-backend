@@ -80,7 +80,7 @@ const InventoryToolbar = ({
 
 const InventoryStatus = ({ value }: { value: InventoryRecord['status'] }) => <span className={`inventory-status ${value.toLowerCase().replaceAll(' ', '-')}`}><i />{value}</span>;
 
-const InventoryTableState = ({ onRetry, state }: { onRetry: () => void; state: Exclude<InventoryLoadState, 'ready'> }) => <AdminResourceState className="inventory-table-state" emptyTitle="No inventory items found" errorDescription="Try loading the inventory list again." errorTitle="Inventory could not be loaded" icon={Archive} loadingLabel="Loading inventory" onRetry={onRetry} skeletonClassName="inventory-row-skeleton" state={state} />;
+const InventoryTableState = ({ onRetry, state }: { onRetry: () => void; state: Exclude<InventoryLoadState, 'ready'> }) => <AdminResourceState className="inventory-table-state" actionLabel="Refresh Inventory" emptyDescription="Refresh the inventory feed or broaden the warehouse filters." emptyTitle="No inventory items found" errorDescription="Try loading the inventory list again." errorTitle="Inventory could not be loaded" icon={Archive} loadingLabel="Loading inventory" onAction={onRetry} onRetry={onRetry} secondaryText="New products automatically appear here once the backend responds." skeletonClassName="inventory-row-skeleton" state={state} />;
 
 const InventoryWidgets = ({ items }: { items: InventoryRecord[] }) => {
   const recentlyUpdated = items.slice(0, 3);

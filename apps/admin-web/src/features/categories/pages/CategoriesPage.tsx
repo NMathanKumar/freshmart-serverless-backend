@@ -234,7 +234,13 @@ export const CategoriesPage: React.FC = () => {
               {displayCategories.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-0">
-                    <EmptyState title="No categories found" description="Create a new category to organize your products." />
+                    <EmptyState
+                      actionLabel="Add Category"
+                      description="Create a new category to organize your products."
+                      onAction={() => setIsModalOpen(true)}
+                      secondaryText="Categories keep the catalog easy to browse and filter."
+                      title="No categories found"
+                    />
                   </td>
                 </tr>
               ) : (

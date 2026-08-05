@@ -10,7 +10,6 @@ const OrdersPage = lazy(() => import('../features/admin/pages/orders-page.js'));
 const InventoryPage = lazy(() => import('../features/admin/pages/inventory-page.js'));
 const CustomersPage = lazy(() => import('../features/admin/pages/customers-page.js'));
 const DeliveryPage = lazy(() => import('../features/admin/pages/delivery-page.js'));
-const CouponsPage = lazy(() => import('../features/admin/pages/coupons-page.js'));
 const ReviewsPage = lazy(() => import('../features/admin/pages/reviews-page.js'));
 const SuppliersPage = lazy(() => import('../features/admin/pages/suppliers-page.js'));
 const PurchaseOrdersPage = lazy(() => import('../features/admin/pages/purchase-orders-page.js'));
@@ -57,7 +56,6 @@ export const AppRouter = () => (
         <Route path={adminRoutePaths.inventory} element={<InventoryPage />} />
         <Route path={adminRoutePaths.customers} element={<CustomersPage />} />
         <Route path="/delivery" element={<DeliveryPage />} />
-        <Route path="/coupons" element={<CouponsPage />} />
         <Route path="/reviews" element={<ReviewsPage />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />

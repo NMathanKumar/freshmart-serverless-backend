@@ -1,18 +1,17 @@
 import {
   createFreshMartSdk,
-  type AdminCategoryListResponse,
   type AdminDashboardResponse,
   type AdminEntity,
   type AdminDeliveryListResponse,
   type AdminCustomerListResponse,
   type AdminCustomerStatus,
-  type AdminCouponListResponse,
   type AdminListParams,
   type AdminOrderListResponse,
   type AdminOrderStatus,
   type AdminProfileResponse,
   type AdminPurchaseOrderListResponse,
-  type AdminReviewListResponse,
+  type AdminCategory,
+  type AdminReview,
   type AdminSupplierListResponse,
   type ApiEnvelope,
   type InventorySummary,
@@ -38,7 +37,16 @@ export const fetchDashboard = async (): Promise<AdminDashboardResponse> =>
   unwrapApiData(await adminSdk.admin.getDashboard());
 
 export const fetchAdminConfig = async (): Promise<AdminEntity[]> =>
-  unwrapApiData(await adminSdk.admin.getConfig());
+  Object.entries(unwrapApiData(await adminSdk.admin.getSettings())).map(([adminItemId, value]) => ({
+    adminItemId,
+    entityType: 'SETTING',
+    data: (value && typeof value === 'object' ? value : { value }) as Record<string, unknown>,
+    status: 'ACTIVE',
+    createdAt: null,
+    updatedAt: null,
+    createdBy: null,
+    version: 1
+  }));
 
 export const fetchAdminProfile = async (): Promise<AdminProfileResponse> =>
   unwrapApiData(await adminSdk.auth.me());
@@ -92,8 +100,8 @@ export const fetchAdminCustomers = async (params: Parameters<typeof adminSdk.adm
 export const updateCustomerStatus = async (customerId: string, status: string) =>
   adminSdk.admin.updateCustomerStatus(customerId, status as AdminCustomerStatus);
 
-export const fetchAdminCategories = async (params: AdminListParams = {}): Promise<AdminCategoryListResponse> =>
-  adminSdk.admin.listCategories(params);
+export const fetchAdminCategories = async (params: AdminListParams = {}): Promise<ApiEnvelope<AdminCategory[]>> =>
+  adminSdk.admin.listCategories(params as Record<string, unknown>);
 
 export const createCategory = async (payload: Record<string, unknown>) =>
   adminSdk.admin.createCategory(payload);
@@ -104,7 +112,7 @@ export const updateCategory = async (id: string, payload: Record<string, unknown
 export const deleteCategory = async (id: string) =>
   adminSdk.admin.deleteCategory(id);
 
-export const fetchAdminReviews = async (params: AdminListParams = {}): Promise<AdminReviewListResponse> =>
+export const fetchAdminReviews = async (params: AdminListParams = {}): Promise<ApiEnvelope<AdminReview[]>> =>
   adminSdk.admin.listReviews(params);
 
 export const moderateReview = async (id: string, payload: Record<string, unknown>) =>
@@ -112,21 +120,6 @@ export const moderateReview = async (id: string, payload: Record<string, unknown
 
 export const deleteReview = async (id: string) =>
   adminSdk.admin.deleteReview(id);
-
-export const fetchAdminCoupons = async (params: AdminListParams = {}): Promise<AdminCouponListResponse> =>
-  adminSdk.admin.listCoupons(params);
-
-export const createCoupon = async (payload: Record<string, unknown>) =>
-  adminSdk.admin.createCoupon(payload);
-
-export const updateCoupon = async (id: string, payload: Record<string, unknown>) =>
-  adminSdk.admin.updateCoupon(id, payload);
-
-export const updateCouponStatus = async (id: string, status: string) =>
-  adminSdk.admin.updateCouponStatus(id, status);
-
-export const deleteCoupon = async (id: string) =>
-  adminSdk.admin.deleteCoupon(id);
 
 export const fetchAdminSuppliers = async (params: AdminListParams = {}): Promise<AdminSupplierListResponse> =>
   adminSdk.admin.listSuppliers(params);

@@ -81,7 +81,7 @@ export interface CustomerCheckoutResponse {
   address: Record<string, unknown> | null;
   deliveryEstimate: string;
   availablePaymentMethods: string[];
-  coupons: Array<Record<string, unknown>>;
+  discounts: Array<Record<string, unknown>>;
 }
 
 export interface WishlistResponse {
@@ -419,36 +419,6 @@ export interface AdminReview {
   updatedAt: string;
 }
 
-export interface AdminCoupon {
-  couponId: string;
-  code: string;
-  title: string;
-  description?: string;
-  discountType: 'PERCENTAGE' | 'FIXED' | 'FREE_SHIPPING';
-  discountValue: number;
-  maximumDiscount?: number;
-  minimumOrderValue?: number;
-  usageLimit?: number;
-  perUserLimit?: number;
-  currentUsage: number;
-  startDate?: string;
-  endDate?: string;
-  applicableCategories?: string[];
-  applicableProducts?: string[];
-  excludedProducts?: string[];
-  excludedCategories?: string[];
-  customerEligibility?: 'ALL' | 'NEW_USER' | 'SPECIFIC_USERS';
-  stackable: boolean;
-  active: boolean;
-  status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED' | 'DELETED';
-  createdBy?: string;
-  updatedBy?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type CustomerCoupon = Omit<AdminCoupon, 'createdBy' | 'updatedBy' | 'status' | 'currentUsage' | 'usageLimit' | 'perUserLimit'>;
-
 export interface AdminSupplier {
   adminItemId: string;
   entityType: 'SUPPLIER';
@@ -595,7 +565,6 @@ export interface AdminListParams {
 
 export type AdminCategoryListResponse = { items: AdminCategory[] };
 export type AdminReviewListResponse = { items: AdminReview[] };
-export type AdminCouponListResponse = { items: AdminCoupon[] };
 export type AdminPurchaseOrderListResponse = ApiEnvelope<AdminPurchaseOrder[]> & { meta: Record<string, unknown> };
 export type AdminDeliveryListResponse = ApiEnvelope<AdminDelivery[]> & { meta: Record<string, unknown> };
 export type AdminWarehouseListResponse = ApiEnvelope<AdminWarehouse[]> & { meta?: Record<string, unknown> };

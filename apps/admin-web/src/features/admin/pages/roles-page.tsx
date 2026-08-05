@@ -68,7 +68,7 @@ const roles: Role[] = [
   { assignedUsers: 1, created: 'Feb 22, 2026', description: 'Read-only customer support access with limited order updates.', history: [{ action: 'Invitation accepted', actor: 'Priya Shah', time: '3 weeks ago' }], id: 'ROLE-004', name: 'Support Agent', permissionCount: 14, status: 'Draft', updated: 'Jul 02, 2026', users: teamMembers.slice(3) }
 ];
 
-const permissionRows = ['Products', 'Inventory', 'Orders', 'Customers', 'Coupons', 'Delivery', 'Reports', 'Analytics', 'Settings', 'Audit Logs'];
+const permissionRows = ['Products', 'Inventory', 'Orders', 'Customers', 'Delivery', 'Reports', 'Analytics', 'Settings', 'Audit Logs'];
 const permissionColumns = ['View', 'Create', 'Update', 'Delete', 'Export', 'Approve'];
 const allowedPermissions = new Set(['Products-View', 'Inventory-View', 'Orders-View', 'Customers-View', 'Delivery-View', 'Reports-View', 'Analytics-View', 'Audit Logs-View', 'Products-Create', 'Products-Update', 'Inventory-Update', 'Orders-Update', 'Orders-Approve', 'Reports-Export', 'Analytics-Export']);
 const roleActivity = [

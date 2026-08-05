@@ -20,7 +20,6 @@ import {
   SquareChartGantt,
   Star,
   Store,
-  Ticket,
   Truck,
   UserCog,
   Users
@@ -94,7 +93,6 @@ export const retailNav: NavItem[] = [
   { label: 'Categories', path: '/categories', icon: Grid2x2 },
   { label: 'Customers', path: '/customers', icon: Users },
   { label: 'Delivery', path: '/delivery', icon: Truck },
-  { label: 'Coupons', path: '/coupons', icon: Ticket },
   { label: 'Reviews', path: '/reviews', icon: MessageSquareText },
   { label: 'Settings', path: '/settings', icon: UserCog }
 ];
@@ -126,6 +124,23 @@ export const procurementNav: NavItem[] = [
   { label: 'Users', path: '/suppliers', icon: Users },
   { label: 'Analytics', path: '/analytics', icon: SquareChartGantt },
   { label: 'Settings', path: '/settings', icon: UserCog }
+];
+
+export const unifiedNav: NavItem[] = [
+  { label: 'Dashboard',       path: '/',               icon: LayoutDashboard },
+  { label: 'Products',        path: '/products',        icon: Store },
+  { label: 'Categories',      path: '/categories',      icon: Grid2x2 },
+  { label: 'Inventory',       path: '/inventory',       icon: Box },
+  { label: 'Orders',          path: '/orders',          icon: ShoppingCart },
+  { label: 'Customers',       path: '/customers',       icon: Users },
+  { label: 'Suppliers',       path: '/suppliers',       icon: BriefcaseBusiness },
+  { label: 'Purchase Orders', path: '/purchase-orders', icon: Package },
+  { label: 'Delivery',        path: '/delivery',        icon: Truck },
+  { label: 'Reviews',         path: '/reviews',         icon: MessageSquareText },
+  { label: 'Analytics',       path: '/analytics',       icon: ChartNoAxesColumnIncreasing },
+  { label: 'Activity',        path: '/activity',        icon: Activity },
+  { label: 'Roles',           path: '/roles',           icon: ShieldCheck },
+  { label: 'Settings',        path: '/settings',        icon: UserCog }
 ];
 
 export const dashboardMetrics: Metric[] = [
@@ -436,47 +451,6 @@ export const deliveryRows = [
     eta: '15:10',
     etaSub: '',
     status: 'Pending'
-  }
-];
-
-export const couponRows = [
-  {
-    code: 'FRESH50',
-    campaign: 'Spring Launch 2024',
-    type: 'Percentage',
-    value: '50%',
-    validity: 'Apr 01 -\nMay 30',
-    expiry: 'Expires in 12 days',
-    usage: '1,240\n/ 5,000',
-    status: 'Active'
-  },
-  {
-    code: 'WELCOME10',
-    campaign: 'New User Onboarding',
-    type: 'Flat Amount',
-    value: '$10.00',
-    validity: 'Unlimited',
-    usage: '8,450\n/ ∞',
-    status: 'Active'
-  },
-  {
-    code: 'WINTER23',
-    campaign: 'Clearance Sale',
-    type: 'Percentage',
-    value: '25%',
-    validity: 'Expired\nDec 31',
-    usage: '5,000\n/ 5,000',
-    status: 'Inactive'
-  },
-  {
-    code: 'VEGGIE20',
-    campaign: 'Organic Produce Promo',
-    type: 'Percentage',
-    value: '20%',
-    validity: 'May 01 -\nMay 15',
-    expiry: 'Starts in 3 days',
-    usage: '0 /\n2,500',
-    status: 'Scheduled'
   }
 ];
 

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   Clock3,
   FileCheck2,
@@ -129,7 +131,7 @@ const PurchaseOrdersPage = () => {
         <div className="purchase-orders-workspace">
           <section className="purchase-orders-list-card" aria-label="Purchase order list">
             {state === 'loading' ? (
-              <div className="p-8 text-center">Loading purchase orders...</div>
+              <AdminResourceState className="purchase-order-table-state" loadingLabel="Loading purchase orders" skeletonClassName="purchase-order-row-skeleton" state="loading" />
             ) : visibleOrders.length > 0 ? (
               <div className="purchase-orders-table-scroll">
                 <table className="purchase-orders-table">
@@ -170,7 +172,14 @@ const PurchaseOrdersPage = () => {
                   </tbody>
                 </table>
               </div>
-            ) : <AdminResourceState className="purchase-order-table-state" emptyTitle="No purchase orders found" icon={ShoppingCart} state="empty" />}
+            ) : <AdminResourceState className="purchase-order-table-state" actionLabel="Create Purchase Order" emptyDescription="Start a new procurement request to populate this workspace." emptyTitle="No purchase orders found" icon={ShoppingCart} onAction={() => openDialog('create')} secondaryText="Use the primary action to begin a new purchase order." state="empty" />}
+            <footer>
+              <span>Showing {visibleOrders.length} of {orders.length} purchase orders</span>
+              <nav className="purchase-order-pagination" aria-label="Purchase order pages">
+                <button type="button" disabled aria-label="Previous page"><ChevronLeft aria-hidden="true" /></button>
+                <button type="button" disabled aria-label="Next page"><ChevronRight aria-hidden="true" /></button>
+              </nav>
+            </footer>
           </section>
         </div>
       </main>

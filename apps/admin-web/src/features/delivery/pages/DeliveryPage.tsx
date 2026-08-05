@@ -148,7 +148,13 @@ export const DeliveryPage: React.FC = () => {
             ) : isError ? (
               <ErrorState description="Failed to load deliveries" onRetry={() => refetch()} />
             ) : deliveries.length === 0 ? (
-              <EmptyState title="No Deliveries" description="There are no active deliveries at the moment." />
+              <EmptyState
+                actionLabel="Refresh Deliveries"
+                description="There are no active deliveries at the moment."
+                onAction={() => refetch()}
+                secondaryText="Refresh to check whether new delivery records are available."
+                title="No Deliveries"
+              />
             ) : (
               <table className="w-full text-left text-xs">
                 <thead>

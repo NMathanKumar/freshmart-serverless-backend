@@ -58,7 +58,7 @@ const ProductToolbar = () => (
   </div>
 );
 
-const ProductTableState = ({ onRetry, state }: { onRetry: () => void; state: Exclude<ProductLoadState, 'ready'> }) => <AdminResourceState className="product-table-state" emptyDescription="Adjust the filters to view more products." emptyTitle="No products found" errorDescription="Try refreshing the product list." errorTitle="Products could not be loaded" icon={PackageSearch} loadingLabel="Loading products" onRetry={onRetry} skeletonClassName="product-row-skeleton" state={state} />;
+const ProductTableState = ({ onAction, onRetry, state }: { onAction: () => void; onRetry: () => void; state: Exclude<ProductLoadState, 'ready'> }) => <AdminResourceState className="product-table-state" actionLabel="Add Product" emptyDescription="Adjust the filters to view more products." emptyTitle="No products found" errorDescription="Try refreshing the product list." errorTitle="Products could not be loaded" icon={PackageSearch} loadingLabel="Loading products" onAction={onAction} onRetry={onRetry} secondaryText="Create a new product or broaden the filters to surface archived items." skeletonClassName="product-row-skeleton" state={state} />;
 
 const ProductStatus = ({ value }: { value: string }) => (
   <span className={`product-status ${value.toLowerCase()}`}><i />{value}</span>
@@ -72,7 +72,7 @@ const ProductPagination = ({ canNext, canPrevious, onNext, onPrevious, page }: {
   </nav>
 );
 
-const ProductTable = ({ canNext, canPrevious, onEdit, onNext, onPrevious, onRetry, page, rows, state }: { canNext: boolean; canPrevious: boolean; onEdit: (productId: string) => void; onNext: () => void; onPrevious: () => void; onRetry: () => void; page: number; rows: ProductRow[]; state: ProductLoadState }) => (
+const ProductTable = ({ canNext, canPrevious, onAddProduct, onEdit, onNext, onPrevious, onRetry, page, rows, state }: { canNext: boolean; canPrevious: boolean; onAddProduct: () => void; onEdit: (productId: string) => void; onNext: () => void; onPrevious: () => void; onRetry: () => void; page: number; rows: ProductRow[]; state: ProductLoadState }) => (
   <section className="product-table-card" aria-label="Products">
     <ProductToolbar />
     {state === 'ready' ? (
@@ -121,7 +121,7 @@ const ProductTable = ({ canNext, canPrevious, onEdit, onNext, onPrevious, onRetr
           </tbody>
         </table>
       </div>
-    ) : <ProductTableState onRetry={onRetry} state={state} />}
+    ) : <ProductTableState onAction={onAddProduct} onRetry={onRetry} state={state} />}
     <footer>
       <span>Showing {rows.length === 0 ? 0 : 1} to {rows.length} of {rows.length} loaded products</span>
       <ProductPagination canNext={canNext} canPrevious={canPrevious} onNext={onNext} onPrevious={onPrevious} page={page} />
@@ -193,7 +193,7 @@ const ProductsPage = () => {
           <button type="button" onClick={() => setDialogProduct(null)}><PlusCircle aria-hidden="true" />Add Product</button>
         </header>
         <ProductSummary />
-        <ProductTable canNext={Boolean(productPage?.nextCursor)} canPrevious={cursorHistory.length > 0} onEdit={(productId) => setDialogProduct(products.find((product) => product.productId === productId) ?? null)} onNext={nextPage} onPrevious={previousPage} onRetry={retry} page={cursorHistory.length + 1} rows={rows} state={loadState} />
+        <ProductTable canNext={Boolean(productPage?.nextCursor)} canPrevious={cursorHistory.length > 0} onAddProduct={() => setDialogProduct(null)} onEdit={(productId) => setDialogProduct(products.find((product) => product.productId === productId) ?? null)} onNext={nextPage} onPrevious={previousPage} onRetry={retry} page={cursorHistory.length + 1} rows={rows} state={loadState} />
       </main>
       <ProductDialog onClose={() => setDialogProduct(undefined)} onSave={saveProduct} open={dialogProduct !== undefined} product={dialogProduct} />
     </AdminShell>

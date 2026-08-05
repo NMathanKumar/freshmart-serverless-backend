@@ -1,4 +1,4 @@
-import type { AdminCustomer, AdminCustomerListParams, AdminCustomerListResponse, AdminCustomerStatus, AdminDashboardResponse, AdminEntity, AdminOrder, AdminOrderListParams, AdminOrderListResponse, AdminOrderStatus, ApiEnvelope, AdminCategory, AdminCategoryListResponse, AdminReview, AdminReviewListResponse, AdminCoupon, AdminCouponListResponse, AdminSupplier, AdminSupplierListResponse, AdminPurchaseOrder, AdminPurchaseOrderListResponse, AdminDelivery, AdminDeliveryListResponse, AdminListParams } from '../contracts/domain.js';
+import type { AdminCustomer, AdminCustomerListParams, AdminCustomerListResponse, AdminCustomerStatus, AdminDashboardResponse, AdminEntity, AdminOrder, AdminOrderListParams, AdminOrderListResponse, AdminOrderStatus, ApiEnvelope, AdminCategory, AdminCategoryListResponse, AdminReview, AdminReviewListResponse, AdminSupplier, AdminSupplierListResponse, AdminPurchaseOrder, AdminPurchaseOrderListResponse, AdminDelivery, AdminDeliveryListResponse, AdminListParams } from '../contracts/domain.js';
 import { ApiClient } from '../http/create-api-client.js';
 export declare class AdminClient {
     private readonly client;
@@ -15,7 +15,6 @@ export declare class AdminClient {
     listCustomers(params?: AdminCustomerListParams): Promise<AdminCustomerListResponse>;
     getCustomer(customerId: string): Promise<ApiEnvelope<AdminCustomer>>;
     updateCustomerStatus(customerId: string, status: AdminCustomerStatus): Promise<ApiEnvelope<AdminCustomer>>;
-    getConfig(): Promise<ApiEnvelope<AdminEntity<Record<string, unknown>>[]>>;
     updateConfig(payload: {
         configKey: string;
         data: Record<string, unknown>;
@@ -30,18 +29,12 @@ export declare class AdminClient {
     createCategory(data: Partial<AdminCategory['data']>): Promise<ApiEnvelope<AdminCategory>>;
     updateCategory(id: string, data: Partial<AdminCategory['data']>): Promise<ApiEnvelope<AdminCategory>>;
     deleteCategory(id: string): Promise<ApiEnvelope<null>>;
-    listReviews(params?: AdminListParams): Promise<AdminReviewListResponse>;
+    listReviews(params?: AdminListParams): Promise<ApiEnvelope<AdminReview[]>>;
     getReview(id: string): Promise<ApiEnvelope<AdminReview>>;
     updateReview(id: string, data: Partial<AdminReview['data']> & {
         status?: string;
     }): Promise<ApiEnvelope<AdminReview>>;
     deleteReview(id: string): Promise<ApiEnvelope<null>>;
-    listCoupons(params?: AdminListParams): Promise<AdminCouponListResponse>;
-    getCoupon(id: string): Promise<ApiEnvelope<AdminCoupon>>;
-    createCoupon(data: Partial<AdminCoupon['data']>): Promise<ApiEnvelope<AdminCoupon>>;
-    updateCoupon(id: string, data: Partial<AdminCoupon['data']>): Promise<ApiEnvelope<AdminCoupon>>;
-    updateCouponStatus(id: string, status: string): Promise<ApiEnvelope<AdminCoupon>>;
-    deleteCoupon(id: string): Promise<ApiEnvelope<null>>;
     listSuppliers(params?: AdminListParams): Promise<AdminSupplierListResponse>;
     getSupplier(id: string): Promise<ApiEnvelope<AdminSupplier>>;
     createSupplier(data: Partial<AdminSupplier['data']>): Promise<ApiEnvelope<AdminSupplier>>;

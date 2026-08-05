@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { AdminLayout, AdminSidebar, AdminTopbar } from './admin-components.js';
-import { adminUsers, catalogNav, operationsNav, procurementNav, retailNav } from '../model/mock-data.js';
+import { adminUsers, catalogNav, operationsNav, procurementNav, retailNav, unifiedNav } from '../model/mock-data.js';
 import { fetchAdminProfile } from '../api/admin-api.js';
 import { useApiResource } from '../hooks/use-api-resource.js';
 
-type ShellVariant = 'retail' | 'operations' | 'procurement' | 'catalog';
-type PrecisionVariant = 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery' | 'coupons';
+type ShellVariant = 'unified' | 'retail' | 'operations' | 'procurement' | 'catalog';
+type PrecisionVariant = 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery';
 
 type AdminShellProps = {
   searchPlaceholder: string;
@@ -24,7 +24,7 @@ export const AdminShell = ({
   precisionVariant = 'reviews',
   searchPlaceholder,
   user = 'main',
-  variant = 'retail'
+  variant = 'unified'
 }: AdminShellProps) => {
   const { data: profile } = useApiResource(fetchAdminProfile);
   const fallbackUser = adminUsers[user];
@@ -33,13 +33,15 @@ export const AdminShell = ({
     name: profile?.name || profile?.email || fallbackUser.name,
     role: profile?.role || fallbackUser.role
   };
-  const nav = variant === 'operations'
-    ? operationsNav
-    : variant === 'procurement'
-      ? procurementNav
-      : variant === 'catalog'
-        ? catalogNav
-        : retailNav;
+  const nav = variant === 'unified'
+    ? unifiedNav
+    : variant === 'operations'
+      ? operationsNav
+      : variant === 'procurement'
+        ? procurementNav
+        : variant === 'catalog'
+          ? catalogNav
+          : retailNav;
   const usesEnterpriseShell = precisionVariant === 'inventory' || precisionVariant === 'orders' || precisionVariant === 'suppliers' || precisionVariant === 'purchase-orders';
   const footerPrimaryLabel = variant === 'procurement' || usesEnterpriseShell ? 'New Report' : 'New Product';
   const brandSubtitle = variant === 'procurement' || usesEnterpriseShell ? 'Enterprise Portal' : 'Admin Portal';

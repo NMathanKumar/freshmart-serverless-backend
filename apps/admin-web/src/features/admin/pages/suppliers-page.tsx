@@ -3,6 +3,8 @@ import {
   AlertCircle,
   Building2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   Clock3,
   MoreVertical,
@@ -126,7 +128,7 @@ const SuppliersPage = () => {
           <section className="supplier-list-card" aria-label="Supplier list">
             <header><h2>Active Suppliers ({suppliers.length})</h2></header>
             {state === 'loading' ? (
-              <div className="p-8 text-center">Loading suppliers...</div>
+              <AdminResourceState className="supplier-table-state" loadingLabel="Loading suppliers" skeletonClassName="supplier-row-skeleton" state="loading" />
             ) : visibleSuppliers.length > 0 ? (
               <div className="supplier-table-scroll">
                 <table className="supplier-table">
@@ -176,7 +178,15 @@ const SuppliersPage = () => {
                   </tbody>
                 </table>
               </div>
-            ) : <AdminResourceState className="supplier-table-state" emptyTitle="No suppliers found" icon={Building2} state="empty" />}
+            ) : <AdminResourceState className="supplier-table-state" actionLabel="Add Supplier" emptyDescription="Create a supplier record to expand the sourcing network." emptyTitle="No suppliers found" icon={Building2} onAction={() => openDialog('add')} secondaryText="You can start a new supplier profile from here." state="empty" />}
+            <footer>
+              <span>Showing {visibleSuppliers.length} of {suppliers.length} suppliers</span>
+              <nav className="supplier-pagination" aria-label="Supplier pages">
+                <button type="button" disabled aria-label="Previous page"><ChevronLeft aria-hidden="true" /></button>
+                <button className="active" type="button" aria-current="page">1</button>
+                <button type="button" disabled aria-label="Next page"><ChevronRight aria-hidden="true" /></button>
+              </nav>
+            </footer>
           </section>
         </div>
       </main>

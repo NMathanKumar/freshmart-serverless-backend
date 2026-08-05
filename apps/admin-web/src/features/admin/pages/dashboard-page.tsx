@@ -6,7 +6,6 @@ import {
   Clock3,
   PackageOpen,
   Plus,
-  Ticket,
   TrendingUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -156,7 +155,7 @@ const DashboardPage = () => {
     <AdminShell searchPlaceholder="Search orders, inventory, customers..." user="alex" variant="operations">
       <main className="dashboard-screen">
         <div className="dashboard-sticky-header">
-          <AdminPageHeader title="Executive Overview" description="Real-time performance metrics for FreshMart global operations." actions={[{ disabled: true, label: 'Create Coupon', icon: Ticket, title: 'Coming Soon - Backend not yet available' }, { label: 'Add Product', icon: Plus, onClick: () => navigate(adminRoutePaths.products), tone: 'primary' }]} />
+          <AdminPageHeader title="Executive Overview" description="Real-time performance metrics for FreshMart global operations." actions={[{ label: 'Add Product', icon: Plus, onClick: () => navigate(adminRoutePaths.products), tone: 'primary' }]} />
         </div>
         <DashboardKpis loading={state === 'loading'} metrics={metrics} />
         {state === 'error' ? <div className="dashboard-error" role="alert"><CircleAlert aria-hidden="true" /><span><strong>Dashboard data could not be loaded.</strong> Check the connection and try again.</span><button type="button" onClick={retry}>Retry</button></div> : null}
