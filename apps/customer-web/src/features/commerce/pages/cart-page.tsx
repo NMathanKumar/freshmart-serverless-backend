@@ -62,7 +62,7 @@ export function CartContent() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] lg:grid-cols-[1.6fr_1fr] gap-6 lg:gap-8 items-start w-full">
+          <div className="grid grid-cols-[1fr_300px] sm:grid-cols-[1fr_340px] md:grid-cols-[1fr_360px] lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 items-start w-full">
 
             {/* Left Column: Cart Products (Guaranteed Left Column) */}
             <div className="space-y-4 min-w-0 w-full">
