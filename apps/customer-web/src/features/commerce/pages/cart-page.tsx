@@ -62,17 +62,17 @@ export function CartContent() {
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 lg:gap-8 items-start w-full">
 
-            {/* Left Column: Cart Items List (Products on Left) */}
-            <div className="w-full md:w-[58%] lg:w-[62%] space-y-4">
+            {/* Left Column: Cart Products (Guaranteed Left Column) */}
+            <div className="sm:col-span-7 lg:col-span-8 space-y-4 min-w-0">
               {cartItems.map((item) => (
                 <div
                   key={item.productId}
-                  className="rounded-[24px] border border-[#e2ebdE] bg-white p-5 shadow-xs transition-all hover:shadow-md flex flex-col sm:flex-row gap-5"
+                  className="rounded-[24px] border border-[#e2ebdE] bg-white p-4 sm:p-5 shadow-xs transition-all hover:shadow-md flex flex-col sm:flex-row gap-4 sm:gap-5"
                 >
                   {/* Thumbnail Image Box */}
-                  <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eff6ea] p-2 border border-[#bdcaba]/30 flex items-center justify-center">
+                  <div className="h-24 w-24 sm:h-28 sm:w-28 shrink-0 overflow-hidden rounded-2xl bg-[#eff6ea] p-2 border border-[#bdcaba]/30 flex items-center justify-center">
                     <img
                       alt={item.name}
                       className="h-full w-full object-contain mix-blend-multiply"
@@ -82,14 +82,14 @@ export function CartContent() {
                   </div>
 
                   {/* Item Details */}
-                  <div className="flex-1 flex flex-col justify-between space-y-3">
+                  <div className="flex-1 flex flex-col justify-between space-y-3 min-w-0">
                     <div>
                       <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h3 className="text-base font-extrabold text-[#171d16]">{item.name}</h3>
+                        <div className="min-w-0">
+                          <h3 className="text-base font-extrabold text-[#171d16] truncate">{item.name}</h3>
                           <p className="text-xs font-bold text-[#8b9888] mt-0.5">{item.brand}</p>
                         </div>
-                        <span className="text-base font-black text-[#006c4a]">{formatUSD(item.price)}</span>
+                        <span className="text-base font-black text-[#006c4a] shrink-0">{formatUSD(item.price)}</span>
                       </div>
 
                       <p className="mt-1 flex items-center gap-1 text-[11px] font-extrabold text-[#006c4a]">
@@ -99,7 +99,7 @@ export function CartContent() {
                     </div>
 
                     {/* Bottom Actions Row */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                       {/* Quantity Selector Pill */}
                       <div className="flex items-center gap-3 rounded-full border border-[#bdcaba]/60 bg-[#eff6ea] px-3.5 py-1 shadow-xs">
                         <button
@@ -122,7 +122,7 @@ export function CartContent() {
                       </div>
 
                       {/* Save for later & Remove triggers */}
-                      <div className="flex items-center gap-4 text-xs font-extrabold">
+                      <div className="flex items-center gap-3 sm:gap-4 text-xs font-extrabold">
                         <button
                           className={`inline-flex items-center gap-1 transition-colors ${
                             savedForLater[item.productId] ? 'text-[#006c4a]' : 'text-[#8b9888] hover:text-[#171d16]'
@@ -149,10 +149,10 @@ export function CartContent() {
               ))}
             </div>
 
-            {/* Right Column: Price Details Card & Checkout (Price Details on Right) */}
-            <div className="w-full md:w-[42%] lg:w-[38%] sticky top-24 space-y-4">
+            {/* Right Column: Price Details Card & Checkout (Guaranteed Right Column) */}
+            <div className="sm:col-span-5 lg:col-span-4 min-w-0 sticky top-24 space-y-4">
 
-              <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-6 md:p-8 shadow-xs space-y-6">
+              <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-5 sm:p-6 shadow-xs space-y-6">
                 <h2 className="text-lg font-black tracking-tight text-[#171d16]">Price Details</h2>
 
                 <div className="space-y-3 text-xs font-extrabold text-[#3e4a3d]">
@@ -229,13 +229,13 @@ export function CartContent() {
               </div>
 
               {/* Secure Transactions Banner */}
-              <div className="rounded-[24px] border border-[#bdcaba]/30 bg-[#eff6ea] p-4.5 flex items-center gap-4 shadow-xs">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#006c4a] shadow-xs">
-                  <ShieldCheck className="h-6 w-6 stroke-[2.5]" />
+              <div className="rounded-[24px] border border-[#bdcaba]/30 bg-[#eff6ea] p-4 flex items-center gap-3.5 shadow-xs">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[#006c4a] shadow-xs">
+                  <ShieldCheck className="h-5 w-5 stroke-[2.5]" />
                 </div>
                 <div>
                   <h4 className="text-xs font-black text-[#171d16]">Secure Transactions</h4>
-                  <p className="text-xs font-semibold text-[#8b9888]">Your payment is 100% safe and encrypted.</p>
+                  <p className="text-[11px] font-semibold text-[#8b9888]">Your payment is 100% safe and encrypted.</p>
                 </div>
               </div>
 
