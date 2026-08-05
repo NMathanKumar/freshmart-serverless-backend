@@ -60,6 +60,7 @@ export const AppRouter = () => (
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/privacy-security" element={<RequireAuth><PrivacySecurityPage /></RequireAuth>} />
         <Route path="/system-states" element={<SystemStatesPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path={authPaths.login} element={<LoginPage />} />
         <Route path={authPaths.register} element={<RegisterPage />} />
         <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />

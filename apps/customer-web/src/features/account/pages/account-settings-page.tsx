@@ -2,6 +2,7 @@ import { Suspense, useState } from 'react';
 import { ChevronRight, Heart, MapPin, Bell, HelpCircle, Settings, Info, LogOut, Package, CreditCard, Pencil, ArrowRight, Truck, RefreshCw, User, Mail, Phone, X, Check } from 'lucide-react';
 import { Button, Input } from '@freshmart/design-system';
 import { Link, useNavigate } from 'react-router-dom';
+import { logout } from '@freshmart/shared';
 import { useGetAccountSettingsQuery, useUpdateAccountProfileMutation } from '../api/account-api.js';
 import { useGetOrdersQuery } from '../../commerce/api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
@@ -198,6 +199,7 @@ const AccountSettingsContent = () => {
             <div className="pt-2 border-t border-[#e2ebdE]">
               <button
                 className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-xs font-black text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                onClick={() => logout()}
                 type="button"
               >
                 <LogOut className="h-4 w-4 text-rose-600" />
