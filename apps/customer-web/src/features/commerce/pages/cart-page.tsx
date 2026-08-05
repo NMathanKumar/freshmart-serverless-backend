@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowRight, CheckCircle2, Heart, Minus, Plus, ShieldCheck, Tag, Trash2 } from 'lucide-react';
+import { ArrowRight, Bookmark, CheckCircle2, Heart, Minus, Plus, ShieldCheck, Tag, Trash2 } from 'lucide-react';
 import { Button, Input } from '@freshmart/design-system';
 import { Link } from 'react-router-dom';
 import { useGetCartQuery, useRemoveCartItemMutation, useUpdateCartItemMutation } from '../api/commerce-api.js';
@@ -41,7 +41,7 @@ export function CartContent() {
 
   return (
     <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
-      <HomeHeader />
+      <HomeHeader variant="cart" />
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pb-16 pt-24 space-y-8">
 
@@ -62,10 +62,10 @@ export function CartContent() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 lg:gap-8 items-start w-full">
+          <div className="flex flex-row gap-6 lg:gap-8 items-start w-full">
 
             {/* Left Column: Cart Products (Guaranteed Left Column) */}
-            <div className="sm:col-span-7 lg:col-span-8 space-y-4 min-w-0">
+            <div className="flex-1 space-y-4 min-w-0">
               {cartItems.map((item) => (
                 <div
                   key={item.productId}
@@ -130,7 +130,7 @@ export function CartContent() {
                           onClick={() => toggleSaveForLater(item.productId)}
                           type="button"
                         >
-                          <Heart className={`h-3.5 w-3.5 ${savedForLater[item.productId] ? 'fill-[#006c4a]' : ''}`} />
+                          <Bookmark className={`h-3.5 w-3.5 ${savedForLater[item.productId] ? 'fill-[#006c4a] text-[#006c4a]' : ''}`} />
                           <span>{savedForLater[item.productId] ? 'Saved' : 'Save for later'}</span>
                         </button>
 
@@ -150,7 +150,7 @@ export function CartContent() {
             </div>
 
             {/* Right Column: Price Details Card & Checkout (Guaranteed Right Column) */}
-            <div className="sm:col-span-5 lg:col-span-4 min-w-0 sticky top-24 space-y-4">
+            <div className="w-[320px] sm:w-[350px] lg:w-[380px] shrink-0 sticky top-24 space-y-4">
 
               <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-5 sm:p-6 shadow-xs space-y-6">
                 <h2 className="text-lg font-black tracking-tight text-[#171d16]">Price Details</h2>

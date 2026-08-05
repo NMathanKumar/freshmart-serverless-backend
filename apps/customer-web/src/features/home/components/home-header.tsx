@@ -1,11 +1,11 @@
 import { Input } from '@freshmart/design-system';
-import { Bell, LogOut, MapPin, Search, ShoppingCart, UserRound, LogIn, UserPlus } from 'lucide-react';
+import { Bell, LogOut, MapPin, Search, ShoppingBag, ShoppingCart, UserRound, LogIn, UserPlus, Bookmark } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isAuthenticated, getCurrentUser, logout } from '@freshmart/shared';
 import { useState, useEffect } from 'react';
 import { useGetCartQuery } from '../../commerce/api/commerce-api.js';
 
-export const HomeHeader = ({ cartCount: overrideCartCount }: { cartCount?: number }) => {
+export const HomeHeader = ({ cartCount: overrideCartCount, variant }: { cartCount?: number; variant?: 'cart' | 'default' }) => {
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
   const [, setUserEmail] = useState<string | null>(null);
@@ -37,6 +37,44 @@ export const HomeHeader = ({ cartCount: overrideCartCount }: { cartCount?: numbe
       navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
     }
   };
+
+  if (variant === 'cart') {
+    return (
+      <header className="fixed inset-x-0 top-0 z-50 bg-[#f4fcf0]/95 backdrop-blur-md border-b border-[#bdcaba]/30 shadow-xs">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 md:px-8">
+          <div className="flex items-center gap-3">
+            <Link aria-label="FreshMart home" className="text-2xl font-black tracking-tight text-[#006b2c] flex items-center gap-1" to="/">
+              <span>FreshMart</span>
+              <span className="h-2 w-2 rounded-full bg-[#006c4a]"></span>
+            </Link>
+          </div>
+
+          {/* Clean Figma Navigation Links */}
+          <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-8 text-sm font-semibold text-[#3e4a3d]">
+            <Link className="hover:text-[#006b2c] transition-colors" to="/">Shop</Link>
+            <Link className="hover:text-[#006b2c] transition-colors" to="/search">Search</Link>
+            <Link className="hover:text-[#006b2c] transition-colors" to="/orders">Orders</Link>
+            <Link className="hover:text-[#006b2c] transition-colors" to="/settings">Account</Link>
+          </nav>
+
+          {/* Right Header Controls matching Figma */}
+          <div className="flex items-center gap-4">
+            <Link aria-label="Location" className="text-[#3e4a3d] hover:text-[#006b2c] transition-colors" to="/">
+              <MapPin className="h-5 w-5" />
+            </Link>
+
+            {/* Green Circular Cart Icon Badge */}
+            <Link aria-label={`Cart with ${liveCartCount} items`} className="relative flex items-center justify-center h-10 w-10 rounded-full bg-[#006b2c] text-white shadow-xs hover:bg-[#005422] transition-all" to="/cart">
+              <ShoppingBag className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-[#f4fcf0]">
+                {liveCartCount}
+              </span>
+            </Link>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-[#f4fcf0]/95 backdrop-blur-md border-b border-[#bdcaba]/30 shadow-xs">
