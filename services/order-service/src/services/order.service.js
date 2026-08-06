@@ -50,6 +50,7 @@ const validateInventory = async (items) => {
     await inventoryService.validateStockForOrderInConn(null, {
       productId: item.productId,
       quantity: item.quantity,
+      warehouseId: item.warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN',
     });
   }
 };
@@ -60,7 +61,7 @@ const deductInventory = async (items, context = {}) => {
     // eslint-disable-next-line no-await-in-loop
     const updated = await inventoryService.decreaseStock(
       item.productId,
-      { amount: item.quantity },
+      { amount: item.quantity, warehouseId: item.warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN' },
       { ...context, source: 'order-service' }
     );
     deducted.push({ productId: item.productId, quantity: item.quantity, snapshot: updated });
@@ -73,7 +74,7 @@ const restoreInventory = async (items, context = {}) => {
     // eslint-disable-next-line no-await-in-loop
     await inventoryService.increaseStock(
       item.productId,
-      { amount: item.quantity },
+      { amount: item.quantity, warehouseId: item.warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN' },
       { ...context, source: 'order-service', reason: 'order-rollback' }
     );
   }
@@ -165,7 +166,14 @@ const placeOrderFromCart = async (userId, { pickupTime, items: payloadItems, add
     throw error;
   }
 
-  await publishOrderPlaced({ order: buildOrderResponse(createdOrder) }, { ...context, source: 'order-service' });
+  try {
+    await publishOrderPlaced({ order: buildOrderResponse(createdOrder) }, { ...context, source: 'order-service' });
+  } catch (publishError) {
+    logger.warn('EventBridge publish failed for OrderPlaced event. Order was created successfully.', {
+      orderId,
+      error: publishError.message,
+    });
+  }
   return buildOrderResponse(createdOrder);
 };
 

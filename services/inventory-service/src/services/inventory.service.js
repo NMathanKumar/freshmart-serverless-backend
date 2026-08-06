@@ -282,7 +282,7 @@ const increaseStock = async (productId, { amount, unit, reason, warehouseId, ref
     amount: increment,
     reason: reason || 'PURCHASE',
     movementType: 'STOCK_IN',
-    warehouseId,
+    warehouseId: warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN',
     referenceType,
     referenceId,
   }, context);
@@ -294,7 +294,7 @@ const decreaseStock = async (productId, { amount, reason, warehouseId, reference
     amount: -decrement,
     reason: reason || 'SALE',
     movementType: 'STOCK_OUT',
-    warehouseId,
+    warehouseId: warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN',
     referenceType,
     referenceId,
   }, context);
@@ -310,12 +310,12 @@ const listAllMovements = async (options) => {
 
 const validateStockForOrderInConn = async (_conn, { productId, foodId, warehouseId, quantity }) => {
   const id = productId || foodId;
-  if (!warehouseId) throw new BadRequestError('warehouseId is required for order validation');
-  const inventory = await requireInventory(id, warehouseId);
+  const targetWarehouseId = warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN';
+  const inventory = await requireInventory(id, targetWarehouseId);
   const requested = normalizeQuantity(quantity, 'quantity');
   if (Number(inventory.currentStock) < requested) {
     throw new BadRequestError(
-      `Insufficient stock for product '${id}' in warehouse '${warehouseId}'. Available: ${inventory.currentStock}, requested: ${requested}`
+      `Insufficient stock for product '${id}' in warehouse '${targetWarehouseId}'. Available: ${inventory.currentStock}, requested: ${requested}`
     );
   }
   return inventory;
@@ -323,7 +323,7 @@ const validateStockForOrderInConn = async (_conn, { productId, foodId, warehouse
 
 const deductStockAfterOrderInConn = async (_conn, { productId, foodId, warehouseId, quantity }, context = {}) => {
   const id = productId || foodId;
-  if (!warehouseId) throw new BadRequestError('warehouseId is required for order deduction');
+  const targetWarehouseId = warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN';
   const requested = normalizeQuantity(quantity, 'quantity');
   
   let result;
@@ -331,7 +331,7 @@ const deductStockAfterOrderInConn = async (_conn, { productId, foodId, warehouse
     result = await processAdjustment(id, -requested, context, {
       movementType: 'STOCK_OUT',
       reason: 'SALE',
-      warehouseId,
+      warehouseId: targetWarehouseId,
       referenceType: 'ORDER',
       referenceId: context.orderId || 'NONE',
       transactionId: context.correlationId || context.orderId,
@@ -347,11 +347,11 @@ const deductStockAfterOrderInConn = async (_conn, { productId, foodId, warehouse
 
 const restoreStockAfterOrderCancellationInConn = async (_conn, { productId, foodId, warehouseId, quantity }, context = {}) => {
   const id = productId || foodId;
-  if (!warehouseId) throw new BadRequestError('warehouseId is required for order cancellation');
+  const targetWarehouseId = warehouseId || process.env.DEFAULT_WAREHOUSE_ID || 'WH-MAIN';
   const result = await processAdjustment(id, normalizeQuantity(quantity, 'quantity'), context, {
     movementType: 'RETURN',
     reason: 'RETURN',
-    warehouseId,
+    warehouseId: targetWarehouseId,
     referenceType: 'ORDER_CANCELLED',
     referenceId: context.orderId || context.eventId || 'NONE',
     transactionId: context.correlationId || context.eventId,

@@ -1,33 +1,135 @@
 import type { LucideIcon } from 'lucide-react';
-import { Beef, CakeSlice, Cookie, CupSoda, IceCreamBowl, PawPrint, Salad, ShoppingBasket, Sparkles } from 'lucide-react';
+import {
+  Beef,
+  CakeSlice,
+  Cookie,
+  CupSoda,
+  IceCreamBowl,
+  PawPrint,
+  Salad,
+  Sparkles,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { CategoryViewModel } from '../model/home-content.js';
-import { SectionEmpty, SectionError, SectionSkeleton } from './section-state.js';
+import {
+  SectionEmpty,
+  SectionError,
+  SectionSkeleton,
+} from './section-state.js';
 
-const icons: LucideIcon[] = [CupSoda, IceCreamBowl, Cookie, CakeSlice, Sparkles, PawPrint, Beef, Salad];
+const icons: LucideIcon[] = [
+  Salad,
+  CupSoda,
+  IceCreamBowl,
+  Cookie,
+  CakeSlice,
+  Sparkles,
+  PawPrint,
+  Beef,
+];
 
-const CategoryCard = ({ category, index }: { category: CategoryViewModel; index: number }) => {
-  if (index === 0) {
-    return (
-      <button className="group relative col-span-2 flex min-h-36 flex-col justify-between overflow-hidden rounded-[26px] bg-gradient-to-br from-[#d8f3e5] to-[#c5edd8] p-5 text-left border border-[#b8e5cd]/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b2c] row-span-2" type="button">
-        <span className="relative z-10"><strong className="block text-xl font-extrabold text-[#006c4a] mb-0.5 tracking-tight">{category.name}</strong><span className="text-xs font-bold text-[#00714e]">{category.subtitle || 'Daily Fresh Arrivals'}</span></span>
-        {category.imageUrl ? <img alt="Basket filled with fresh fruit" className="absolute -bottom-1 -right-2 h-36 w-36 object-contain transition-transform duration-500 group-hover:scale-108" decoding="async" loading="lazy" src={category.imageUrl} /> : <ShoppingBasket aria-hidden="true" className="absolute bottom-6 right-6 h-20 w-20 text-[#006b2c]/30" />}
-      </button>
-    );
-  }
-  const Icon = icons[(index - 1) % icons.length] ?? Salad;
+const CategoryCard = ({
+  category,
+  index,
+  isSelected,
+  onSelect,
+}: {
+  category: CategoryViewModel;
+  index: number;
+  isSelected?: boolean;
+  onSelect?: (categoryId: string) => void;
+}) => {
+  const Icon = icons[index % icons.length] ?? Salad;
+  const categorySlug =
+    (category as any).slug ||
+    category.name.toLowerCase().replaceAll(' ', '-').replaceAll('&', 'and');
+
   return (
-    <button className="group flex h-26 flex-col items-center justify-center gap-2.5 rounded-2xl bg-[#f8fbf5] p-3 text-center border border-[#e2ebdE]/60 transition-all duration-300 hover:-translate-y-1 hover:bg-[#eff5eb] hover:shadow-md hover:border-[#bdcaba]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b2c]" type="button">
-      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-xs border border-[#bdcaba]/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-sm">
-        <Icon aria-hidden="true" className="h-5 w-5 text-[#006b2c]" />
-      </span>
-      <span className="text-xs font-extrabold text-[#171d16] leading-tight px-1 group-hover:text-[#006b2c] transition-colors">{category.name}</span>
-    </button>
+    <div className="relative group">
+      <button
+        className={`group flex w-full h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border p-2.5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#006b2c] focus-visible:outline-none ${
+          isSelected
+            ? 'border-[#006b2c] bg-[#d8f4ce] shadow-md ring-2 ring-[#006b2c]/30'
+            : 'border-[#e2ebdE]/80 bg-white hover:border-[#006b2c]/40 hover:bg-[#f4fcf0]'
+        }`}
+        onClick={() => onSelect?.(category.categoryId)}
+        type="button"
+      >
+        <span
+          className={`flex h-11 w-11 items-center justify-center rounded-full border shadow-xs transition-transform duration-300 group-hover:scale-110 ${
+            isSelected
+              ? 'border-[#006b2c] bg-[#006b2c] text-white'
+              : 'border-[#bdcaba]/30 bg-[#eff6ea] text-[#006b2c]'
+          }`}
+        >
+          <Icon
+            aria-hidden="true"
+            className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-[#006b2c]'}`}
+          />
+        </span>
+        <span
+          className={`px-1 text-xs leading-tight font-extrabold transition-colors ${
+            isSelected ? 'text-[#005422]' : 'text-[#171d16] group-hover:text-[#006b2c]'
+          }`}
+        >
+          {category.name}
+        </span>
+      </button>
+      <Link
+        aria-label={`View ${category.name} page`}
+        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-[10px] font-extrabold text-[#006b2c] bg-white rounded-full border border-[#bdcaba]/40 shadow-xs hover:bg-[#d8f4ce]"
+        title={`Explore ${category.name}`}
+        to={`/categories?category=${encodeURIComponent(categorySlug)}`}
+      >
+        ➔
+      </Link>
+    </div>
   );
 };
 
-export const CategoryGrid = ({ categories, loading, error, retry }: { categories?: CategoryViewModel[]; loading: boolean; error: boolean; retry: () => void }) => {
-  if (loading) return <SectionSkeleton cards={9} className="grid grid-cols-6 gap-4" />;
+export const CategoryGrid = ({
+  categories,
+  loading,
+  error,
+  retry,
+  selectedCategoryId,
+  onSelectCategory,
+}: {
+  categories?: CategoryViewModel[];
+  loading: boolean;
+  error: boolean;
+  retry: () => void;
+  selectedCategoryId?: string | null;
+  onSelectCategory?: (categoryId: string | null) => void;
+}) => {
+  if (loading)
+    return <SectionSkeleton cards={6} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4" />;
   if (error) return <SectionError retry={retry} />;
-  if (!categories?.length) return <SectionEmpty message="Categories will appear here when available." />;
-  return <div className="grid grid-cols-6 gap-4">{categories.map((category, index) => <CategoryCard category={category} index={index} key={category.categoryId} />)}</div>;
+  if (!categories?.length)
+    return (
+      <SectionEmpty message="Categories will appear here when available." />
+    );
+
+  const handleSelect = (id: string) => {
+    if (selectedCategoryId === id) {
+      onSelectCategory?.(null);
+    } else {
+      onSelectCategory?.(id);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x">
+      {categories.map((category, index) => (
+        <div className="shrink-0 snap-start min-w-[130px] sm:min-w-[145px] flex-1" key={category.categoryId}>
+          <CategoryCard
+            category={category}
+            index={index}
+            isSelected={selectedCategoryId === category.categoryId}
+            onSelect={handleSelect}
+          />
+        </div>
+      ))}
+    </div>
+  );
 };

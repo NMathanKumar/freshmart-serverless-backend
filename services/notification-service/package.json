@@ -4,7 +4,8 @@
   "private": true,
   "main": "src/lambda.js",
   "scripts": {
-    "start": "node src/lambda.js"
+    "start": "node src/lambda.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@freshmart/service-shared": "file:../../packages/shared",
@@ -17,6 +18,7 @@
     "@aws-sdk/client-dynamodb": "^3.1076.0",
     "@aws-sdk/client-eventbridge": "^3.1076.0",
     "@aws-sdk/client-s3": "^3.1076.0",
+    "@aws-sdk/client-ses": "^3.1076.0",
     "@aws-sdk/client-sns": "^3.1076.0",
     "@aws-sdk/client-sqs": "^3.1076.0",
     "@aws-sdk/lib-dynamodb": "^3.1076.0",

@@ -289,7 +289,7 @@ export const addOrUpdateStoredCartItem = (newItem: Record<string, unknown>): Car
       quantity: String(newItem.quantity || '1 Unit'),
       price: Number(newItem.price ?? 4.99),
       originalPrice: typeof newItem.originalPrice === 'number' ? newItem.originalPrice : undefined,
-      imageUrl: typeof newItem.imageUrl === 'string' && newItem.imageUrl.length > 0 ? newItem.imageUrl : 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png',
+      imageUrl: typeof newItem.imageUrl === 'string' && newItem.imageUrl.length > 0 ? newItem.imageUrl : 'https://placehold.co/400x400/e2ebdE/006c4a.png?text=FreshMart',
       quantityInCart: typeof newItem.quantity === 'number' ? newItem.quantity : 1,
       stockLabel: 'In stock - Delivery in 15 mins'
     };
@@ -348,7 +348,9 @@ export const mergeCart = (remote: unknown): CartLine[] => {
 };
 
 export const mergeAddresses = (remote: unknown): AddressView[] => {
-  const profile = isRecord(remote) && isRecord(remote.user) ? remote.user : remote;
+  // Unwrap API envelope: { success, data: { addresses } }
+  const envelope = isRecord(remote) && isRecord(remote.data) ? remote.data : remote;
+  const profile = isRecord(envelope) && isRecord(envelope.user) ? envelope.user : envelope;
   const addresses = isRecord(profile) && Array.isArray(profile.addresses) ? profile.addresses : [];
   if (addresses.length === 0) return [];
 

@@ -9,7 +9,7 @@ import { createCoupon, deleteCoupon as apiDeleteCoupon, fetchAdminCoupons, updat
 
 const CouponsPage = () => {
   const { data: couponData, retry, state } = useApiResource(fetchAdminCoupons);
-  const couponList = couponData?.data ?? [];
+  const couponList = (couponData as any)?.data ?? [];
 
   const coupons: CouponRecord[] = useMemo(() => {
     return couponList.map((item: any) => {

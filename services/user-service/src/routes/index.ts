@@ -5,12 +5,12 @@ import { DynamoUserRepository } from '../repositories/index.js';
 import { UserService } from '../services/index.js';
 
 const config = loadConfig('user-service', {
-  USER_TABLE_NAME: z.string().min(1),
+  DDB_TABLE_USER_PROFILES: z.string().min(1),
   COGNITO_USER_POOL_ID: z.string().min(1),
-  COGNITO_APP_CLIENT_ID: z.string().min(1)
+  COGNITO_USER_POOL_CLIENT_ID: z.string().min(1)
 });
 
-const controller = createUserController(new UserService(new DynamoUserRepository(config.USER_TABLE_NAME)));
+const controller = createUserController(new UserService(new DynamoUserRepository(config.DDB_TABLE_USER_PROFILES)));
 
 export const routes: RouteDefinition[] = [
   {
@@ -92,7 +92,7 @@ export const handler = createLambdaHandler({
   routes: [...routes],
   authorizer: {
     userPoolId: config.COGNITO_USER_POOL_ID,
-    clientId: config.COGNITO_APP_CLIENT_ID,
+    clientId: config.COGNITO_USER_POOL_CLIENT_ID,
     tokenUse: 'access'
   }
 });

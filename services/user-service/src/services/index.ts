@@ -4,6 +4,21 @@ import type { Address, UserProfile } from '../entities/index.js';
 import type { UserRepository } from '../repositories/index.js';
 import { createAddress } from '../repositories/index.js';
 
+const createEmptyProfile = (userId: string): UserProfile => {
+  const now = new Date().toISOString();
+  return {
+    userId,
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: undefined,
+    wishlistCount: 0,
+    addresses: [],
+    createdAt: now,
+    updatedAt: now
+  };
+};
+
 export class UserService {
   constructor(private readonly repository: UserRepository) {}
 
@@ -22,30 +37,24 @@ export class UserService {
   }
 
   async addAddress(userId: string, input: Omit<Address, 'addressId'> & Partial<Pick<Address, 'addressId'>>): Promise<UserProfile> {
-    const profile = await this.repository.getProfile(userId);
-    if (!profile) {
-      throw new DomainError('User profile not found.', 404);
-    }
+    const profile = (await this.repository.getProfile(userId)) ?? createEmptyProfile(userId);
     profile.addresses.push(createAddress(input));
     profile.updatedAt = new Date().toISOString();
     return this.repository.saveProfile(profile);
   }
 
   async deleteAddress(userId: string, addressId: string): Promise<UserProfile> {
-    const profile = await this.repository.getProfile(userId);
-    if (!profile) {
-      throw new DomainError('User profile not found.', 404);
-    }
+    const profile = (await this.repository.getProfile(userId)) ?? createEmptyProfile(userId);
     profile.addresses = profile.addresses.filter((a) => a.addressId !== addressId && (a as { id?: string }).id !== addressId);
     profile.updatedAt = new Date().toISOString();
     return this.repository.saveProfile(profile);
   }
 
   async getProfile(userId: string): Promise<UserProfile> {
-    const profile = await this.repository.getProfile(userId);
-    if (!profile) {
-      throw new DomainError('User profile not found.', 404);
-    }
+    const existing = await this.repository.getProfile(userId);
+    if (existing) return existing;
+    const profile = createEmptyProfile(userId);
+    await this.repository.saveProfile(profile);
     return profile;
   }
 

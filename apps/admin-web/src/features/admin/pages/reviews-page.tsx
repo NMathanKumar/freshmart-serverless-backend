@@ -25,7 +25,7 @@ interface ReviewRecord {
 
 const ReviewsPage = () => {
   const { data: reviewData, retry, state } = useApiResource(fetchAdminReviews);
-  const reviewsList = reviewData?.data ?? [];
+  const reviewsList = (reviewData as any)?.data ?? [];
 
   const reviews: ReviewRecord[] = useMemo(() => {
     return reviewsList.map((item: any) => {

@@ -39,11 +39,10 @@ locals {
     rule_key => jsonencode(merge(
       length(rule.sources) > 0 ? { source = rule.sources } : {},
       {
-        "detail-type" = [
-          for prefix in rule.detail_type_prefixes : {
-            prefix = prefix
-          }
-        ]
+        "detail-type" = concat(
+          rule.detail_types,
+          [for prefix in rule.detail_type_prefixes : { prefix = prefix }]
+        )
       }
     ))
   }

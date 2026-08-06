@@ -44,8 +44,4 @@ export const toRecommendedProducts = (products: ProductSummary[]): ProductViewMo
   }));
 
 export const toCategories = (categories: CategorySummary[]): CategoryViewModel[] => 
-  categories.map((category, index) => 
-    index === 0 
-      ? { ...category, subtitle: 'Daily Fresh Arrivals', imageUrl: featuredCategoryImage } 
-      : category
-  );
+  categories.map((category) => category);

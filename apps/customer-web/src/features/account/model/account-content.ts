@@ -59,7 +59,8 @@ const text = (record: Record<string, unknown>, keys: string[], fallback: string)
   keys.map((key) => record[key]).find((value): value is string => typeof value === 'string' && value.length > 0) ?? fallback;
 
 export const mergeProfile = (remote: unknown): AccountProfile => {
-  const user = isRecord(remote) && isRecord(remote.user) ? remote.user : remote;
+  const record = isRecord(remote) && isRecord(remote.data) ? (remote.data as Record<string, unknown>) : remote;
+  const user = isRecord(record) && isRecord(record.user) ? record.user : record;
   if (!isRecord(user)) return accountProfile;
 
   const firstName = text(user, ['firstName'], '');
@@ -70,7 +71,7 @@ export const mergeProfile = (remote: unknown): AccountProfile => {
     avatarUrl: text(user, ['avatarUrl', 'avatar'], accountProfile.avatarUrl),
     email: text(user, ['email'], accountProfile.email),
     fullName,
-    phone: text(user, ['phoneNumber', 'phone'], accountProfile.phone),
+    phone: text(user, ['phone', 'phoneNumber'], accountProfile.phone),
     storeLocation: text(user, ['storeLocation', 'preferredStore'], accountProfile.storeLocation)
   };
 };

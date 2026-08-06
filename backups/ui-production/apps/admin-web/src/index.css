@@ -1,0 +1,155 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  html,
+  body,
+  #root {
+    font-family: var(--font-sans);
+    background-color: #f4fcf0 !important;
+    color: #0f172a;
+    min-height: 100vh;
+    overflow-x: hidden;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom FreshMart Green Theme Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f4fcf0;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b2e4bc;
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #04883b;
+}
+
+/* Firefox custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #b2e4bc #f4fcf0;
+}
+
+/* Figma Card Style */
+.figma-card {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  border: 1px solid #e9f2e7;
+  box-shadow: 0 4px 20px -2px rgba(4, 136, 59, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+/* Figma Soft Input Pill */
+.figma-input {
+  background-color: #f0f7ee;
+  border: 1px solid #e0ede0;
+  border-radius: 0.85rem;
+  color: #0f172a;
+  transition: all 0.2s ease-in-out;
+}
+.figma-input:focus {
+  background-color: #ffffff;
+  border-color: #04883b;
+  box-shadow: 0 0 0 3px rgba(4, 136, 59, 0.15);
+  outline: none;
+}
+
+/* Figma Primary Button */
+.figma-btn-primary {
+  background-color: #04883b;
+  color: #ffffff;
+  border-radius: 0.85rem;
+  font-weight: 700;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(4, 136, 59, 0.25);
+}
+.figma-btn-primary:hover {
+  background-color: #037030;
+  box-shadow: 0 6px 16px rgba(4, 136, 59, 0.35);
+}
+
+/* Figma Secondary Outline Pill Button */
+.figma-btn-secondary {
+  background-color: #ffffff;
+  color: #04883b;
+  border: 1px solid #c8e6c4;
+  border-radius: 0.85rem;
+  font-weight: 700;
+  transition: all 0.2s ease-in-out;
+}
+.figma-btn-secondary:hover {
+  background-color: #f0f7ee;
+  border-color: #04883b;
+}
+
+/* Shimmer Loading Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    #e9f2e7 0%,
+    #f4fcf0 20%,
+    #ffffff 40%,
+    #f4fcf0 60%,
+    #e9f2e7 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.2s ease-out forwards;
+}

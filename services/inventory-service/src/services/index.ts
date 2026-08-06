@@ -32,6 +32,29 @@ export class InventoryService {
       detailType: 'freshmart.inventory.stock_updated',
       detail: entity
     });
+
+    if (entity.quantity < 10) {
+      await this.publisher?.publish({
+        source: 'inventory-service',
+        detailType: 'InventoryLow.v1',
+        detail: {
+          eventId: `evt_${Date.now()}_invlow`,
+          eventVersion: '1.0',
+          eventType: 'InventoryLow.v1',
+          source: 'inventory-service',
+          timestamp: new Date().toISOString(),
+          correlationId: `corr_${Date.now()}`,
+          productId: entity.productId,
+          sku: entity.productId,
+          currentStock: entity.quantity,
+          threshold: 10,
+          warehouse: 'WH-MAIN',
+          suggestedQuantity: 50,
+          inventory: entity
+        }
+      });
+    }
+
     return entity;
   }
 }

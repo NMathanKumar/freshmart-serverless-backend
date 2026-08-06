@@ -4,17 +4,23 @@ const { ORDER_STATUS } = require('@freshmart/service-shared').constants;
 const ORDER_STATUS_VALUES = Object.values(ORDER_STATUS);
 const PAYMENT_STATUS_VALUES = ['PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'];
 
+const ALLOWED_PAYMENT_METHODS = ['CARD', 'UPI', 'COD', 'WALLET', 'DUMMY', 'APPLE_PAY', 'GOOGLE_PAY', 'NET_BANKING', 'CREDIT_CARD', 'DEBIT_CARD'];
+
 const placeOrderSchema = Joi.object({
   pickupTime: Joi.date().iso().greater('now').optional().messages({
     'date.greater': 'pickupTime must be in the future',
   }),
   addressId: Joi.string().optional(),
   slotId: Joi.string().optional(),
-  paymentMethod: Joi.string().valid('CARD', 'UPI', 'COD').optional(),
+  paymentMethod: Joi.string().valid(...ALLOWED_PAYMENT_METHODS).optional(),
+  customerEmail: Joi.string().email().optional(),
+  customerName: Joi.string().optional(),
+  totalAmount: Joi.number().optional(),
+  deliveryAddress: Joi.string().optional(),
   items: Joi.array().items(Joi.object({
     productId: Joi.string().required(),
     name: Joi.string().optional(),
-    price: Joi.number().positive().required(),
+    price: Joi.number().min(0).required(),
     quantity: Joi.number().integer().min(1).required(),
     unit: Joi.string().optional(),
     imageUrl: Joi.string().uri().optional().allow('', null),

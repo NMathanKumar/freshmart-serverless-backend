@@ -161,6 +161,18 @@ locals {
           partition_key   = "createdDate"
           projection_type = "ALL"
         },
+        {
+          name            = "gsi1"
+          partition_key   = "gsi1pk"
+          sort_key        = "gsi1sk"
+          projection_type = "ALL"
+        },
+        {
+          name            = "gsi2"
+          partition_key   = "gsi2pk"
+          sort_key        = "gsi2sk"
+          projection_type = "ALL"
+        },
       ]
     })
 
@@ -1221,22 +1233,22 @@ locals {
 
   eventbridge_rules = {
     orders = {
-      description          = "Match FreshMart order domain events."
-      sources              = ["freshmart.order-service"]
-      detail_type_prefixes = ["order."]
-      target_sns_keys      = ["order_events"]
+      description     = "Match FreshMart order domain events."
+      sources         = ["freshmart.order-service"]
+      detail_types    = ["OrderPlaced.v1", "OrderStatusUpdated.v1"]
+      target_sns_keys = ["order_events"]
     }
     customers = {
-      description          = "Match FreshMart customer domain events."
-      sources              = ["freshmart.auth-service", "freshmart.user-service"]
-      detail_type_prefixes = ["customer."]
-      target_sns_keys      = ["customer_events"]
+      description     = "Match FreshMart customer domain events."
+      sources         = ["freshmart.auth-service", "freshmart.user-service"]
+      detail_types    = ["CustomerRegistered.v1", "UserLoggedIn.v1"]
+      target_sns_keys = ["customer_events"]
     }
     inventory = {
-      description          = "Match FreshMart inventory domain events."
-      sources              = ["freshmart.inventory-service"]
-      detail_type_prefixes = ["inventory."]
-      target_sns_keys      = ["inventory_events"]
+      description     = "Match FreshMart inventory domain events."
+      sources         = ["freshmart.inventory-service"]
+      detail_types    = ["InventoryLow.v1"]
+      target_sns_keys = ["inventory_events"]
     }
     products = {
       description          = "Match FreshMart product domain events."
@@ -1245,10 +1257,10 @@ locals {
       target_sns_keys      = ["inventory_events"]
     }
     payments = {
-      description          = "Match FreshMart payment domain events."
-      sources              = ["freshmart.payment-service"]
-      detail_type_prefixes = ["payment."]
-      target_sns_keys      = ["order_events", "customer_events"]
+      description     = "Match FreshMart payment domain events."
+      sources         = ["freshmart.payment-service"]
+      detail_types    = ["PaymentSucceeded.v1"]
+      target_sns_keys = ["order_events", "customer_events"]
     }
   }
 

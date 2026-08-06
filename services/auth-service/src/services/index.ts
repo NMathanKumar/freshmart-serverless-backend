@@ -47,15 +47,52 @@ export class AuthService {
 
     await this.dependencies.repository.saveProfile(profile);
     await this.dependencies.publisher?.publish({
-      source: 'freshmart.auth',
-      detailType: 'freshmart.auth.user_registered',
-      detail: profile
+      source: 'auth-service',
+      detailType: 'CustomerRegistered.v1',
+      detail: {
+        eventId: `evt_${Date.now()}`,
+        eventVersion: '1.0',
+        eventType: 'CustomerRegistered.v1',
+        source: 'auth-service',
+        timestamp: new Date().toISOString(),
+        correlationId: `corr_${Date.now()}`,
+        userId: profile.userId,
+        email: profile.email,
+        name: `${profile.firstName} ${profile.lastName}`.trim(),
+        user: profile
+      }
     });
     return profile;
   }
 
   async login(input: { username: string; password: string }): Promise<AuthSession> {
-    return this.dependencies.identityProvider.login(input.username, input.password);
+    const session = await this.dependencies.identityProvider.login(input.username, input.password);
+    
+    // Attempt to publish UserLoggedIn.v1 domain event
+    try {
+      const profile = await this.dependencies.repository.getProfileByEmail(input.username).catch(() => null);
+      await this.dependencies.publisher?.publish({
+        source: 'auth-service',
+        detailType: 'UserLoggedIn.v1',
+        detail: {
+          eventId: `evt_${Date.now()}`,
+          eventVersion: '1.0',
+          eventType: 'UserLoggedIn.v1',
+          source: 'auth-service',
+          timestamp: new Date().toISOString(),
+          correlationId: `corr_${Date.now()}`,
+          userId: profile?.userId || 'UNKNOWN',
+          email: profile?.email || input.username,
+          name: profile ? `${profile.firstName} ${profile.lastName}`.trim() : 'Valued Customer',
+          loginTime: new Date().toISOString(),
+          device: 'Web App'
+        }
+      });
+    } catch {
+      // Non-blocking log emission
+    }
+
+    return session;
   }
 
   async refresh(refreshToken: string): Promise<AuthSession> {

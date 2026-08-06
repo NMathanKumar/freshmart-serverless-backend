@@ -13,8 +13,6 @@ const getTableName = (tableName = config.dynamodb.tables.payments) => {
 
 const paymentPk = (paymentId) => `PAYMENT#${paymentId}`;
 const paymentSk = () => 'META';
-const orderPk = (orderId) => `ORDER#${orderId}`;
-const statusPk = (status) => `STATUS#${status}`;
 
 const normalizeNumber = (value, fallback = 0) => {
   const number = Number(value);
@@ -79,10 +77,6 @@ const createPaymentRepository = ({
       createdAt: timestamp,
       updatedAt: timestamp,
       version: 0,
-      gsi1pk: orderPk(orderId),
-      gsi1sk: `CREATED#${timestamp}`,
-      gsi2pk: statusPk(paymentStatus),
-      gsi2sk: `CREATED#${timestamp}`,
       entityType: 'PAYMENT',
     };
 
@@ -117,36 +111,7 @@ const createPaymentRepository = ({
     return toDomain(result.Item || null);
   };
 
-  const findLatestByOrderId = async (orderId) => {
-    const result = await client.send(
-      new QueryCommand({
-        TableName: tableName,
-        IndexName: 'gsi1',
-        KeyConditionExpression: 'gsi1pk = :pk',
-        ExpressionAttributeValues: {
-          ':pk': orderPk(orderId),
-        },
-        ScanIndexForward: false,
-        Limit: 1,
-      })
-    );
-    return toDomain(result.Items?.[0] || null);
-  };
 
-  const findLatestByStatus = async (paymentStatus) => {
-    const result = await client.send(
-      new QueryCommand({
-        TableName: tableName,
-        IndexName: 'gsi2',
-        KeyConditionExpression: 'gsi2pk = :pk',
-        ExpressionAttributeValues: {
-          ':pk': statusPk(paymentStatus),
-        },
-        ScanIndexForward: false,
-      })
-    );
-    return (result.Items || []).map(toDomain);
-  };
 
   const updateStatus = async (paymentId, paymentStatus, transactionIdOrOptions = undefined) => {
     const options =
@@ -180,8 +145,6 @@ const createPaymentRepository = ({
           },
           UpdateExpression: [
             'SET paymentStatus = :paymentStatus',
-            'gsi2pk = :gsi2pk',
-            'gsi2sk = :gsi2sk',
             'updatedAt = :updatedAt',
             '#version = :nextVersion',
             hasTransactionId ? 'transactionId = :transactionId' : null,
@@ -195,8 +158,6 @@ const createPaymentRepository = ({
           ExpressionAttributeValues: hasTransactionId
             ? {
                 ':paymentStatus': paymentStatus,
-                ':gsi2pk': statusPk(paymentStatus),
-                ':gsi2sk': `CREATED#${current.createdAt}`,
                 ':updatedAt': timestamp,
                 ':expectedVersion': Number(current.version || 0),
                 ':nextVersion': nextVersion,
@@ -204,8 +165,6 @@ const createPaymentRepository = ({
               }
             : {
                 ':paymentStatus': paymentStatus,
-                ':gsi2pk': statusPk(paymentStatus),
-                ':gsi2sk': `CREATED#${current.createdAt}`,
                 ':updatedAt': timestamp,
                 ':expectedVersion': Number(current.version || 0),
                 ':nextVersion': nextVersion,
@@ -239,8 +198,6 @@ const createPaymentRepository = ({
     tableName,
     create,
     findById,
-    findLatestByOrderId,
-    findLatestByStatus,
     updateStatus,
     remove,
   };
