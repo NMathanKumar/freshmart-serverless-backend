@@ -14,27 +14,12 @@ import { AdminShell } from '../components/admin-shell.js';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { comingSoonAction } from '../components/coming-soon.js';
 import { ProductDialog } from '../components/product-dialog.js';
-import { productMetrics, productRows } from '../model/mock-data.js';
 import { createProduct, fetchProductPage, updateProduct, type ProductInput } from '../api/admin-api.js';
 import { useApiResource } from '../hooks/use-api-resource.js';
 
 type ProductLoadState = 'loading' | 'ready' | 'empty' | 'error';
-type ProductRow = (typeof productRows)[number];
 const noProducts = (page: Awaited<ReturnType<typeof fetchProductPage>>) => page.items.length === 0;
 
-const ProductSummary = () => (
-  <section className="product-summary" aria-label="Product statistics">
-    {productMetrics.map((metric) => (
-      <article key={metric.title}>
-        <h2>{metric.title}</h2>
-        <div>
-          <strong className={metric.title === 'LOW STOCK ALERT' ? 'danger' : ''}>{metric.value}</strong>
-          <span className={metric.title === 'TOTAL PRODUCTS' || metric.title === 'ACTIVE STOCK' ? 'success' : ''}>Coming Soon - Backend not yet available</span>
-        </div>
-      </article>
-    ))}
-  </section>
-);
 
 const ProductToolbar = () => (
   <div className="product-toolbar">
@@ -72,7 +57,7 @@ const ProductPagination = ({ canNext, canPrevious, onNext, onPrevious, page }: {
   </nav>
 );
 
-const ProductTable = ({ canNext, canPrevious, onAddProduct, onEdit, onNext, onPrevious, onRetry, page, rows, state }: { canNext: boolean; canPrevious: boolean; onAddProduct: () => void; onEdit: (productId: string) => void; onNext: () => void; onPrevious: () => void; onRetry: () => void; page: number; rows: ProductRow[]; state: ProductLoadState }) => (
+const ProductTable = ({ canNext, canPrevious, onAddProduct, onEdit, onNext, onPrevious, onRetry, page, rows, state }: { canNext: boolean; canPrevious: boolean; onAddProduct: () => void; onEdit: (productId: string) => void; onNext: () => void; onPrevious: () => void; onRetry: () => void; page: number; rows: any[]; state: ProductLoadState }) => (
   <section className="product-table-card" aria-label="Products">
     <ProductToolbar />
     {state === 'ready' ? (
@@ -138,10 +123,10 @@ const ProductsPage = () => {
   const { data: productPage, retry, state } = useApiResource(loadProductPage, noProducts);
   const products = productPage?.items ?? [];
   const [dialogProduct, setDialogProduct] = useState<ProductSummary | null>();
-  const rows = useMemo((): ProductRow[] => products.map((product, index) => {
+  const rows = useMemo(() => products.map((product) => {
         const stock = Number(product.stock || 0);
         return {
-          image: product.images[0] ?? productRows[index % productRows.length]?.image ?? '',
+          image: product.images[0] ?? '',
           name: product.productName,
           subtitle: product.brand || product.description || [product.weight, product.unit].filter(Boolean).join(' ') || 'Product',
           sku: product.productId,
@@ -192,7 +177,6 @@ const ProductsPage = () => {
           </div>
           <button type="button" onClick={() => setDialogProduct(null)}><PlusCircle aria-hidden="true" />Add Product</button>
         </header>
-        <ProductSummary />
         <ProductTable canNext={Boolean(productPage?.nextCursor)} canPrevious={cursorHistory.length > 0} onAddProduct={() => setDialogProduct(null)} onEdit={(productId) => setDialogProduct(products.find((product) => product.productId === productId) ?? null)} onNext={nextPage} onPrevious={previousPage} onRetry={retry} page={cursorHistory.length + 1} rows={rows} state={loadState} />
       </main>
       <ProductDialog onClose={() => setDialogProduct(undefined)} onSave={saveProduct} open={dialogProduct !== undefined} product={dialogProduct} />

@@ -54,9 +54,9 @@ const CategoriesPage = () => {
 
   const categoryStats: CategoryStat[] = [
     { title: 'Total Categories', value: String(categories.length), badge: '+Live', icon: Grid2x2, tone: 'primary' },
-    { title: 'Categorized Products', value: '1,842', icon: ClipboardCheck, tone: 'secondary' },
+    { title: 'Categorized Products', value: String(categories.reduce((acc, c) => acc + Number(c.products), 0)), icon: ClipboardCheck, tone: 'secondary' },
     { title: 'Active Status', value: String(categories.filter((c) => c.active).length), icon: BadgeCheck, tone: 'danger' },
-    { title: 'Avg. Depth', value: '3.2', icon: ChevronsUpDown, tone: 'neutral' }
+    { title: 'Avg. Depth', value: '--', icon: ChevronsUpDown, tone: 'neutral' }
   ];
 
   const visibleCategories = useMemo(() => {

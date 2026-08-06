@@ -9,6 +9,30 @@
   color: #121812;
 }
 
+/* Sidebar navigation scroll styling */
+.admin-sidebar nav {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 119, 47, 0.25) transparent;
+}
+
+.admin-sidebar nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.admin-sidebar nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-sidebar nav::-webkit-scrollbar-thumb {
+  background-color: rgba(6, 119, 47, 0.25);
+  border-radius: 999px;
+}
+
+.admin-sidebar nav::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(6, 119, 47, 0.45);
+}
+
 /* Approved Supplier Management composition */
 .admin-suppliers-layout {
   max-width: 100%;
@@ -6760,14 +6784,11 @@ input {
 }
 
 .dashboard-sticky-header {
-  position: sticky;
-  z-index: 12;
-  top: 64px;
-  margin: 0 8px;
-  padding: 14px 0 18px;
-  border-bottom: 1px solid rgb(189 202 186 / 55%);
-  background: linear-gradient(180deg, rgb(244 250 240 / 98%) 70%, rgb(244 250 240 / 88%) 88%, transparent);
-  backdrop-filter: blur(18px);
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0 0 8px;
+  background: transparent;
 }
 
 .dashboard-sticky-header > section { padding-top: 0; }
@@ -6992,18 +7013,15 @@ input {
 }
 
 .analytics-sticky-header {
-  position: sticky;
-  z-index: 12;
-  top: 0;
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  margin: 0 -4px;
-  padding: 12px 20px 18px;
-  border-bottom: 1px solid rgb(199 214 196 / 58%);
-  background: linear-gradient(180deg, rgb(238 246 231 / 98%) 72%, rgb(238 246 231 / 90%) 100%);
-  backdrop-filter: blur(16px);
+  margin: 0;
+  padding: 0 0 12px;
+  background: transparent;
 }
 
 .analytics-sticky-header > section { flex: 1; padding: 0; }
@@ -7309,7 +7327,7 @@ input {
 
 /* Activity and audit workspace */
 .activity-screen { display: grid; gap: 22px; padding: 0 0 32px; }
-.activity-sticky-header { position: sticky; z-index: 12; top: 0; margin: 0 -4px; padding: 12px 20px 18px; border-bottom: 1px solid rgb(199 214 196 / 58%); background: linear-gradient(180deg, rgb(238 246 231 / 98%) 72%, rgb(238 246 231 / 90%) 100%); backdrop-filter: blur(16px); }
+.activity-sticky-header { position: relative; z-index: 1; margin: 0; padding: 0 0 12px; background: transparent; }
 .activity-sticky-header > section { padding: 0; }
 .activity-sticky-header .admin-button { min-width: 158px; }
 
@@ -7581,7 +7599,7 @@ input {
 
 /* Enterprise role and permission workspace */
 .roles-screen { display: grid; gap: 22px; padding: 0 0 32px; }
-.roles-sticky-header { position: sticky; z-index: 12; top: 0; margin: 0 -4px; padding: 12px 20px 18px; border-bottom: 1px solid rgb(199 214 196 / 58%); background: linear-gradient(180deg, rgb(238 246 231 / 98%) 72%, rgb(238 246 231 / 90%) 100%); backdrop-filter: blur(16px); }
+.roles-sticky-header { position: relative; z-index: 1; margin: 0; padding: 0 0 12px; background: transparent; }
 .roles-sticky-header > section { padding: 0; }
 .roles-sticky-header .admin-button { min-width: 158px; }
 .roles-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; padding: 0 16px; }

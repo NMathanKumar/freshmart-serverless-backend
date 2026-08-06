@@ -15,7 +15,8 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles, fa
       if (!isAuthenticated()) {
         const returnUrl = typeof window !== 'undefined' ? window.location.pathname : '/admin/';
         sessionStorage.setItem('oauth_return_url', returnUrl);
-        window.location.replace('/login');
+        const isAdmin = returnUrl.startsWith('/admin');
+        window.location.replace(isAdmin ? '/admin/login' : '/login');
         return;
       }
 

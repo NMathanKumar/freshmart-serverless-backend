@@ -33,11 +33,12 @@ export const adminSdk = createFreshMartSdk({
 
 export const unwrapApiData = <T,>(response: ApiEnvelope<T>) => response.data;
 
-export const fetchDashboard = async (): Promise<AdminDashboardResponse> =>
-  unwrapApiData(await adminSdk.admin.getDashboard());
+export const fetchDashboard = async (): Promise<AdminDashboardResponse> => {
+  return unwrapApiData(await adminSdk.admin.getDashboard());
+};
 
-export const fetchAdminConfig = async (): Promise<AdminEntity[]> =>
-  Object.entries(unwrapApiData(await adminSdk.admin.getSettings())).map(([adminItemId, value]) => ({
+export const fetchAdminConfig = async (): Promise<AdminEntity[]> => {
+  return Object.entries(unwrapApiData(await adminSdk.admin.getSettings())).map(([adminItemId, value]) => ({
     adminItemId,
     entityType: 'SETTING',
     data: (value && typeof value === 'object' ? value : { value }) as Record<string, unknown>,
@@ -47,21 +48,28 @@ export const fetchAdminConfig = async (): Promise<AdminEntity[]> =>
     createdBy: null,
     version: 1
   }));
+};
 
-export const fetchAdminProfile = async (): Promise<AdminProfileResponse> =>
-  unwrapApiData(await adminSdk.auth.me());
+export const fetchAdminProfile = async (): Promise<AdminProfileResponse> => {
+  return unwrapApiData(await adminSdk.auth.me());
+};
 
-export const fetchProducts = async (): Promise<ProductSummary[]> =>
-  unwrapApiData(await adminSdk.catalog.listProducts({ limit: 100 }));
+export const fetchProducts = async (): Promise<ProductSummary[]> => {
+  return unwrapApiData(await adminSdk.catalog.listProducts({ limit: 100 }));
+};
 
 export const fetchProductPage = async (cursor?: string, query = '') => {
-  const response = query.trim()
-    ? await adminSdk.catalog.searchProducts(query.trim(), 10, cursor)
-    : await adminSdk.catalog.listProducts({ cursor, limit: 10 });
-  return {
-    items: unwrapApiData(response),
-    nextCursor: typeof response.meta?.nextCursor === 'string' ? response.meta.nextCursor : undefined
-  };
+  try {
+    const response = query.trim()
+      ? await adminSdk.catalog.searchProducts(query.trim(), 10, cursor)
+      : await adminSdk.catalog.listProducts({ cursor, limit: 10 });
+    return {
+      items: unwrapApiData(response),
+      nextCursor: typeof response.meta?.nextCursor === 'string' ? response.meta.nextCursor : undefined
+    };
+  } catch (err) {
+    return { items: [], nextCursor: undefined };
+  }
 };
 
 export type ProductInput = Omit<ProductSummary, 'createdAt' | 'productId' | 'updatedAt' | 'version'>;
@@ -88,8 +96,9 @@ export const fetchInventoryWorkspace = async (page = 1) => {
 export const updateInventory = async (productId: string, payload: InventoryUpdateRequest) =>
   unwrapApiData(await adminSdk.inventory.updateInventory(productId, payload));
 
-export const fetchAdminOrders = async (params: Parameters<typeof adminSdk.admin.listOrders>[0] = {}): Promise<AdminOrderListResponse> =>
-  adminSdk.admin.listOrders(params);
+export const fetchAdminOrders = async (params: Parameters<typeof adminSdk.admin.listOrders>[0] = {}): Promise<AdminOrderListResponse> => {
+  return await adminSdk.admin.listOrders(params);
+};
 
 export const updateOrderStatus = async (orderId: string, status: string) =>
   adminSdk.admin.updateOrderStatus(orderId, status as AdminOrderStatus);

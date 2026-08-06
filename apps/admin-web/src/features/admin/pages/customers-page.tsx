@@ -94,20 +94,18 @@ const mapCustomer = (customer: AdminCustomer): CustomerRecord => {
   };
 };
 
-const customerSummaryFrom = (summary?: { activeCustomers: number; inactiveCustomers: number; newCustomers: number; totalCustomers: number }, customers: CustomerRecord[] = []) => {
-  const totalRevenue = customers.reduce((sum, customer) => sum + Number(customer.spending.replace(/[^0-9.-]+/g, '')), 0);
-  const premiumCount = customers.filter((customer) => customer.membership === 'Premium' || customer.membership === 'VIP').length;
+const customerSummaryFrom = (summary?: { activeCustomers: number; inactiveCustomers: number; newCustomers: number; totalCustomers: number; premiumCustomers?: number; totalRevenue?: number }) => {
   return [
-    { icon: UsersRound, label: 'Total Customers', note: 'Live backend total', tone: 'primary', value: summary?.totalCustomers?.toLocaleString() ?? customers.length.toLocaleString() },
-    { icon: BadgeCheck, label: 'Active Customers', note: 'Live backend total', tone: 'success', value: summary?.activeCustomers?.toLocaleString() ?? customers.filter((customer) => customer.status === 'Active').length.toLocaleString() },
+    { icon: UsersRound, label: 'Total Customers', note: 'Live backend total', tone: 'primary', value: summary?.totalCustomers?.toLocaleString() ?? '--' },
+    { icon: BadgeCheck, label: 'Active Customers', note: 'Live backend total', tone: 'success', value: summary?.activeCustomers?.toLocaleString() ?? '--' },
     { icon: UserPlus, label: 'New Customers', note: 'Live backend total', tone: 'new', value: summary?.newCustomers?.toLocaleString() ?? '--' },
-    { icon: Sparkles, label: 'Premium Customers', note: 'Derived from live spend', tone: 'premium', value: premiumCount.toLocaleString() },
-    { icon: Ban, label: 'Blocked Customers', note: 'Live backend total', tone: 'danger', value: summary?.inactiveCustomers?.toLocaleString() ?? customers.filter((customer) => customer.status === 'Blocked').length.toLocaleString() },
-    { icon: CircleDollarSign, label: 'Total Revenue', note: 'Derived from live spend', tone: 'revenue', value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalRevenue) }
+    { icon: Sparkles, label: 'Premium Customers', note: 'Live backend total', tone: 'premium', value: summary?.premiumCustomers?.toLocaleString() ?? '--' },
+    { icon: Ban, label: 'Blocked Customers', note: 'Live backend total', tone: 'danger', value: summary?.inactiveCustomers?.toLocaleString() ?? '--' },
+    { icon: CircleDollarSign, label: 'Total Revenue', note: 'Live backend total', tone: 'revenue', value: summary?.totalRevenue ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(summary.totalRevenue) : '--' }
   ] as const;
 };
 
-const CustomerSummary = ({ customers, summary }: { customers: CustomerRecord[]; summary?: { activeCustomers: number; inactiveCustomers: number; newCustomers: number; totalCustomers: number } }) => <section className="customer-summary" aria-label="Customer summary">{customerSummaryFrom(summary, customers).map(({ icon: Icon, label, note, tone, value }) => <article className={tone} key={label}><div><span><Icon aria-hidden="true" /></span><small>{label}</small></div><strong>{value}</strong><p>{note}</p></article>)}</section>;
+const CustomerSummary = ({ summary }: { summary?: any }) => <section className="customer-summary" aria-label="Customer summary">{customerSummaryFrom(summary).map(({ icon: Icon, label, note, tone, value }) => <article className={tone} key={label}><div><span><Icon aria-hidden="true" /></span><small>{label}</small></div><strong>{value}</strong><p>{note}</p></article>)}</section>;
 
 const CustomerStatusBadge = ({ value }: { value: CustomerStatus }) => <span className={`customer-status ${value.toLowerCase()}`}>{value}</span>;
 const CustomerState = ({ onRetry, state }: { onRetry?: () => void; state: 'empty' | 'error' | 'loading' }) => state === 'loading' ? <AdminResourceState className="customer-table-state" loadingLabel="Loading customers" rows={4} secondaryText="Pulling the latest customer profiles from the admin service." state="loading" /> : state === 'error' ? <AdminResourceState className="customer-table-state" errorDescription="Try loading the customer list again." errorTitle="Customers could not be loaded" icon={UsersRound} onRetry={onRetry} state="error" /> : <AdminResourceState className="customer-table-state" emptyDescription="Adjust the filters to reveal more customer records." emptyTitle="No customers found" icon={UsersRound} secondaryText="No create action is available from this screen, but the filters remain active." state="empty" />;
@@ -135,7 +133,7 @@ const CustomersPage = () => {
       .filter((customer) => !normalized || `${customer.name} ${customer.id} ${customer.email} ${customer.phone}`.toLowerCase().includes(normalized));
   }, [customers, membership, query, status]);
 
-  const summary = customerResponse?.meta.summary;
+  const summary = (customerResponse as any)?.meta?.summary;
 
   const openDialog = (kind: CustomerDialogKind, customer: CustomerRecord) => {
     setDialog({ customer, kind });
@@ -161,7 +159,7 @@ const CustomersPage = () => {
           <div><h1>Customer Management <ComingSoon /></h1><p>Oversee your user base, monitor activity, and handle account statuses.</p></div>
           <div><button type="button" {...comingSoonAction}><Download aria-hidden="true" />Export CSV</button><button className="primary" type="button" {...comingSoonAction}><UserPlus aria-hidden="true" />Add Customer</button></div>
         </header>
-        <CustomerSummary customers={customers} summary={summary} />
+        <CustomerSummary summary={summary} />
 
         <section className="customer-toolbar" aria-label="Customer filters">
           <label><Search aria-hidden="true" /><input aria-label="Search customers" placeholder="Search Customers" type="search" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
@@ -175,7 +173,7 @@ const CustomersPage = () => {
 
         <section className="customer-list-card" aria-label="Customer list">
           {state === 'loading' ? <CustomerState state="loading" /> : state === 'error' ? <CustomerState onRetry={retry} state="error" /> : visibleCustomers.length > 0 ? <div className="customer-table-scroll"><table className="customer-table"><thead><tr><th>Customer</th><th>Email</th><th>Phone</th><th>Orders</th><th>Total Spend</th><th>Membership</th><th>Status</th><th>Joined Date</th><th>Last Active</th><th aria-label="Actions" /></tr></thead><tbody>{visibleCustomers.map((customer, index) => <tr className={index === 0 ? 'selected' : ''} key={customer.id}><td><button className="customer-identity" type="button" onClick={() => openDialog('details', customer)}>{customer.image ? <img alt="" src={customer.image} /> : <span>{customer.initials}</span>}<div><strong>{customer.name}</strong><small>{customer.id}</small></div></button></td><td>{customer.email}</td><td>{customer.phone}</td><td><strong>{customer.orders}</strong></td><td className="customer-spend">{customer.spending}</td><td><span className={`customer-membership ${customer.membership.toLowerCase()}`}>{customer.membership}</span></td><td><CustomerStatusBadge value={customer.status} /></td><td>{customer.joined}</td><td>{customer.lastActive}</td><td className="customer-actions-cell"><button type="button" aria-label={`Actions for ${customer.name}`} aria-expanded={menuId === customer.id} onClick={() => setMenuId((current) => current === customer.id ? undefined : customer.id)}><MoreVertical aria-hidden="true" /></button>{menuId === customer.id ? <div className="customer-action-menu"><button type="button" onClick={() => openDialog('details', customer)}><Eye aria-hidden="true" />Customer Details</button><button type="button" {...comingSoonAction}>Edit Customer</button><button type="button" onClick={() => openDialog('orders', customer)}>Order History</button><button type="button" onClick={() => openDialog('addresses', customer)}>Address List</button><button type="button" {...comingSoonAction}>Customer Notes</button><button className={customer.status === 'Blocked' ? '' : 'danger'} type="button" onClick={() => openDialog('block', customer)}>{customer.status === 'Blocked' ? 'Unblock Customer' : 'Block Customer'}</button></div> : null}</td></tr>)}</tbody></table></div> : <CustomerState state="empty" />}
-          <footer><span>Showing 1 to {visibleCustomers.length} of {summary?.totalCustomers?.toLocaleString() ?? customers.length.toLocaleString()} customers</span><nav className="customer-pagination" aria-label="Customer pages"><button disabled type="button" aria-label="Previous page"><ChevronLeft aria-hidden="true" /></button><button className="active" type="button">1</button><button type="button">2</button><button type="button">3</button><span>...</span><button type="button">1248</button><button type="button" aria-label="Next page"><ChevronRight aria-hidden="true" /></button></nav></footer>
+          <footer><span>Showing 1 to {visibleCustomers.length} of {summary?.totalCustomers?.toLocaleString() ?? '--'} customers</span><nav className="customer-pagination" aria-label="Customer pages"><button disabled type="button" aria-label="Previous page"><ChevronLeft aria-hidden="true" /></button><button className="active" type="button">1</button><button type="button">2</button><button type="button">3</button><span>...</span><button type="button">1248</button><button type="button" aria-label="Next page"><ChevronRight aria-hidden="true" /></button></nav></footer>
         </section>
       </main>
       <CustomerDialog customer={dialog?.customer} kind={dialog?.kind ?? 'details'} onClose={() => setDialog(undefined)} onSave={saveCustomer} onToggleBlock={toggleBlock} open={Boolean(dialog)} />

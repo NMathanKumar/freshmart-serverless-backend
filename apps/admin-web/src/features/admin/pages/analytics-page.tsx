@@ -32,35 +32,15 @@ type PreviewMetric = {
 
 const dateRanges = ['Today', 'Week', 'Month', 'Year', 'Custom'] as const;
 const revenuePeriods = ['Monthly', 'Weekly', 'Daily'] as const;
-const revenuePreview = [26, 33, 30, 45, 39, 51, 57, 52, 68, 73, 69, 84];
+const revenuePreview: number[] = [];
 const customerPreview = {
-  new: [18, 28, 25, 39, 44, 51, 58],
-  returning: [12, 19, 24, 28, 37, 41, 49]
+  new: [],
+  returning: []
 };
-const categoryPreview = [
-  { color: '#06772f', label: 'Fresh Produce', value: 38 },
-  { color: '#15945a', label: 'Dairy & Eggs', value: 27 },
-  { color: '#e1a63b', label: 'Pantry', value: 21 },
-  { color: '#dfe7dc', label: 'Other', value: 14 }
-];
-const trafficPreview = [
-  { color: '#06772f', label: 'Organic', value: 44 },
-  { color: '#48aa70', label: 'Ads', value: 26 },
-  { color: '#e2ad45', label: 'Referral', value: 18 },
-  { color: '#dce6d9', label: 'Direct', value: 12 }
-];
-const topProducts = [
-  { color: '#eff8e9', name: 'Organic Avocado', quantity: '1,284 units', revenue: '$8,988', sales: 88 },
-  { color: '#fff4db', name: 'Farm Fresh Eggs', quantity: '986 units', revenue: '$5,916', sales: 72 },
-  { color: '#f5e8df', name: 'Sourdough Loaf', quantity: '742 units', revenue: '$4,452', sales: 58 },
-  { color: '#edf1fb', name: 'Greek Yogurt', quantity: '621 units', revenue: '$3,726', sales: 46 }
-];
-const analyticsEvents = [
-  { description: 'Revenue milestone preview', icon: BadgeDollarSign, status: 'Insight', time: '12 min ago', tone: 'success' },
-  { description: 'Customer cohort update preview', icon: UserPlus, status: 'Growth', time: '38 min ago', tone: 'success' },
-  { description: 'Traffic attribution preview', icon: MousePointerClick, status: 'Report', time: '1 hr ago', tone: 'neutral' },
-  { description: 'Product performance preview', icon: ShoppingBag, status: 'Insight', time: '3 hrs ago', tone: 'warning' }
-];
+const categoryPreview: any[] = [];
+const trafficPreview: any[] = [];
+const topProducts: any[] = [];
+const analyticsEvents: any[] = [];
 
 const PreviewBadge = ComingSoon;
 

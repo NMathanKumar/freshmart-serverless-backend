@@ -258,7 +258,8 @@ export const sharedSessionAccessor: ApiSessionAccessor = {
     clearSharedSession();
     if (typeof window !== 'undefined') {
       if (!window.location.pathname.includes('/login')) {
-        window.location.assign('/login');
+        const isAdmin = window.location.pathname.startsWith('/admin');
+        window.location.assign(isAdmin ? '/admin/login' : '/login');
       }
     }
   }
@@ -278,7 +279,8 @@ export const requireAdmin = () => {
   }
   if (!isAdmin()) {
     if (typeof window !== 'undefined') {
-      window.location.replace('/login');
+      const isAdminPath = window.location.pathname.startsWith('/admin');
+      window.location.replace(isAdminPath ? '/admin/login' : '/login');
     }
     return false;
   }
@@ -296,7 +298,8 @@ export const requireCustomer = () => {
 export const logout = (redirectUrl?: string) => {
   clearSharedSession();
   if (typeof window !== 'undefined') {
-    const target = redirectUrl ?? '/login';
+    const isAdmin = window.location.pathname.startsWith('/admin');
+    const target = redirectUrl ?? (isAdmin ? '/admin/login' : '/login');
     window.location.assign(target);
   }
 };

@@ -17,6 +17,7 @@ const AnalyticsPage = lazy(() => import('../features/admin/pages/analytics-page.
 const ActivityPage = lazy(() => import('../features/admin/pages/activity-page.js'));
 const RolesPage = lazy(() => import('../features/admin/pages/roles-page.js'));
 const SettingsPage = lazy(() => import('../features/admin/pages/settings-page.js'));
+const LoginPage = lazy(() => import('../pages/Login.js').then((m) => ({ default: m.Login })));
 
 const RouteSkeleton = () => (
   <main className="admin-page flex min-h-screen bg-[var(--admin-bg)] p-4" aria-busy="true" aria-label="Loading FreshMart admin page">
@@ -48,21 +49,22 @@ export const AppRouter = () => (
     <Suspense fallback={<RouteSkeleton />}>
       <AppErrorBoundary>
         <Routes>
-        <Route element={<RequireAdminSession />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<RequireAdminSession />}>
         <Route path={adminRoutePaths.dashboard} element={<DashboardPage />} />
         <Route path={adminRoutePaths.products} element={<ProductsPage />} />
         <Route path={adminRoutePaths.categories} element={<CategoriesPage />} />
         <Route path={adminRoutePaths.orders} element={<OrdersPage />} />
         <Route path={adminRoutePaths.inventory} element={<InventoryPage />} />
         <Route path={adminRoutePaths.customers} element={<CustomersPage />} />
-        <Route path="/delivery" element={<DeliveryPage />} />
-        <Route path="/reviews" element={<ReviewsPage />} />
-        <Route path="/suppliers" element={<SuppliersPage />} />
-        <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
+        {/* <Route path="/delivery" element={<DeliveryPage />} /> */}
+        {/* <Route path="/reviews" element={<ReviewsPage />} /> */}
+        {/* <Route path="/suppliers" element={<SuppliersPage />} /> */}
+        {/* <Route path="/purchase-orders" element={<PurchaseOrdersPage />} /> */}
         <Route path={adminRoutePaths.analytics} element={<AnalyticsPage />} />
-        <Route path={adminRoutePaths.activity} element={<ActivityPage />} />
+        {/* <Route path={adminRoutePaths.activity} element={<ActivityPage />} /> */}
         <Route path={adminRoutePaths.roles} element={<RolesPage />} />
-        <Route path={adminRoutePaths.settings} element={<SettingsPage />} />
+        {/* <Route path={adminRoutePaths.settings} element={<SettingsPage />} /> */}
         </Route>
         <Route path="*" element={<Navigate replace to={adminRoutePaths.dashboard} />} />
         </Routes>

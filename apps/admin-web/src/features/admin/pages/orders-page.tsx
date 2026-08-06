@@ -84,7 +84,7 @@ const OrdersSummary = ({ summary }: { summary?: { cancelledOrders: number; deliv
     { icon: RefreshCcw, label: 'Processing Orders', note: 'In fulfillment', tone: 'success', value: summary?.processingOrders?.toLocaleString() ?? '--' },
     { icon: PackageCheck, label: 'Delivered Orders', note: 'Live backend total', tone: 'success', value: summary?.deliveredOrders?.toLocaleString() ?? '--' },
     { icon: Ban, label: 'Cancelled Orders', note: 'Live backend total', tone: 'danger', value: summary?.cancelledOrders?.toLocaleString() ?? '--' },
-    { icon: CircleDollarSign, label: 'Revenue', note: 'Live backend total', tone: 'revenue', value: summary ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(summary.revenue) : '--' }
+    { icon: CircleDollarSign, label: 'Revenue', note: 'Live backend total', tone: 'revenue', value: summary ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(summary.revenue) : '₹0' }
   ] as const;
 
   return (
@@ -182,12 +182,12 @@ const OrdersPage = () => {
     setDialog(undefined);
   };
 
-  const summary = orderResponse?.meta.summary;
+  const summary = (orderResponse as any)?.meta?.summary;
 
   return (
     <AdminShell precision precisionVariant="orders" searchPlaceholder="Search orders, customers..." user="main" variant="operations">
       <main className="orders-screen">
-        <header className="orders-heading"><p><span>Dashboard</span><b>/</b>Orders</p><h1>Order Management <ComingSoon /></h1></header>
+        <header className="orders-heading"><p><span>Dashboard</span><b>/</b>Orders</p><h1>Order Management</h1></header>
         <OrdersSummary summary={summary} />
         <section className="orders-table-card" aria-label="Orders list">
           <OrdersToolbar orderStatus={orderStatus} paymentStatus={paymentStatus} query={query} setOrderStatus={setOrderStatus} setPaymentStatus={setPaymentStatus} setQuery={setQuery} />
@@ -205,7 +205,7 @@ const OrdersPage = () => {
                       <td><button className="orders-id" type="button" onClick={() => openDialog('details', order)}>{order.id}</button></td>
                       <td><div className="orders-customer"><span className={order.initials === 'JB' ? 'danger' : ''}>{order.initials}</span><div><strong>{order.customer}</strong><small>{order.email}</small></div></div></td>
                       <td><div className="orders-items"><div>{order.products.map((product) => <img alt="" key={product} src={product} />)}</div><span>{order.itemsCount} items</span></div></td>
-                      <td><strong>${order.amount.toFixed(2)}</strong></td>
+                      <td><strong>₹{order.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></td>
                       <td>{order.paymentMethod}</td>
                       <td><OrderBadge type="payment" value={order.paymentStatus} /></td>
                       <td><OrderBadge type="order" value={order.orderStatus} /></td>

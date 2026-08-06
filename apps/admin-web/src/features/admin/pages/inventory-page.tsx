@@ -17,26 +17,18 @@ import { AdminShell } from '../components/admin-shell.js';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { InventoryDialog } from '../components/inventory-dialog.js';
 import type { InventoryDialogKind, InventoryRecord } from '../components/inventory-dialog.js';
-import { inventoryRows } from '../model/mock-data.js';
 import { fetchInventoryWorkspace, updateInventory } from '../api/admin-api.js';
 import { useApiResource } from '../hooks/use-api-resource.js';
 
 type InventoryLoadState = 'loading' | 'ready' | 'empty' | 'error';
 
-const inventoryStats = [
-  { title: 'Total Products', value: '1,284', note: '+12 this month', icon: Archive, tone: 'primary' },
-  { title: 'In Stock', value: '1,142', note: '89% of inventory', icon: CheckCircle2, tone: 'success' },
-  { title: 'Low Stock', value: '94', note: 'Requires Attention', icon: AlertTriangle, tone: 'warning' },
-  { title: 'Out of Stock', value: '48', note: 'Urgent Restock', icon: AlertCircle, tone: 'danger' }
-] as const;
-
 const InventorySummary = ({ items, total }: { items: InventoryRecord[]; total: number }) => {
-  const stats = inventoryStats.map((stat) => {
-    if (stat.title === 'Total Products') return { ...stat, value: total.toLocaleString(), note: 'Live inventory records' };
-    if (stat.title === 'In Stock') return { ...stat, value: items.filter((item) => item.status === 'In Stock').length.toLocaleString(), note: 'Loaded inventory' };
-    if (stat.title === 'Low Stock') return { ...stat, value: items.filter((item) => item.status === 'Low Stock').length.toLocaleString(), note: 'Requires Attention' };
-    return { ...stat, value: items.filter((item) => item.status === 'Out of Stock').length.toLocaleString(), note: 'Urgent Restock' };
-  });
+  const stats = [
+    { title: 'Total Products', value: total.toLocaleString(), note: 'Live inventory records', icon: Archive, tone: 'primary' },
+    { title: 'In Stock', value: items.filter((item) => item.status === 'In Stock').length.toLocaleString(), note: 'Loaded inventory', icon: CheckCircle2, tone: 'success' },
+    { title: 'Low Stock', value: items.filter((item) => item.status === 'Low Stock').length.toLocaleString(), note: 'Requires Attention', icon: AlertTriangle, tone: 'warning' },
+    { title: 'Out of Stock', value: items.filter((item) => item.status === 'Out of Stock').length.toLocaleString(), note: 'Urgent Restock', icon: AlertCircle, tone: 'danger' }
+  ];
   return (
   <section className="inventory-summary" aria-label="Inventory summary">
     {stats.map(({ icon: Icon, note, title, tone, value }) => (
@@ -137,7 +129,7 @@ const InventoryPage = () => {
           available: typeof item.availableStock === 'number' ? item.availableStock : Math.max(0, current - reserved),
           category: product?.category ?? 'UNCATEGORIZED',
           current,
-          image: product?.images[0] ?? inventoryRows[index % inventoryRows.length]?.image ?? '',
+          image: product?.images[0] ?? '',
           lastUpdated: item.updatedAt ? new Date(item.updatedAt).toLocaleString() : 'Not available',
           name: product?.productName ?? item.productId,
           reorderLevel,

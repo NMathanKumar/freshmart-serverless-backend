@@ -11,7 +11,7 @@ import { AdminShell } from '../components/admin-shell.js';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { useApiResource } from '../hooks/use-api-resource.js';
 import { deleteReview as apiDeleteReview, fetchAdminReviews, moderateReview } from '../api/admin-api.js';
-import { reviewRows } from '../model/mock-data.js';
+const reviewRows: any[] = [];
 
 interface ReviewRecord {
   id: string;
@@ -54,17 +54,7 @@ const ReviewsPage = () => {
         };
       });
     }
-    return reviewRows.map((row, index) => ({
-      id: `REV-${index + 1}`,
-      product: row.product,
-      productImage: row.image,
-      customer: row.customer,
-      customerInitials: row.customer.split(' ').map((p) => p[0]).join('').slice(0, 2),
-      date: row.date,
-      rating: 4,
-      status: row.status,
-      comment: 'The quality is amazing, but the packaging was slightly damaged when it arrived. Still tastes great though!'
-    }));
+    return [];
   }, [reviewsList]);
 
   const [selectedId, setSelectedId] = useState<string>();

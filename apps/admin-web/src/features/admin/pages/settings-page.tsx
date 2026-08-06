@@ -4,7 +4,7 @@ import { AdminShell } from '../components/admin-shell.js';
 import { AdminPageHeader } from '../components/admin-components.js';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { useApiResource } from '../hooks/use-api-resource.js';
-import { settingsPlaceholders } from '../model/mock-data.js';
+const settingsPlaceholders: any[] = [];
 
 const emptyConfig = (items: Awaited<ReturnType<typeof fetchAdminConfig>>) => items.length === 0;
 

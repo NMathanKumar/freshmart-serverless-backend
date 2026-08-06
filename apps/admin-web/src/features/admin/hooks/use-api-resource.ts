@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type ApiResourceState = 'empty' | 'error' | 'loading' | 'ready';
 const neverEmpty = () => false;
@@ -8,18 +8,23 @@ export const useApiResource = <T,>(loader: () => Promise<T>, isEmpty: (value: T)
   const [state, setState] = useState<ApiResourceState>('loading');
   const [attempt, setAttempt] = useState(0);
 
+  const loaderRef = useRef(loader);
+  loaderRef.current = loader;
+  const isEmptyRef = useRef(isEmpty);
+  isEmptyRef.current = isEmpty;
+
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
 
   useEffect(() => {
     let active = true;
     setState('loading');
-    void loader().then((value) => {
+    void loaderRef.current().then((value) => {
       if (!active) return;
       setData(value);
-      setState(isEmpty(value) ? 'empty' : 'ready');
+      setState(isEmptyRef.current(value) ? 'empty' : 'ready');
     }).catch(() => active && setState('error'));
     return () => { active = false; };
-  }, [attempt, isEmpty, loader]);
+  }, [attempt]);
 
   return { data, retry, state };
 };
