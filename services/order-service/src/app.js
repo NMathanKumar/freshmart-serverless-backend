@@ -13,16 +13,20 @@ const getRouter = (r) => {
 };
 const routes = getRouter(require('./routes/index.js'));
 const adminOrderRoutes = getRouter(require('./routes/admin-order.routes.js'));
+const adminAnalyticsRoutes = getRouter(require('./routes/admin-analytics.routes.js'));
 const fulfillmentRoutes = getRouter(require('./routes/fulfillment.routes.js'));
 
 module.exports = createServiceApp({
   mountRoutes(app) {
     const adminRouter = getRouter(adminOrderRoutes);
+    const analyticsRouter = getRouter(adminAnalyticsRoutes);
     const fulfillRouter = getRouter(fulfillmentRoutes);
     const mainRouter = getRouter(routes);
 
     app.use('/admin/orders', adminRouter);
     app.use('/v1/admin/orders', adminRouter);
+    app.use('/admin/analytics', analyticsRouter);
+    app.use('/v1/admin/analytics', analyticsRouter);
     app.use('/orders/fulfillments', fulfillRouter);
     app.use('/v1/orders/fulfillments', fulfillRouter);
     app.use('/orders', mainRouter);

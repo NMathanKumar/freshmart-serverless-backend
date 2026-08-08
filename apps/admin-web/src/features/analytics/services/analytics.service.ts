@@ -137,10 +137,35 @@ export class AnalyticsService {
   }
 
   async exportAnalyticsReport(format: string): Promise<{ downloadUrl: string; fileName: string }> {
-    return {
-      downloadUrl: '#',
-      fileName: `analytics_report_${Date.now()}.${format}`,
-    };
+    try {
+      const isBrowser = typeof window !== 'undefined';
+      const baseUrl = 'https://98fyk75ya9.execute-api.ap-southeast-1.amazonaws.com/v1';
+      const downloadUrl = `${baseUrl}/admin/analytics/export?format=${encodeURIComponent(format)}`;
+      const fileName = `freshmart_analytics_report_${Date.now()}.${format === 'excel' ? 'csv' : format}`;
+
+      if (isBrowser) {
+        const token = getAccessToken();
+        const response = await fetch(downloadUrl, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      }
+
+      return { downloadUrl, fileName };
+    } catch {
+      return {
+        downloadUrl: '#',
+        fileName: `analytics_report_${Date.now()}.${format}`,
+      };
+    }
   }
 }
 

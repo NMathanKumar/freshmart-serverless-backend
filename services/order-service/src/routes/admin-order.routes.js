@@ -15,6 +15,7 @@ const validateMw = (schema, type) => (middleware?.validate ? middleware.validate
 
 router.use(authMw);
 router.use(adminMw);
+
 router.get('/', validateMw(adminOrderListSchema, 'query'), controller.listOrders);
 router.get('/:orderId', validateMw(adminOrderIdSchema, 'params'), controller.getOrder);
 router.patch(
