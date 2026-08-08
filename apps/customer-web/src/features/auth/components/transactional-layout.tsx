@@ -45,28 +45,16 @@ export const TransactionalLayout = ({
         <div>
           <h2 className="mb-3 text-sm font-semibold">Company</h2>
           <div className="space-y-3 text-base text-[#3e4a3d]">
-            <Link className="block hover:text-[#006b2c]" to="#">
+            <Link className="block hover:text-[#006b2c]" to="/about">
               About Us
-            </Link>
-            <Link className="block hover:text-[#006b2c]" to="#">
-              Sustainability
-            </Link>
-            <Link className="block hover:text-[#006b2c]" to="#">
-              Partner with Us
             </Link>
           </div>
         </div>
         <div>
           <h2 className="mb-3 text-sm font-semibold">Support</h2>
           <div className="space-y-3 text-base text-[#3e4a3d]">
-            <a
-              className="block hover:text-[#006b2c]"
-              href="mailto:support@freshmart.com"
-            >
+            <Link className="block hover:text-[#006b2c]" to="/help">
               Help Center
-            </a>
-            <Link className="block hover:text-[#006b2c]" to="#">
-              Privacy Policy
             </Link>
           </div>
         </div>

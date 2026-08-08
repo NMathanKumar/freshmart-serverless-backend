@@ -258,6 +258,8 @@ module "cognito" {
     "https://${module.admin_web.cloudfront_domain_name}/admin/auth/callback",
     "http://localhost:5173/admin/auth/callback",
     "http://localhost:5173/auth/callback",
+    "http://localhost:5174/admin/auth/callback",
+    "http://localhost:5174/auth/callback",
     "http://localhost:3001/auth/callback"
   ]
   logout_urls = [
@@ -265,6 +267,7 @@ module "cognito" {
     "https://${module.unified_web.cloudfront_domain_name}",
     "https://${module.admin_web.cloudfront_domain_name}",
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3001"
   ]
   tags = local.common_tags

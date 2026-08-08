@@ -3,7 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Bell,
   CreditCard,
+  HelpCircle,
   Home,
+  Info,
   LockKeyhole,
   LogOut,
   MapPin,
@@ -44,6 +46,8 @@ const sidebarItems = [
     icon: LockKeyhole,
     label: 'Connected Accounts',
   },
+  { href: '/help', icon: HelpCircle, label: 'Help Center' },
+  { href: '/about', icon: Info, label: 'About Us' },
 ];
 
 export const AccountShell = ({
@@ -180,7 +184,7 @@ export const AccountShell = ({
         <section className="min-w-0 flex-1 space-y-6">{children}</section>
       </main>
       <footer className="hidden border-t border-[#bdcaba] bg-[#eff6ea] md:block">
-        <div className="mx-auto grid max-w-7xl grid-cols-4 gap-6 px-10 py-12">
+        <div className="mx-auto grid max-w-7xl grid-cols-3 gap-12 px-10 py-12">
           <div>
             <h2 className="mb-4 text-xl font-semibold text-[#006b2c]">
               FreshMarket Enterprise
@@ -189,18 +193,32 @@ export const AccountShell = ({
               Elevating urban grocery shopping through quality and precision.
             </p>
           </div>
-          <FooterColumn
-            title="Company"
-            items={['About Us', 'Sustainability', 'Bulk Orders']}
-          />
-          <FooterColumn
-            title="Legal"
-            items={['Terms of Service', 'Privacy Policy']}
-          />
-          <FooterColumn
-            title="Connect"
-            items={['Contact Support', '© 2024 FreshMarket Enterprise.']}
-          />
+          <div>
+            <h3 className="mb-4 text-sm font-bold">Company</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  className="text-[#3e4a3d] hover:text-[#006b2c] hover:underline"
+                  to="/about"
+                >
+                  About Us
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="mb-4 text-sm font-bold">Support</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  className="text-[#3e4a3d] hover:text-[#006b2c] hover:underline"
+                  to="/help"
+                >
+                  Help Center
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
       </footer>
       <nav

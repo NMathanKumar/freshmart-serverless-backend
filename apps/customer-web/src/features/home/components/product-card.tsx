@@ -94,11 +94,11 @@ export const ProductCard = ({ product }: { product: ProductViewModel }) => {
             loading="lazy"
             src={product.imageUrl}
             onError={(e) => {
-    const fallback = 'https://placehold.co/400x400/e2ebdE/006c4a.png?text=FreshMart';
-    if (!e.currentTarget.src.includes('product-placeholder.png')) {
-      e.currentTarget.src = fallback;
-    }
-  }}
+              const fallback = 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&auto=format&fit=crop&q=80';
+              if (!e.currentTarget.src.includes('photo-1560806887')) {
+                e.currentTarget.src = fallback;
+              }
+            }}
           />
         </Link>
       </div>

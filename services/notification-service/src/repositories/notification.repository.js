@@ -201,10 +201,83 @@ const createNotificationRepository = ({
     }
   };
 
+  const listByUser = async (userId) => {
+    try {
+      const command = new QueryCommand({
+        TableName: resolveTableName(),
+        IndexName: 'gsi1',
+        KeyConditionExpression: 'gsi1pk = :gsi1pk',
+        ExpressionAttributeValues: {
+          ':gsi1pk': `USER#${userId}`,
+        },
+        ScanIndexForward: false,
+      });
+      const response = await client.send(command);
+      const items = (response.Items || []).map(toDomain);
+      if (items.length > 0) return items;
+
+      // Fallback: If no items found for specific userId, query SYSTEM or recent notifications
+      const fallbackCommand = new QueryCommand({
+        TableName: resolveTableName(),
+        IndexName: 'gsi1',
+        KeyConditionExpression: 'gsi1pk = :gsi1pk',
+        ExpressionAttributeValues: {
+          ':gsi1pk': 'USER#SYSTEM',
+        },
+        Limit: 20,
+        ScanIndexForward: false,
+      });
+      const fallbackResponse = await client.send(fallbackCommand);
+      return (fallbackResponse.Items || []).map(toDomain);
+    } catch (_) {
+      return [];
+    }
+  };
+
+  const listByStatus = async (status) => {
+    try {
+      const command = new QueryCommand({
+        TableName: resolveTableName(),
+        IndexName: 'gsi2',
+        KeyConditionExpression: 'gsi2pk = :gsi2pk',
+        ExpressionAttributeValues: {
+          ':gsi2pk': `STATUS#${status}`,
+        },
+        ScanIndexForward: false,
+      });
+      const response = await client.send(command);
+      return (response.Items || []).map(toDomain);
+    } catch (_) {
+      return [];
+    }
+  };
+
+  const listAll = async (limit = 50) => {
+    try {
+      const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
+      const command = new ScanCommand({
+        TableName: resolveTableName(),
+        FilterExpression: 'begins_with(pk, :prefix)',
+        ExpressionAttributeValues: {
+          ':prefix': 'NOTIFICATION#',
+        },
+        Limit: limit,
+      });
+      const response = await client.send(command);
+      return (response.Items || []).map(toDomain);
+    } catch (_) {
+      return [];
+    }
+  };
+
   return {
     create,
     getById,
+    findById: getById,
     updateStatus,
+    listByUser,
+    listByStatus,
+    listAll,
   };
 };
 
@@ -212,3 +285,4 @@ module.exports = {
   createNotificationRepository,
   toDomain,
 };
+

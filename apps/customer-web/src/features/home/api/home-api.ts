@@ -106,7 +106,15 @@ export const homeApi = authApi.injectEndpoints({
                 const price = Number(product.price ?? 0);
                 const category = String(product.category ?? 'FreshMart');
                 const images = Array.isArray(product.images) ? (product.images as unknown[]).filter((image: unknown): image is string => typeof image === 'string' && image.length > 0) : [];
-                const primaryImage = typeof (product as any).imageUrl === 'string' ? (product as any).imageUrl : (images[0] ?? '');
+                
+                let primaryImage = typeof (product as any).imageUrl === 'string' && (product as any).imageUrl.startsWith('http') && !(product as any).imageUrl.includes('product-placeholder.png')
+                  ? (product as any).imageUrl
+                  : (images.find((img): img is string => typeof img === 'string' && img.startsWith('http') && !img.includes('product-placeholder.png')) ?? '');
+
+                if (!primaryImage) {
+                  const match = defaultProducts.find((p) => p.productId === productId || p.name.toLowerCase() === productName.toLowerCase());
+                  primaryImage = match ? match.images[0] : defaultProducts[index % defaultProducts.length].images[0];
+                }
 
                 return {
                   available: Boolean(product.available ?? true),
@@ -129,26 +137,28 @@ export const homeApi = authApi.injectEndpoints({
               })
             : defaultProducts;
 
-          const rawCategories = Array.isArray(categoriesResponse)
+          const rawCategories: any[] = Array.isArray(categoriesResponse)
             ? categoriesResponse
-            : Array.isArray((categoriesResponse as { data?: Array<Record<string, unknown>> })?.data)
-              ? (categoriesResponse as { data: Array<Record<string, unknown>> }).data
+            : categoriesResponse && typeof categoriesResponse === 'object' && 'data' in categoriesResponse && Array.isArray((categoriesResponse as { data: unknown[] }).data)
+              ? (categoriesResponse as { data: any[] }).data
               : [];
 
+          const categoryNamesFromProducts: string[] = rawProducts.length > 0
+            ? ([...new Set(rawProducts.map((p: any) => String(p.category || '').trim()).filter(Boolean))] as string[])
+            : [];
+
           const categories: { categoryId: string; name: string; slug?: string; imageUrl?: string }[] = rawCategories.length > 0
-            ? rawCategories.map((rawCatItem: any, index: number) => {
-                const cat = rawCatItem as Record<string, unknown>;
-                return {
-                  categoryId: String(cat.categoryId ?? cat.id ?? `category-${index + 1}`),
-                  name: String(cat.name ?? `Category ${index + 1}`),
-                  slug: String(cat.slug ?? ''),
-                  imageUrl: String(cat.imageUrl ?? ''),
-                };
-              })
-            : rawProducts.length > 0
-            ? [...new Set(rawProducts.map((p: any) => String(p.category || '').trim()).filter(Boolean))]
-                .slice(0, 6)
-                .map((catName: string, index: number) => ({ categoryId: `category-${index + 1}`, name: String(catName) }))
+            ? rawCategories.map((rawCatItem: any, index: number) => ({
+                categoryId: String(rawCatItem.categoryId ?? rawCatItem.id ?? `category-${index + 1}`),
+                name: String(rawCatItem.name ?? `Category ${index + 1}`),
+                slug: String(rawCatItem.slug ?? ''),
+                imageUrl: String(rawCatItem.imageUrl ?? ''),
+              }))
+            : categoryNamesFromProducts.length > 0
+            ? categoryNamesFromProducts.slice(0, 6).map((catName: any, index: number) => ({
+                categoryId: `category-${index + 1}`,
+                name: String(catName),
+              }))
             : defaultCategories;
 
           return {

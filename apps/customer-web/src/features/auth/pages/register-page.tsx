@@ -216,9 +216,8 @@ const RegisterPage = () => {
         aria-label="Support links"
         className="mt-6 flex gap-6 text-xs font-medium text-[#6e7b6c]"
       >
-        <a href="#help">Help Center</a>
-        <a href="#sustainability">Sustainability</a>
-        <a href="#partners">Partner with Us</a>
+        <Link className="hover:text-[#006b2c]" to="/help">Help Center</Link>
+        <Link className="hover:text-[#006b2c]" to="/about">About Us</Link>
       </nav>
     </div>
   );

@@ -67,6 +67,20 @@ class EventRegistry {
     this.register('order.cancelled', handleAdminAlert);
     this.register('LargeOrderPlaced.v1', handleAdminAlert);
     this.register('SuspiciousLogin.v1', handleAdminAlert);
+
+    // 9. SES Bounce & Complaint Lifecycle Events
+    const { handleBounceEvent } = require('../handlers/bounce.handler');
+    const { handleComplaintEvent } = require('../handlers/complaint.handler');
+
+    this.register('ses.bounce', handleBounceEvent);
+    this.register('SESNotification.Bounce', handleBounceEvent);
+    this.register('SES.Bounce', handleBounceEvent);
+    this.register('Bounce', handleBounceEvent);
+
+    this.register('ses.complaint', handleComplaintEvent);
+    this.register('SESNotification.Complaint', handleComplaintEvent);
+    this.register('SES.Complaint', handleComplaintEvent);
+    this.register('Complaint', handleComplaintEvent);
   }
 }
 

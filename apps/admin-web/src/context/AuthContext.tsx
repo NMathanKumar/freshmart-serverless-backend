@@ -72,7 +72,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = () => {
-    const redirectUri = window.location.origin.includes('/admin')
+    const isSubpathAdmin = window.location.pathname.startsWith('/admin') || window.location.href.includes('/admin') || window.location.port === '5173';
+    const redirectUri = isSubpathAdmin
       ? `${window.location.origin}/admin/auth/callback`
       : `${window.location.origin}/auth/callback`;
     import('@freshmart/shared').then(({ redirectToSSO }) => {

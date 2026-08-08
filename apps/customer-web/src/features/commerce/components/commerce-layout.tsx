@@ -151,59 +151,7 @@ export const CommerceSearchBar = ({
 
 export const CommerceFooter = () => null;
 
-export const CommerceMobileNav = ({
-  active,
-}: {
-  active: 'shop' | 'search' | 'wishlist' | 'cart' | 'orders' | 'account';
-}) => (
-  <nav
-    aria-label="Mobile navigation"
-    className="commerce-glass fixed inset-x-0 bottom-0 z-50 flex items-center justify-around rounded-t-xl border-t border-[#bdcaba]/30 bg-[#f4fcf0]/90 px-3 py-3 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] md:hidden"
-  >
-    <Link
-      className={`commerce-mobile-nav-item ${active === 'shop' ? 'active' : ''}`}
-      to={customerRoutePaths.home}
-    >
-      <Store aria-hidden="true" className="h-5 w-5" />
-      Shop
-    </Link>
-    <Link
-      className={`commerce-mobile-nav-item ${active === 'search' ? 'active' : ''}`}
-      to={customerRoutePaths.search}
-    >
-      <Search aria-hidden="true" className="h-5 w-5" />
-      Search
-    </Link>
-    <Link
-      className={`commerce-mobile-nav-item ${active === 'wishlist' ? 'active' : ''}`}
-      to={customerRoutePaths.wishlist}
-    >
-      <Heart aria-hidden="true" className="h-5 w-5" />
-      Saved
-    </Link>
-    <Link
-      className={`commerce-mobile-nav-item ${active === 'cart' ? 'active' : ''}`}
-      to={customerRoutePaths.cart}
-    >
-      <ShoppingBasket aria-hidden="true" className="h-5 w-5" />
-      Cart
-    </Link>
-    <Link
-      className={`commerce-mobile-nav-item ${active === 'orders' ? 'active' : ''}`}
-      to={customerRoutePaths.orders}
-    >
-      <ReceiptText aria-hidden="true" className="h-5 w-5" />
-      Orders
-    </Link>
-    <Link
-      className={`commerce-mobile-nav-item ${active === 'account' ? 'active' : ''}`}
-      to={customerRoutePaths.settings}
-    >
-      <UserRound aria-hidden="true" className="h-5 w-5" />
-      Account
-    </Link>
-  </nav>
-);
+export const CommerceMobileNav = (_props?: { active?: 'shop' | 'search' | 'wishlist' | 'cart' | 'orders' | 'account' | string }) => null;
 
 export const CommerceShell = ({
   active,

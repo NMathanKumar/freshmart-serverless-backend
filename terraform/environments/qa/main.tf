@@ -1,4 +1,16 @@
-data "aws_caller_identity" "current" {}
+module "ses" {
+  source = "../../modules/ses"
+
+  project_name             = var.project_name
+  environment              = var.environment
+  aws_region               = var.aws_region
+  email_address            = var.ses_from_email_address
+  domain_name              = var.ses_domain_name
+  enable_dkim              = var.enable_ses_dkim
+  enable_configuration_set = true
+  sns_topic_arn            = module.sns.topic_arns["customer_events"]
+  tags                     = local.common_tags
+}
 
 
 
@@ -157,22 +169,6 @@ module "admin_web" {
   tags               = local.common_tags
 }
 
-module "cloudwatch" {
-  source = "../../modules/cloudwatch"
-
-  project_name          = var.project_name
-  environment           = var.environment
-  aws_region            = var.aws_region
-  lambda_functions      = local.cloudwatch_lambda_functions
-  api_id                = local.cloudwatch_api_id
-  api_stage_name        = local.cloudwatch_api_stage_name
-  dynamodb_tables       = local.cloudwatch_dynamodb_tables
-  log_retention_in_days = 30
-  alarm_actions         = [module.sns.topic_arns["notification"]]
-  ok_actions            = [module.sns.topic_arns["notification"]]
-  tags                  = local.common_tags
-}
-
 module "eventbridge" {
   source = "../../modules/eventbridge"
 
@@ -192,6 +188,8 @@ module "cognito" {
   project_name               = var.project_name
   environment                = var.environment
   aws_region                 = var.aws_region
+  ses_from_email_address     = module.ses.identity_name
+  ses_source_arn             = module.ses.identity_arn
   domain_prefix              = "${var.project_name}-${var.environment}-auth"
   mfa_configuration          = "OPTIONAL"
   software_token_mfa_enabled = true
