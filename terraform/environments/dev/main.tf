@@ -88,7 +88,15 @@ module "apigateway" {
   description            = "FreshMart HTTP API for ${var.environment}."
   lambdas                = local.api_gateway_lambdas
   routes                 = local.api_gateway_routes
-  cors_allow_origins     = ["*"]
+  cors_allow_origins = [
+    "https://${module.unified_web.cloudfront_domain_name}",
+    "https://${module.customer_web.cloudfront_domain_name}",
+    "https://${module.admin_web.cloudfront_domain_name}",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://localhost:3001"
+  ]
   cors_allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
   cors_allow_headers     = ["content-type", "authorization", "x-amz-date", "x-api-key", "x-amz-security-token", "x-amz-user-agent"]
   cors_allow_credentials = false

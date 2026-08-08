@@ -172,13 +172,13 @@ const placeOrderFromCart = async (userId, payload = {}, context = {}) => {
   const finalGrandTotal = Number(totalAmount ?? (subtotal + finalPlatformFee + finalDeliveryFee + finalTax));
 
   const resolvedEmail =
-    context.userEmail ||
-    context.email ||
-    context.claims?.email ||
     payload.customerEmail ||
     payload.email ||
     payload.deliveryAddressData?.email ||
-    'nmadhankumar597@gmail.com';
+    context.userEmail ||
+    context.email ||
+    context.claims?.email ||
+    'customer@freshmart.com';
 
   const resolvedName =
     context.userName ||

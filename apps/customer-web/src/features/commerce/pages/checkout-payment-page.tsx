@@ -115,6 +115,31 @@ export function CheckoutPaymentContent() {
       const effectiveSubtotal = Math.max(subtotal, 4.99);
       const effectiveGrandTotal = Math.max(grandTotal, effectiveSubtotal + platformFee + taxes);
 
+      // Retrieve logged-in customer identity
+      const sessionUser = (await import('@freshmart/shared')).getCurrentUser();
+      let activeCustomerEmail = sessionUser?.email || '';
+      let activeCustomerName = sessionUser?.name || '';
+
+      if (!activeCustomerEmail && typeof localStorage !== 'undefined') {
+        try {
+          for (const key of ['freshmart_session', 'freshmart_auth', 'freshmart_auth_session', 'freshmart_user', 'auth_user']) {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              activeCustomerEmail = parsed.email || parsed.user?.email || parsed.claims?.email || parsed.username || activeCustomerEmail;
+              activeCustomerName = parsed.name || parsed.user?.name || parsed.claims?.name || activeCustomerName;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (!activeCustomerEmail && typeof localStorage !== 'undefined') {
+        activeCustomerEmail = localStorage.getItem('freshmart_user_email') || '';
+      }
+      if (!activeCustomerName && typeof localStorage !== 'undefined') {
+        activeCustomerName = localStorage.getItem('freshmart_user_name') || 'Valued Customer';
+      }
+
       const orderRes = await createOrder({
         items: orderItems,
         itemSubtotal: effectiveSubtotal,
@@ -126,10 +151,12 @@ export function CheckoutPaymentContent() {
         discount: 0,
         totalAmount: effectiveGrandTotal,
         grandTotal: effectiveGrandTotal,
+        customerEmail: activeCustomerEmail || undefined,
+        customerName: activeCustomerName || undefined,
         deliveryAddress,
         deliveryAddressData,
         paymentMethod: selectedOption.toUpperCase(),
-      }).unwrap();
+      } as any).unwrap();
 
       // Backend returns { message, data: { orderId: 'ORDER_<uuid>' } }
       // .unwrap() gives us the raw response envelope

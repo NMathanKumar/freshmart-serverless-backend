@@ -12,7 +12,7 @@ const placeOrderSchema = Joi.object({
   }),
   addressId: Joi.string().optional(),
   slotId: Joi.string().optional(),
-  paymentMethod: Joi.string().valid(...ALLOWED_PAYMENT_METHODS).optional(),
+  paymentMethod: Joi.string().optional().allow('', null),
   customerEmail: Joi.string().email().optional(),
   customerName: Joi.string().optional(),
   subtotal: Joi.number().optional(),

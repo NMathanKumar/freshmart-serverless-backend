@@ -82,38 +82,35 @@ export const homeApi = authApi.injectEndpoints({
     getCustomerHome: builder.query<CustomerHomeResponse, void>({
       queryFn: async () => {
         try {
-          let productsResponse: unknown = null;
-          try {
-            productsResponse = unwrap(await sdk.catalog.listProducts());
-          } catch (_) {
-            // Unhandled catalog error fallback
-          }
+          const [productsResult, cartResult, categoriesResult] = await Promise.allSettled([
+            sdk.catalog.listProducts().then(unwrap),
+            sdk.cart.getCart(),
+            sdk.category.listCategories().then(unwrap)
+          ]);
 
-          let cartResponse: unknown = null;
-          try {
-            cartResponse = await sdk.cart.getCart();
-          } catch (_) {
-            // Guest or unauthenticated user - cart remains empty
-          }
+          const productsResponse = productsResult.status === 'fulfilled' ? productsResult.value : null;
+          const cartResponse = cartResult.status === 'fulfilled' ? cartResult.value : null;
+          const categoriesResponse = categoriesResult.status === 'fulfilled' ? categoriesResult.value : null;
 
           const rawProducts = Array.isArray(productsResponse)
             ? productsResponse
-            : Array.isArray((productsResponse as { data?: Array<Record<string, unknown>> })?.data)
-              ? (productsResponse as { data: Array<Record<string, unknown>> }).data
+            : Array.isArray((productsResponse as any)?.data)
+              ? (productsResponse as any).data
               : [];
 
           const featuredProducts = rawProducts.length > 0
-            ? rawProducts.map((product, index) => {
+            ? rawProducts.map((rawItem: any, index: number) => {
+                const product = rawItem as Record<string, unknown>;
                 const productId = String(product.productId ?? `product-${index + 1}`);
-                const productName = String(product.productName ?? product.name ?? `FreshMart Product ${index + 1}`);
+                const productName = String(product.productName ?? (product as any).name ?? `FreshMart Product ${index + 1}`);
                 const price = Number(product.price ?? 0);
                 const category = String(product.category ?? 'FreshMart');
                 const images = Array.isArray(product.images) ? (product.images as unknown[]).filter((image: unknown): image is string => typeof image === 'string' && image.length > 0) : [];
-                const primaryImage = typeof product.imageUrl === 'string' ? product.imageUrl : images[0] ?? '';
+                const primaryImage = typeof (product as any).imageUrl === 'string' ? (product as any).imageUrl : (images[0] ?? '');
 
                 return {
                   available: Boolean(product.available ?? true),
-                  brand: String(product.brand ?? product.brandName ?? 'FreshMart'),
+                  brand: String(product.brand ?? (product as any).brandName ?? 'FreshMart'),
                   category,
                   createdAt: typeof product.createdAt === 'string' ? product.createdAt : undefined,
                   description: typeof product.description === 'string' ? product.description : undefined,
@@ -132,22 +129,14 @@ export const homeApi = authApi.injectEndpoints({
               })
             : defaultProducts;
 
-          let categoriesResponse: unknown = null;
-          try {
-            const rawCat = await sdk.category.listCategories();
-            categoriesResponse = unwrap(rawCat);
-          } catch (_) {
-            // Unhandled category error fallback
-          }
-
           const rawCategories = Array.isArray(categoriesResponse)
             ? categoriesResponse
             : Array.isArray((categoriesResponse as { data?: Array<Record<string, unknown>> })?.data)
               ? (categoriesResponse as { data: Array<Record<string, unknown>> }).data
               : [];
 
-          const categories = rawCategories.length > 0
-            ? rawCategories.map((rawCatItem, index) => {
+          const categories: { categoryId: string; name: string; slug?: string; imageUrl?: string }[] = rawCategories.length > 0
+            ? rawCategories.map((rawCatItem: any, index: number) => {
                 const cat = rawCatItem as Record<string, unknown>;
                 return {
                   categoryId: String(cat.categoryId ?? cat.id ?? `category-${index + 1}`),
@@ -157,9 +146,9 @@ export const homeApi = authApi.injectEndpoints({
                 };
               })
             : rawProducts.length > 0
-            ? [...new Set(rawProducts.map((product) => String(product.category || '').trim()).filter(Boolean))]
+            ? [...new Set(rawProducts.map((p: any) => String(p.category || '').trim()).filter(Boolean))]
                 .slice(0, 6)
-                .map((name, index) => ({ categoryId: `category-${index + 1}`, name }))
+                .map((catName: string, index: number) => ({ categoryId: `category-${index + 1}`, name: String(catName) }))
             : defaultCategories;
 
           return {

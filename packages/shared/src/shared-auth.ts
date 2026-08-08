@@ -300,7 +300,54 @@ export const initializeSession = () => {
 export const refreshAuthSession = async (): Promise<boolean> => {
   const session = getSharedSession();
   if (!session || !session.refreshToken) return false;
-  // TODO: implement actual refresh token logic with the backend if needed
+
+  let env: any = {};
+  try {
+    const meta = Function('return import.meta')();
+    if (meta && meta.env) {
+      env = meta.env;
+    }
+  } catch (e) {}
+
+  const domain = env?.VITE_COGNITO_DOMAIN || 'https://freshmart-dev-auth.auth.ap-southeast-1.amazoncognito.com';
+  const clientId = env?.VITE_COGNITO_CLIENT_ID || '5qeg7to1eroscp415s5jqicvt2';
+
+  if (!domain || !clientId) return false;
+
+  try {
+    const tokenUrl = `${domain.replace(/\/$/, '')}/oauth2/token`;
+    const body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: clientId,
+      refresh_token: session.refreshToken,
+    });
+
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const tokens = await response.json();
+    if (tokens.access_token) {
+      saveSharedSession({
+        accessToken: tokens.access_token,
+        idToken: tokens.id_token || session.idToken,
+        refreshToken: tokens.refresh_token || session.refreshToken,
+        user: session.user,
+      });
+      return true;
+    }
+  } catch {
+    // Return false cleanly without crashing
+  }
+
   return false;
 };
 

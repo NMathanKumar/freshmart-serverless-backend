@@ -2,14 +2,16 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, QueryCommand, PutCommand, DeleteCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import type { Role, Permission, RoleMapping } from '../entities/index.js';
 
+const rawClient = new DynamoDBClient({});
+const defaultDocClient = DynamoDBDocumentClient.from(rawClient, {
+  marshallOptions: { removeUndefinedValues: true }
+});
+
 export class DynamoIamRepository {
   private docClient: DynamoDBDocumentClient;
 
-  constructor(private readonly tableName: string) {
-    const client = new DynamoDBClient({});
-    this.docClient = DynamoDBDocumentClient.from(client, {
-      marshallOptions: { removeUndefinedValues: true }
-    });
+  constructor(private readonly tableName: string, customDocClient?: DynamoDBDocumentClient) {
+    this.docClient = customDocClient || defaultDocClient;
   }
 
   async listRoles(): Promise<Role[]> {
