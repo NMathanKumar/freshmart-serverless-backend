@@ -37,6 +37,19 @@ const createAdminOrderService = ({
     if (!current) throw new NotFoundError(`Order '${orderId}' not found`);
     if (current.orderStatus === nextStatus) return enrichOrder(current);
 
+    const allowedTransitions = {
+      PLACED: ['ACCEPTED', 'CANCELLED'],
+      ACCEPTED: ['READY', 'CANCELLED'],
+      READY: ['OUT_FOR_DELIVERY', 'CANCELLED'],
+      OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELLED'],
+      DELIVERED: [],
+      CANCELLED: [],
+    };
+    const allowed = allowedTransitions[current.orderStatus] || [];
+    if (!allowed.includes(nextStatus)) {
+      throw new ConflictError(`Cannot transition order status from '${current.orderStatus}' to '${nextStatus}'`);
+    }
+
     try {
       const updated = nextStatus === constants.ORDER_STATUS.CANCELLED
         ? await operations.cancelOrder(orderId, { role: constants.ROLES.ADMIN }, context)
