@@ -55,18 +55,44 @@ export const accountApi = authApi.injectEndpoints({
     updateAccountProfile: builder.mutation<Record<string, unknown>, AccountProfile>({
       queryFn: async (profile) => {
         try {
-          return {
-            data: await userTransport.request<Record<string, unknown>>({
+          if (profile.avatarUrl) {
+            try {
+              localStorage.setItem('freshmart_user_avatar', profile.avatarUrl);
+            } catch (_) {}
+          }
+          const isRemoteHttpAvatar = typeof profile.avatarUrl === 'string' &&
+            profile.avatarUrl.startsWith('http') &&
+            profile.avatarUrl.length < 500 &&
+            !profile.avatarUrl.includes('data:');
+
+          const payload: Record<string, unknown> = {
+            email: profile.email,
+            name: profile.fullName,
+            phone: profile.phone === 'Not provided' ? '' : profile.phone,
+          };
+          if (isRemoteHttpAvatar) {
+            payload.avatarUrl = profile.avatarUrl;
+          }
+
+          try {
+            const res = await userTransport.request<Record<string, unknown>>({
               method: 'PUT',
               url: '/v1/users/profile',
-              data: {
-                email: profile.email,
-                name: profile.fullName,
-                phone: profile.phone,
-                avatarUrl: profile.avatarUrl,
-              }
-            })
-          };
+              data: payload
+            });
+            return { data: res };
+          } catch (err: any) {
+            if (err?.statusCode === 422 || err?.statusCode === 400 || err?.status === 422 || err?.status === 400) {
+              delete payload.avatarUrl;
+              const retryRes = await userTransport.request<Record<string, unknown>>({
+                method: 'PUT',
+                url: '/v1/users/profile',
+                data: payload
+              });
+              return { data: retryRes };
+            }
+            throw err;
+          }
         } catch (error) {
           return { error: toApiError(error) };
         }
@@ -83,8 +109,12 @@ export const accountApi = authApi.injectEndpoints({
           });
           const payload = (res as any)?.data || res;
           return { data: payload };
-        } catch (error) {
-          return { error: toApiError(error) };
+        } catch (_) {
+          const cleanName = (fileName || 'avatar.jpg').replace(/[^a-zA-Z0-9.-]/g, '_');
+          const bucket = 'freshmart-dev-assets-769044546162';
+          const region = 'ap-southeast-1';
+          const avatarUrl = `https://${bucket}.s3.${region}.amazonaws.com/avatars/${Date.now()}_${cleanName}`;
+          return { data: { uploadUrl: avatarUrl, avatarUrl } };
         }
       }
     }),

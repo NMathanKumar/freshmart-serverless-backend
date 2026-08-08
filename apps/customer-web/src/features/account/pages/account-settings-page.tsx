@@ -33,9 +33,11 @@ import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
 import { useNotifications } from '../hooks/use-notifications.js';
 
+import { getCurrentUser } from '@freshmart/shared';
+
 const SAMPLE_PROFILE = {
-  fullName: 'Alex Thompson',
-  email: 'alex.thompson@premium.com',
+  fullName: 'FreshMart Customer',
+  email: 'customer@freshmart.com',
   phone: 'Not provided',
   storeLocation: 'San Francisco, CA',
   avatarUrl:
@@ -55,9 +57,17 @@ const AccountSettingsContent = () => {
   const [uploadAvatarUrl] = useUploadAvatarUrlMutation();
   const { unreadCount } = useNotifications();
 
+  const sessionUser = getCurrentUser() || {};
+  const fallbackProfile = {
+    ...SAMPLE_PROFILE,
+    fullName: sessionUser.fullName || sessionUser.name || (sessionUser.email ? sessionUser.email.split('@')[0] : SAMPLE_PROFILE.fullName),
+    email: sessionUser.email || SAMPLE_PROFILE.email,
+    phone: sessionUser.phone || sessionUser.phoneNumber || 'Not provided',
+  };
+
   const profile = accountData?.profile
-    ? { ...SAMPLE_PROFILE, ...accountData.profile }
-    : SAMPLE_PROFILE;
+    ? { ...fallbackProfile, ...accountData.profile }
+    : fallbackProfile;
   const recentOrder = orders.length > 0 ? orders[0] : null;
   const liveWishlistCount = wishlist.length;
 

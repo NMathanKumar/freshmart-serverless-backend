@@ -75,24 +75,40 @@ export const AppRouter = () => (
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/admin/auth/callback" element={<AuthCallbackPage />} />
             <Route element={<RequireAdminSession />}>
-              <Route path="/" element={<Navigate replace to="/admin/dashboard" />} />
-              <Route path="/admin" element={<Navigate replace to="/admin/dashboard" />} />
-              <Route path={adminRoutePaths.dashboard} element={<DashboardPage />} />
-              <Route path={adminRoutePaths.products} element={<ProductsPage />} />
-              <Route path={adminRoutePaths.categories} element={<CategoriesPage />} />
-              <Route path={adminRoutePaths.orders} element={<OrdersPage />} />
-              <Route path={adminRoutePaths.inventory} element={<InventoryPage />} />
-              <Route path={adminRoutePaths.customers} element={<CustomersPage />} />
-              <Route path={adminRoutePaths.delivery} element={<DeliveryPage />} />
-              <Route path={adminRoutePaths.coupons} element={<CouponsPage />} />
-              <Route path={adminRoutePaths.reviews} element={<ReviewsPage />} />
-              <Route path={adminRoutePaths.suppliers} element={<SuppliersPage />} />
-              <Route path={adminRoutePaths.purchaseOrders} element={<PurchaseOrdersPage />} />
-              <Route path={adminRoutePaths.analytics} element={<AnalyticsPage />} />
-              <Route path={adminRoutePaths.notifications} element={<NotificationsPage />} />
-              <Route path={adminRoutePaths.activity} element={<ActivityPage />} />
-              <Route path={adminRoutePaths.roles} element={<RolesPage />} />
-              <Route path={adminRoutePaths.settings} element={<SettingsPage />} />
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/admin" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/admin/dashboard" element={<DashboardPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/admin/products" element={<ProductsPage />} />
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/admin/categories" element={<CategoriesPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/admin/orders" element={<OrdersPage />} />
+              <Route path="/inventory" element={<InventoryPage />} />
+              <Route path="/admin/inventory" element={<InventoryPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/admin/customers" element={<CustomersPage />} />
+              <Route path="/delivery" element={<DeliveryPage />} />
+              <Route path="/admin/delivery" element={<DeliveryPage />} />
+              <Route path="/coupons" element={<CouponsPage />} />
+              <Route path="/admin/coupons" element={<CouponsPage />} />
+              <Route path="/reviews" element={<ReviewsPage />} />
+              <Route path="/admin/reviews" element={<ReviewsPage />} />
+              <Route path="/suppliers" element={<SuppliersPage />} />
+              <Route path="/admin/suppliers" element={<SuppliersPage />} />
+              <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
+              <Route path="/admin/purchase-orders" element={<PurchaseOrdersPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/admin/analytics" element={<AnalyticsPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/admin/notifications" element={<NotificationsPage />} />
+              <Route path="/activity" element={<ActivityPage />} />
+              <Route path="/admin/activity" element={<ActivityPage />} />
+              <Route path="/roles" element={<RolesPage />} />
+              <Route path="/admin/roles" element={<RolesPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/admin/settings" element={<SettingsPage />} />
             </Route>
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFoundPage />} />

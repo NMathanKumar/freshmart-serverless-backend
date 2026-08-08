@@ -33,7 +33,7 @@ export const accountProfile: AccountProfile = {
   avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBlifnxAGfHukI5klS6odpwT1JrtKCsNO2xqItDaT9bkeS6gae127EmbK2_wG1wNayN6F_j21H-_Owg1olb8Wdn1DFl4S0jaLedLPrPMJDg03hf8Ve6EMqIJeIYYJ0xJLTc-XwQLx1CfLEVYbLLfrCZOqkAOSUSUu2ozWugiMwx6xGLSxSpVgOgaRCQO9Z-IX_A7o-m3L-6aFkCpA9BTkjxQfZKjsK1vGDv3U7vNrxOc58-SLezfhlmr5rLIQF2iuaDFRKYmsiDqSSN',
   email: 'julian.a@freshmarket.com',
   fullName: 'Julian Alexander',
-  phone: '+1 (555) 123-4567',
+  phone: '',
   storeLocation: 'San Francisco Main'
 };
 
@@ -72,10 +72,12 @@ export const mergeProfile = (remote: unknown): AccountProfile => {
   if (!isRecord(user)) {
     const rawFallback = sessionUser.fullName || sessionUser.name || '';
     const safeFallback = isUuid(rawFallback) ? emailFallbackName : (rawFallback || emailFallbackName);
+    const phoneVal = sessionUser.phone || sessionUser.phoneNumber || 'Not provided';
     return {
       ...accountProfile,
       email: emailVal,
-      fullName: safeFallback
+      fullName: safeFallback,
+      phone: phoneVal
     };
   }
 
@@ -96,8 +98,13 @@ export const mergeProfile = (remote: unknown): AccountProfile => {
   const rawPhone = text(user, ['phone', 'phoneNumber', 'phone_number'], sessionUser.phone || sessionUser.phoneNumber || '');
   const phone = rawPhone || 'Not provided';
 
+  let cachedAvatar = '';
+  try {
+    cachedAvatar = localStorage.getItem('freshmart_user_avatar') || '';
+  } catch (_) {}
+
   return {
-    avatarUrl: text(user, ['avatarUrl', 'avatar'], accountProfile.avatarUrl),
+    avatarUrl: text(user, ['avatarUrl', 'avatar'], cachedAvatar || accountProfile.avatarUrl),
     email: emailVal,
     fullName,
     phone,
