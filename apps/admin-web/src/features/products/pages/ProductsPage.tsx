@@ -83,8 +83,8 @@ export const ProductsPage: React.FC = () => {
   // Active Preview Image Index in Card Preview
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
 
-  // Category Dropdown Options
-  const categoryOptions = [
+  // Dynamic Category Dropdown Options loaded from Real-time API
+  const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([
     { value: 'All Categories', label: 'All Categories' },
     { value: 'Fresh Produce', label: 'Fresh Produce' },
     { value: 'Dairy & Eggs', label: 'Dairy & Eggs' },
@@ -93,7 +93,27 @@ export const ProductsPage: React.FC = () => {
     { value: 'Snacks & Bakery', label: 'Snacks & Bakery' },
     { value: 'Frozen Foods', label: 'Frozen Foods' },
     { value: 'Meat & Seafood', label: 'Meat & Seafood' },
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchApiCategories = async () => {
+      try {
+        const { freshmartSdk } = await import('../../../lib/sdk');
+        const res = await freshmartSdk.category.listCategories();
+        const raw = (res as any)?.data || (res as any)?.items || (Array.isArray(res) ? res : []);
+        if (Array.isArray(raw) && raw.length > 0) {
+          const apiCats = raw.map((c: any) => ({
+            value: c.name || c.title || c.categoryName || 'Category',
+            label: c.name || c.title || c.categoryName || 'Category',
+          }));
+          setCategoryOptions([{ value: 'All Categories', label: 'All Categories' }, ...apiCats]);
+        }
+      } catch (err) {
+        Logger.warn('Failed to load categories from API for ProductsPage', { error: err });
+      }
+    };
+    fetchApiCategories();
+  }, []);
 
   // Status Dropdown Options
   const statusOptions = [

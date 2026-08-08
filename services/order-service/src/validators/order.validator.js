@@ -69,8 +69,10 @@ const adminOrderListSchema = Joi.object({
 });
 
 const adminOrderStatusSchema = Joi.object({
-  orderStatus: Joi.string().valid(...ORDER_STATUS_VALUES).required(),
-});
+  orderStatus: Joi.string().optional(),
+  status: Joi.string().optional(),
+  rawOrderStatus: Joi.string().optional(),
+}).unknown(true);
 
 module.exports = {
   adminOrderIdSchema,

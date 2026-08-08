@@ -124,6 +124,8 @@ const placeOrderFromCart = async (userId, payload = {}, context = {}) => {
     items = totals.items.map((item) => ({
       productId: item.productId,
       productName: item.productName || item.name,
+      categoryId: item.categoryId || item.category || 'cat-1',
+      categoryName: item.categoryName || item.category || 'Organic Produce',
       quantity: Number(item.quantity),
       price: Number(item.price),
       imageUrl: item.imageUrl || null,
@@ -138,6 +140,8 @@ const placeOrderFromCart = async (userId, payload = {}, context = {}) => {
       items = payloadItems.map((item) => ({
         productId: item.productId,
         productName: item.name || item.productName || item.title || 'Product',
+        categoryId: item.categoryId || item.category || 'cat-1',
+        categoryName: item.categoryName || item.category || item.categoryTitle || 'Organic Produce',
         quantity: Number(item.quantity),
         price: Number(item.price),
         imageUrl: item.imageUrl || null,
@@ -151,6 +155,8 @@ const placeOrderFromCart = async (userId, payload = {}, context = {}) => {
         {
           productId: 'PROD-001',
           productName: 'Fresh Organic Produce',
+          categoryId: 'cat-1',
+          categoryName: 'Organic Produce',
           quantity: 1,
           price: 4.99,
           imageUrl: null,

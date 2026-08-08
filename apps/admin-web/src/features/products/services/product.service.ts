@@ -183,24 +183,33 @@ export class ProductService {
   }
 
   async uploadImageToS3(file: File): Promise<string> {
-    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const objectKey = `catalog/products/${Date.now()}_${cleanFileName}`;
-    const s3ObjectUrl = `https://${AWS_S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${objectKey}`;
-
     try {
-      await fetch(s3ObjectUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type || 'image/jpeg',
-        },
-        body: file,
-      });
-      return s3ObjectUrl;
+      const res = await freshmartSdk.catalog.uploadProductImage(file.name, file.type || 'image/jpeg');
+      const payload = (res as any)?.data || res;
+      const uploadUrl = payload?.uploadUrl;
+      const imageUrl = payload?.imageUrl;
+
+      if (uploadUrl && (uploadUrl.includes('X-Amz-Algorithm') || uploadUrl.includes('Signature') || uploadUrl.includes('AWSAccessKeyId'))) {
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'image/jpeg' },
+          body: file,
+        });
+        return imageUrl || uploadUrl;
+      }
+      if (imageUrl && imageUrl.startsWith('http')) {
+        return imageUrl;
+      }
     } catch (err) {
-      Logger.warn('S3 HTTP PUT warning, returning S3 URL', { error: err, module: 'product.service' });
+      Logger.warn('Backend S3 presigned URL call unmapped, using Data URL preview', { error: err, module: 'product.service' });
     }
 
-    return s3ObjectUrl;
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 }
 

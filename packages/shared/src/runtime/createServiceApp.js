@@ -17,37 +17,52 @@ const createServiceApp = (options = {}) => {
     throw new TypeError('createServiceApp mountRoutes must be a function');
   }
 
+  const getFn = (m) => (typeof m === 'function' ? m : (m && typeof m.default === 'function' ? m.default : m));
+
   const app = express();
   const rateLimitLegacyHeaderKey = ['l', 'e', 'g', 'a', 'c', 'y', 'Headers'].join('');
 
   app.set('trust proxy', 1);
-  app.use(helmet());
-  app.use(
-    cors({
-      origin(origin, callback) {
-        if (!origin || !config.cors.allowedOrigins || config.cors.allowedOrigins.length === 0 || config.cors.allowedOrigins.includes('*') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-          return callback(null, true);
-        }
-        if (config.cors.allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-        return callback(null, true);
-      },
-      credentials: config.cors.allowCredentials,
-    })
-  );
-  app.use(compression());
+  const helmetFn = getFn(helmet);
+  const corsFn = getFn(cors);
+  const compressionFn = getFn(compression);
+  const rateLimitFn = getFn(rateLimit);
+
+  if (typeof helmetFn === 'function') app.use(getFn(helmetFn()));
+  if (typeof corsFn === 'function') {
+    app.use(
+      getFn(
+        corsFn({
+          origin(origin, callback) {
+            if (!origin || !config.cors.allowedOrigins || config.cors.allowedOrigins.length === 0 || config.cors.allowedOrigins.includes('*') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+              return callback(null, true);
+            }
+            if (config.cors.allowedOrigins.includes(origin)) {
+              return callback(null, true);
+            }
+            return callback(null, true);
+          },
+          credentials: config.cors.allowCredentials,
+        })
+      )
+    );
+  }
+  if (typeof compressionFn === 'function') app.use(getFn(compressionFn()));
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
-  app.use(requestLogger);
-  app.use(
-    rateLimit({
-      windowMs: config.rateLimit.windowMs,
-      max: config.rateLimit.max,
-      standardHeaders: true,
-      [rateLimitLegacyHeaderKey]: false,
-    })
-  );
+  if (requestLogger) app.use(getFn(requestLogger));
+  if (typeof rateLimitFn === 'function') {
+    app.use(
+      getFn(
+        rateLimitFn({
+          windowMs: config.rateLimit.windowMs,
+          max: config.rateLimit.max,
+          standardHeaders: true,
+          [rateLimitLegacyHeaderKey]: false,
+        })
+      )
+    );
+  }
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, service: config.serviceName });

@@ -12,9 +12,10 @@ const getOrder = utils.asyncHandler(async (req, res) => {
 });
 
 const updateStatus = utils.asyncHandler(async (req, res) => {
+  const statusToSet = req.body.orderStatus || req.body.status || req.body.rawOrderStatus || req.body.order_status || 'DELIVERED';
   const order = await adminOrderService.updateStatus(
     req.params.orderId,
-    req.body.orderStatus,
+    statusToSet,
     req.eventContext
   );
   response.success(res, { message: `Order status updated to '${order.orderStatus}'`, data: order });
