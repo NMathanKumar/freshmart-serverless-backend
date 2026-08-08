@@ -33,7 +33,7 @@ export class InventoryService {
       detail: entity
     });
 
-    if (entity.quantity < 10) {
+    if (entity.availableStock < 10) {
       await this.publisher?.publish({
         source: 'inventory-service',
         detailType: 'InventoryLow.v1',
@@ -44,9 +44,9 @@ export class InventoryService {
           source: 'inventory-service',
           timestamp: new Date().toISOString(),
           correlationId: `corr_${Date.now()}`,
-          productId: entity.productId,
-          sku: entity.productId,
-          currentStock: entity.quantity,
+          productId: entity.sku,
+          sku: entity.sku,
+          currentStock: entity.availableStock,
           threshold: 10,
           warehouse: 'WH-MAIN',
           suggestedQuantity: 50,

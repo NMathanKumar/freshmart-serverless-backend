@@ -4,14 +4,17 @@ import type { Address, UserProfile } from '../entities/index.js';
 import type { UserRepository } from '../repositories/index.js';
 import { createAddress } from '../repositories/index.js';
 
-const createEmptyProfile = (userId: string): UserProfile => {
+const createEmptyProfile = (userId: string, claims?: Record<string, unknown>): UserProfile => {
   const now = new Date().toISOString();
   return {
     userId,
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: undefined,
+    
+    firstName: typeof claims?.given_name === 'string' ? claims.given_name : '',
+    lastName: typeof claims?.family_name === 'string' ? claims.family_name : '',
+    email: typeof claims?.email === 'string' ? claims.email : '',
+    phone: typeof claims?.phone_number === 'string' ? claims.phone_number : (typeof claims?.phone === 'string' ? claims.phone : undefined),
+    phoneNumber: typeof claims?.phone_number === 'string' ? claims.phone_number : (typeof claims?.phone === 'string' ? claims.phone : undefined),
+
     wishlistCount: 0,
     addresses: [],
     createdAt: now,
@@ -50,10 +53,10 @@ export class UserService {
     return this.repository.saveProfile(profile);
   }
 
-  async getProfile(userId: string): Promise<UserProfile> {
+  async getProfile(userId: string, claims?: Record<string, unknown>): Promise<UserProfile> {
     const existing = await this.repository.getProfile(userId);
     if (existing) return existing;
-    const profile = createEmptyProfile(userId);
+    const profile = createEmptyProfile(userId, claims);
     await this.repository.saveProfile(profile);
     return profile;
   }

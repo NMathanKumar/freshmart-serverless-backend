@@ -40,14 +40,14 @@ import type { NavItem, TopbarUser } from '../shared/types/admin.js';
 /** Full retail/operations-facing navigation. Default shell variant. */
 export const retailNav: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Orders', path: '/orders', icon: ShoppingCart },
-  { label: 'Inventory', path: '/inventory', icon: Box },
   { label: 'Products', path: '/products', icon: Store },
   { label: 'Categories', path: '/categories', icon: Grid2x2 },
+  { label: 'Inventory', path: '/inventory', icon: Box },
+  { label: 'Orders', path: '/orders', icon: ShoppingCart },
   { label: 'Customers', path: '/customers', icon: Users },
-  { label: 'Delivery', path: '/delivery', icon: Truck },
-  { label: 'Coupons', path: '/coupons', icon: Ticket },
-  { label: 'Reviews', path: '/reviews', icon: MessageSquareText },
+  { label: 'Analytics', path: '/analytics', icon: ChartNoAxesColumnIncreasing },
+  { label: 'Notifications', path: '/notifications', icon: MessageSquareText },
+  { label: 'Activity Logs', path: '/activity', icon: Activity },
   { label: 'Settings', path: '/settings', icon: UserCog }
 ];
 

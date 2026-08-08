@@ -7,13 +7,17 @@ const { genId } = utils.id;
 const { NotFoundError } = errors;
 
 const buildDefaultProfile = (user, existingProfile = null) => {
-  const nameVal = existingProfile?.name || existingProfile?.fullName || user.username || user.email || 'FreshMart Customer';
+  const emailName = user.email ? user.email.split('@')[0] : 'FreshMart Customer';
+  const rawName = existingProfile?.name || existingProfile?.fullName || user.name;
+  const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+  const nameVal = (rawName && !isUuid(rawName)) ? rawName : emailName;
   return {
     userId: user.userId,
     name: nameVal,
     fullName: nameVal,
     email: existingProfile?.email || user.email || '',
-    phone: existingProfile?.phone || null,
+    phone: existingProfile?.phone || existingProfile?.phoneNumber || user.phone || user.phoneNumber || user.phone_number || (user.claims ? user.claims.phone_number : null) || null,
+    phoneNumber: existingProfile?.phone || existingProfile?.phoneNumber || user.phone || user.phoneNumber || user.phone_number || (user.claims ? user.claims.phone_number : null) || null,
     avatarUrl: existingProfile?.avatarUrl || null,
     address: existingProfile?.address || null,
     addresses: existingProfile?.addresses || [],

@@ -4,8 +4,6 @@ const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'order-service' });
 
-
-
 const publishOrderEvent = async (eventType, payload = {}, context = {}) => {
   logger.info('Publishing order event', {
     eventType,
@@ -40,5 +38,6 @@ module.exports = {
   publishOrderCancelled: createPublisher(EVENT_TYPES.ORDER_CANCELLED),
   publishOrderAccepted: createPublisher(EVENT_TYPES.ORDER_ACCEPTED),
   publishOrderReady: createPublisher(EVENT_TYPES.ORDER_READY),
+  publishOrderOutForDelivery: createPublisher(EVENT_TYPES.ORDER_OUT_FOR_DELIVERY),
   publishOrderCompleted: createPublisher(EVENT_TYPES.ORDER_COMPLETED),
 };

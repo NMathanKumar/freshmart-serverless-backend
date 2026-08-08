@@ -160,7 +160,7 @@ test('admin order routes are admin-only and expose exactly three operations', ()
 test('admin order status validation rejects unsupported values with 422', () => {
   const validateStatus = middleware.validate(adminOrderStatusSchema);
   assert.throws(
-    () => validateStatus({ body: { orderStatus: 'OUT_FOR_DELIVERY' }, method: 'PATCH' }, {}, () => {}),
+    () => validateStatus({ body: { orderStatus: 'INVALID_STATUS' }, method: 'PATCH' }, {}, () => {}),
     (error) => error.statusCode === 422 && error.errorCode === 'VALIDATION_ERROR'
   );
 });

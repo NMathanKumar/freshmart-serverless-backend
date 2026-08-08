@@ -1014,6 +1014,15 @@ locals {
     report = {
       name = "${var.project_name}-${local.environment_name}-report"
     }
+    alerts_critical = {
+      name = "${var.project_name}-${local.environment_name}-alerts-critical"
+    }
+    alerts_warning = {
+      name = "${var.project_name}-${local.environment_name}-alerts-warning"
+    }
+    alerts_info = {
+      name = "${var.project_name}-${local.environment_name}-alerts-info"
+    }
   }
 
   # SQS queues provide durable workflow buffers and optional SNS fan-in.

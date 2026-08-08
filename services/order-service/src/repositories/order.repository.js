@@ -20,14 +20,18 @@ const toDomain = (item) => {
     orderId: item.orderId,
     userId: item.userId || item.customerId,
     customerId: item.customerId || item.userId,
+    customerName: item.customerName || item.deliveryAddressData?.name || null,
+    customerEmail: item.customerEmail || item.deliveryAddressData?.email || null,
     items: Array.isArray(item.items) ? item.items : [],
     subtotal: normalizeNumber(item.subtotal),
     tax: normalizeNumber(item.tax),
     discount: normalizeNumber(item.discount),
     totalAmount: normalizeNumber(item.totalAmount || item.grandTotal),
-    paymentStatus: item.paymentStatus || 'PENDING',
+    paymentStatus: item.paymentStatus || (item.paymentMethod && item.paymentMethod.toUpperCase() !== 'COD' ? 'SUCCESS' : 'PENDING'),
+    paymentId: item.paymentId || (item.orderId ? `PAY_${String(item.orderId).replace(/^#?ORDER_?/, '')}` : null),
     paymentMethod: item.paymentMethod || 'CARD',
     deliveryAddress: item.deliveryAddress || 'Home',
+    deliveryAddressData: item.deliveryAddressData || null,
     orderStatus: item.orderStatus || item.status || 'PLACED',
     pickupTime: item.pickupTime || null,
     createdAt: item.createdAt || item.createdDate,
@@ -37,42 +41,63 @@ const toDomain = (item) => {
 };
 
 const findById = async (orderId) => {
-  let item = null;
-  try {
-    const result = await documentClient.send(
-      new GetCommand({
-        TableName: tableName(),
-        Key: { orderId },
-      })
-    );
-    item = result.Item;
-  } catch (err) {
+  if (!orderId) return null;
+  const cleanId = String(orderId).replace(/^#/, '');
+  const hashedId = `#${cleanId}`;
+
+  // Try direct GetCommand key lookups first
+  for (const keyToTry of [{ orderId }, { orderId: cleanId }, { orderId: hashedId }, { pk: `ORDER#${cleanId}`, sk: 'META' }]) {
     try {
       const result = await documentClient.send(
         new GetCommand({
           TableName: tableName(),
-          Key: { pk: `ORDER#${orderId}`, sk: 'META' },
+          Key: keyToTry,
         })
       );
-      item = result.Item;
-    } catch (_err2) {
-      item = null;
+      if (result.Item) return toDomain(result.Item);
+    } catch (_err) {
+      // Continue to next lookup attempt
     }
   }
-  return toDomain(item || null);
+
+  // Fallback to Scan if Key lookup didn't find the item
+  try {
+    const scanResult = await documentClient.send(
+      new ScanCommand({
+        TableName: tableName(),
+        FilterExpression: 'orderId = :id1 OR orderId = :id2 OR orderId = :id3',
+        ExpressionAttributeValues: {
+          ':id1': orderId,
+          ':id2': cleanId,
+          ':id3': hashedId,
+        },
+      })
+    );
+    if (scanResult.Items && scanResult.Items.length > 0) {
+      return toDomain(scanResult.Items[0]);
+    }
+  } catch (_scanErr) {
+    // Return null if scan fails
+  }
+
+  return null;
 };
 
 const create = async ({
   orderId,
   userId,
+  customerEmail = null,
+  customerName = null,
   items = [],
   subtotal,
   tax,
   discount = 0,
   totalAmount,
   paymentStatus = 'PENDING',
+  paymentId = null,
   paymentMethod = 'CARD',
   deliveryAddress = 'Home',
+  deliveryAddressData = null,
   orderStatus = 'PLACED',
   pickupTime,
 }) => {
@@ -81,6 +106,8 @@ const create = async ({
     orderId,
     userId,
     customerId: userId,
+    customerEmail: customerEmail || deliveryAddressData?.email || null,
+    customerName: customerName || deliveryAddressData?.name || null,
     createdDate: now,
     status: orderStatus,
     items,
@@ -89,8 +116,10 @@ const create = async ({
     discount: normalizeNumber(discount),
     totalAmount: normalizeNumber(totalAmount),
     paymentStatus,
+    paymentId: paymentId || null,
     paymentMethod,
     deliveryAddress,
+    deliveryAddressData: deliveryAddressData || null,
     orderStatus,
     pickupTime: pickupTime || null,
     createdAt: now,
@@ -202,24 +231,21 @@ const updateOrderStatus = async (orderId, orderStatus) => {
   if (!current) return null;
 
   const now = new Date().toISOString();
+  const nextVersion = Number(current.version || 0) + 1;
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
       Key: { orderId },
       UpdateExpression:
-        'SET orderStatus = :orderStatus, #st = :orderStatus, gsi2pk = :gsi2pk, gsi2sk = :gsi2sk, updatedAt = :updatedAt, #version = :nextVersion',
-      ConditionExpression: '#version = :expectedVersion',
+        'SET orderStatus = :orderStatus, #st = :orderStatus, updatedAt = :updatedAt, #version = :nextVersion',
       ExpressionAttributeNames: {
         '#version': 'version',
         '#st': 'status',
       },
       ExpressionAttributeValues: {
         ':orderStatus': orderStatus,
-        ':gsi2pk': `STATUS#${orderStatus}`,
-        ':gsi2sk': `CREATED#${current.createdAt}`,
         ':updatedAt': now,
-        ':expectedVersion': Number(current.version || 0),
-        ':nextVersion': Number(current.version || 0) + 1,
+        ':nextVersion': nextVersion,
       },
       ReturnValues: 'ALL_NEW',
     })
@@ -227,25 +253,35 @@ const updateOrderStatus = async (orderId, orderStatus) => {
   return toDomain(result.Attributes || null);
 };
 
-const updatePaymentStatus = async (orderId, paymentStatus) => {
+const updatePaymentStatus = async (orderId, paymentStatus, paymentId = null) => {
   const current = await findById(orderId);
   if (!current) return null;
+
+  const updateExpr = paymentId
+    ? 'SET paymentStatus = :paymentStatus, paymentId = :paymentId, updatedAt = :updatedAt, #version = :nextVersion'
+    : 'SET paymentStatus = :paymentStatus, updatedAt = :updatedAt, #version = :nextVersion';
+
+  const exprAttrValues = {
+    ':paymentStatus': paymentStatus,
+    ':updatedAt': new Date().toISOString(),
+    ':expectedVersion': Number(current.version || 0),
+    ':nextVersion': Number(current.version || 0) + 1,
+  };
+
+  if (paymentId) {
+    exprAttrValues[':paymentId'] = paymentId;
+  }
 
   const result = await documentClient.send(
     new UpdateCommand({
       TableName: tableName(),
       Key: { orderId },
-      UpdateExpression: 'SET paymentStatus = :paymentStatus, updatedAt = :updatedAt, #version = :nextVersion',
+      UpdateExpression: updateExpr,
       ConditionExpression: '#version = :expectedVersion',
       ExpressionAttributeNames: {
         '#version': 'version',
       },
-      ExpressionAttributeValues: {
-        ':paymentStatus': paymentStatus,
-        ':updatedAt': new Date().toISOString(),
-        ':expectedVersion': Number(current.version || 0),
-        ':nextVersion': Number(current.version || 0) + 1,
-      },
+      ExpressionAttributeValues: exprAttrValues,
       ReturnValues: 'ALL_NEW',
     })
   );

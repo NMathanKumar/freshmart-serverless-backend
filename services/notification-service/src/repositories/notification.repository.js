@@ -126,7 +126,10 @@ const createNotificationRepository = ({
     return toDomain(response.Item);
   };
 
-  const updateStatus = async (notificationId, { status, deliveryStatus, failureReason, version }) => {
+  const updateStatus = async (notificationId, statusOrOptions, extraOptions = {}) => {
+    const options = typeof statusOrOptions === 'string' ? { status: statusOrOptions, ...extraOptions } : (statusOrOptions || {});
+    const { status, deliveryStatus, failureReason, version } = options;
+
     const timestamp = now().toISOString();
     const updateExpressions = ['#status = :status', '#updatedAt = :updatedAt'];
     const expressionAttributeNames = {
@@ -163,7 +166,12 @@ const createNotificationRepository = ({
     updateExpressions.push('#version = #version + :inc');
     expressionAttributeNames['#version'] = 'version';
     expressionAttributeValues[':inc'] = 1;
-    expressionAttributeValues[':expectedVersion'] = version;
+
+    let conditionExpression = 'attribute_exists(pk) AND attribute_exists(sk)';
+    if (version !== undefined) {
+      conditionExpression += ' AND #version = :expectedVersion';
+      expressionAttributeValues[':expectedVersion'] = version;
+    }
 
     try {
       const response = await client.send(
@@ -171,7 +179,7 @@ const createNotificationRepository = ({
           TableName: resolveTableName(),
           Key: key(notificationId),
           UpdateExpression: `SET ${updateExpressions.join(', ')}`,
-          ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk) AND #version = :expectedVersion',
+          ConditionExpression: conditionExpression,
           ExpressionAttributeNames: expressionAttributeNames,
           ExpressionAttributeValues: expressionAttributeValues,
           ReturnValues: 'ALL_NEW',

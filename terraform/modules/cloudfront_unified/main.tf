@@ -217,7 +217,7 @@ function handler(event) {
         var parts = uri.split('/');
         var lastPart = parts[parts.length - 1];
         if (lastPart !== 'index.html' && !lastPart.includes('.')) {
-            request.uri = '/admin/index.html';
+            request.uri = '/index.html';
         }
     }
 

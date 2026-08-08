@@ -1,7 +1,10 @@
 const { genId } = require('@freshmart/service-shared').utils.id;
 const sesProvider = require('../providers/ses.provider');
 const idempotencyRepository = require('../repository/idempotency.repository');
-const notificationRepository = require('../repositories/notification.repository');
+const notificationRepoModule = require('../repositories/notification.repository');
+const notificationRepository = notificationRepoModule.createNotificationRepository
+  ? notificationRepoModule.createNotificationRepository()
+  : notificationRepoModule;
 const { createTelemetryLogger } = require('../logger/logger');
 
 class EmailService {

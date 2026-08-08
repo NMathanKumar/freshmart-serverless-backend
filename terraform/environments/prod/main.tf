@@ -160,17 +160,28 @@ module "admin_web" {
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  aws_region            = var.aws_region
-  lambda_functions      = local.cloudwatch_lambda_functions
-  api_id                = local.cloudwatch_api_id
-  api_stage_name        = local.cloudwatch_api_stage_name
-  dynamodb_tables       = local.cloudwatch_dynamodb_tables
+  project_name         = var.project_name
+  environment          = var.environment
+  aws_region           = var.aws_region
+  lambda_functions     = local.cloudwatch_lambda_functions
+  api_id               = local.cloudwatch_api_id
+  api_stage_name       = local.cloudwatch_api_stage_name
+  dynamodb_tables      = local.cloudwatch_dynamodb_tables
+  eventbridge_bus_name = local.eventbridge_bus_name
+  sqs_queues           = { for k, v in module.sqs.queue_name : k => { queue_name = v } }
+  sqs_dlqs             = { for k, v in module.sqs.dlq_name : k => { queue_name = v } }
+  sns_topics           = { for k, v in module.sns.topic_names : k => { topic_name = v } }
+  cloudfront_distributions = {
+    customer = { distribution_id = module.customer_web.cloudfront_distribution_id }
+    admin    = { distribution_id = module.admin_web.cloudfront_distribution_id }
+  }
   log_retention_in_days = 30
-  alarm_actions         = [module.sns.topic_arns["notification"]]
-  ok_actions            = [module.sns.topic_arns["notification"]]
-  tags                  = local.common_tags
+  alarm_sns_topics = {
+    critical = module.sns.topic_arns["alerts_critical"]
+    warning  = module.sns.topic_arns["alerts_warning"]
+    info     = module.sns.topic_arns["alerts_info"]
+  }
+  tags = local.common_tags
 }
 
 module "eventbridge" {
@@ -226,3 +237,57 @@ module "sqs" {
   sns_topic_arns = module.sns.topic_arns
   tags           = local.common_tags
 }
+
+module "synthetics" {
+  source = "../../modules/synthetics"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  aws_region      = var.aws_region
+  api_base_url    = "https://${module.apigateway.api_id}.execute-api.${var.aws_region}.amazonaws.com/v1"
+  customer_ui_url = "https://dhkfhsoof2qzg.cloudfront.net"
+  admin_ui_url    = "https://dknugho6omqc7.cloudfront.net"
+  alarm_sns_topics = {
+    critical = module.sns.topic_arns["alerts_critical"]
+    warning  = module.sns.topic_arns["alerts_warning"]
+    info     = module.sns.topic_arns["alerts_info"]
+  }
+  tags = local.common_tags
+}
+
+module "finops" {
+  source = "../../modules/finops"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  aws_region         = var.aws_region
+  monthly_budget_usd = 100
+  api_id             = module.apigateway.api_id
+  api_stage_name     = "v1"
+  alarm_sns_topics = {
+    critical = module.sns.topic_arns["alerts_critical"]
+    warning  = module.sns.topic_arns["alerts_warning"]
+    info     = module.sns.topic_arns["alerts_info"]
+  }
+  tags = local.common_tags
+}
+
+module "security" {
+  source = "../../modules/security"
+
+  depends_on = [module.lambda]
+
+  project_name        = var.project_name
+  environment         = var.environment
+  aws_region          = var.aws_region
+  auth_log_group_name = "/aws/lambda/${var.project_name}-${var.environment}-auth-service"
+  api_id              = module.apigateway.api_id
+  api_stage_name      = "v1"
+  alarm_sns_topics = {
+    critical = module.sns.topic_arns["alerts_critical"]
+    warning  = module.sns.topic_arns["alerts_warning"]
+    info     = module.sns.topic_arns["alerts_info"]
+  }
+  tags = local.common_tags
+}
+

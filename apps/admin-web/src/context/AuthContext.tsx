@@ -39,26 +39,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // Sanitize URL if any legacy parameters exist
         const params = new URLSearchParams(window.location.search);
-        const accessToken = params.get('access_token');
-        const idToken = params.get('id_token');
-        const refreshToken = params.get('refresh_token');
-        const role = params.get('role');
-        const profile = params.get('profile');
-        
-        if (accessToken) {
-          saveSharedSession({
-            accessToken,
-            idToken: idToken || undefined,
-            refreshToken: refreshToken || undefined,
-            user: {
-              role: role || undefined,
-              profile: profile || undefined
-            }
-          });
-          
-          const newUrl = window.location.origin + window.location.pathname;
-          window.history.replaceState({}, document.title, newUrl);
+        if (params.has('access_token') || params.has('id_token') || params.has('code')) {
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
         }
 
         const existing = getSharedSession();
@@ -87,8 +72,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = () => {
+    const redirectUri = window.location.origin.includes('/admin')
+      ? `${window.location.origin}/admin/auth/callback`
+      : `${window.location.origin}/auth/callback`;
     import('@freshmart/shared').then(({ redirectToSSO }) => {
-      redirectToSSO(window.location.origin + '/auth/callback');
+      redirectToSSO(redirectUri);
     });
   };
 

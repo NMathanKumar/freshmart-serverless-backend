@@ -25,11 +25,11 @@ const resolveTables = (tables = aws.config.dynamodb.tables) => {
   return { orders: tables.orders, userProfiles: tables.userProfiles };
 };
 
-const normalizeCustomer = (profile, userId) => ({
+const normalizeCustomer = (profile, userId, item = {}) => ({
   customerId: userId,
-  name: profile?.name || null,
-  email: profile?.email || null,
-  phone: profile?.phone || null,
+  name: profile?.name || item.customerName || item.deliveryAddressData?.name || null,
+  email: profile?.email || item.customerEmail || item.deliveryAddressData?.email || item.email || null,
+  phone: profile?.phone || item.customerPhone || item.deliveryAddressData?.phone || null,
   avatarUrl: profile?.avatarUrl || null,
   addresses: Array.isArray(profile?.addresses)
     ? profile.addresses
@@ -40,7 +40,7 @@ const normalizeCustomer = (profile, userId) => ({
 
 const normalizeOrder = (item, customer) => ({
   orderId: item.orderId,
-  customer: normalizeCustomer(customer, item.userId),
+  customer: normalizeCustomer(customer, item.userId, item),
   items: Array.isArray(item.items) ? item.items : [],
   itemsCount: Array.isArray(item.items)
     ? item.items.reduce((total, orderItem) => total + normalizeNumber(orderItem.quantity), 0)
@@ -53,11 +53,11 @@ const normalizeOrder = (item, customer) => ({
   discount: normalizeNumber(item.discount),
   totalAmount: normalizeNumber(item.totalAmount),
   paymentStatus: item.paymentStatus || null,
-  paymentMethod: null,
+  paymentMethod: item.paymentMethod || null,
   orderStatus: item.orderStatus,
   deliveryStatus: null,
   pickupTime: item.pickupTime || null,
-  shippingAddress: null,
+  shippingAddress: item.deliveryAddress ? { street: item.deliveryAddress } : null,
   statusHistory: null,
   createdAt: item.createdAt || null,
   updatedAt: item.updatedAt || null,
@@ -127,7 +127,11 @@ const createAdminOrderRepository = ({ client = aws.documentClient, tables } = {}
       : null;
     const endTimestamp = endDateValue ? new Date(`${endDateValue}T23:59:59.999Z`).getTime() : null;
     const filtered = orders
-      .filter((order) => !status || order.orderStatus === status)
+      .filter((order) => {
+        if (!status) return true;
+        const statuses = String(status).split(',').map(s => s.trim().toUpperCase());
+        return statuses.includes(order.orderStatus);
+      })
       .filter((order) => !paymentStatus || order.paymentStatus === paymentStatus)
       .filter((order) => {
         const timestamp = new Date(order.createdAt || 0).getTime();

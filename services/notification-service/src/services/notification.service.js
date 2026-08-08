@@ -153,6 +153,23 @@ const handleOrderReadyEvent = async (payload = {}, context = {}) => {
   });
 };
 
+const handleOrderOutForDeliveryEvent = async (payload = {}, context = {}) => {
+  const order = payload.order || payload;
+  if (!order?.orderId) {
+    throw new BadRequestError("Invalid payload for 'OrderOutForDelivery'. Missing required field: order.orderId");
+  }
+  return createAndDeliverNotification({
+    type: 'ORDER_OUT_FOR_DELIVERY',
+    eventType: 'OrderOutForDelivery.v1',
+    subject: `Your order ${order.orderId} is out for delivery!`,
+    message: `Great news! Your order ${order.orderId} is out for delivery. Our delivery partner is on the way to you.`,
+    payload,
+    context,
+    userId: order.userId || 'SYSTEM',
+    recipient: resolveRecipient(order, order.userId || 'SYSTEM'),
+  });
+};
+
 const handleOrderCompletedEvent = async (payload = {}, context = {}) => {
   const order = payload.order || payload;
   if (!order?.orderId) {
@@ -265,6 +282,7 @@ module.exports = {
   handleUserRegisteredEvent,
   handleOrderAcceptedEvent,
   handleOrderReadyEvent,
+  handleOrderOutForDeliveryEvent,
   handleOrderCompletedEvent,
   handlePaymentSuccessEvent,
   handleInventoryLowEvent,

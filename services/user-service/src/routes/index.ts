@@ -17,19 +17,19 @@ export const routes: RouteDefinition[] = [
     method: 'GET',
     path: '/users/profile',
     authorize: true,
-    handler: ({ auth }) => controller.getProfile(auth.subject ?? '')
+    handler: ({ auth }) => controller.getProfile(auth.subject ?? '', auth.claims)
   },
   {
     method: 'GET',
     path: '/v1/users/profile',
     authorize: true,
-    handler: ({ auth }) => controller.getProfile(auth.subject ?? '')
+    handler: ({ auth }) => controller.getProfile(auth.subject ?? '', auth.claims)
   },
   {
     method: 'GET',
     path: '/api/v1/users/profile',
     authorize: true,
-    handler: ({ auth }) => controller.getProfile(auth.subject ?? '')
+    handler: ({ auth }) => controller.getProfile(auth.subject ?? '', auth.claims)
   },
   {
     method: 'PUT',

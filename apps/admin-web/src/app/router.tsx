@@ -21,7 +21,8 @@ const ActivityPage = lazy(() => import('@/features/admin/pages/activity-page.js'
 const ProductsPage = lazy(() => import('@/features/products').then(m => ({ default: m.ProductsPage })));
 const RolesPage = lazy(() => import('@/features/admin/pages/roles-page.js'));
 const SettingsPage = lazy(() => import('@/features/settings').then(m => ({ default: m.SettingsPage })));
-const LoginPage = lazy(() => import('../pages/Login').then(m => ({ default: m.Login })));
+const LoginPage = lazy(() => import('../pages/Login.js').then(m => ({ default: m.Login })));
+const AuthCallbackPage = lazy(() => import('../pages/AuthCallback.js').then(m => ({ default: m.AuthCallback })));
 
 const NotFoundPage = lazy(() => import('@/shared/components/ui/not-found-page').then(m => ({ default: m.NotFoundPage })));
 const UnauthorizedPage = lazy(() => import('@/shared/components/ui/unauthorized-page').then(m => ({ default: m.UnauthorizedPage })));
@@ -47,11 +48,6 @@ const RequireAdminSession = () => {
   if (!isAuthenticated) {
     return <Navigate replace to="/login" />;
   }
-
-  // Use the robust isAdmin() utility which checks Cognito groups and profiles
-  // Since we cannot use async imports directly in render without suspense, we rely on the user object
-  // populated by AuthContext, which we fixed to not default to ADMIN blindly for groups.
-  // Actually, we can just use the user role and groups from the auth context.
   
   const groups = user?.groups || [];
   const role = String(user?.role || '').toUpperCase();
@@ -76,7 +72,11 @@ export const AppRouter = () => (
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path={adminRoutePaths.signIn} element={<LoginPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/admin/auth/callback" element={<AuthCallbackPage />} />
             <Route element={<RequireAdminSession />}>
+              <Route path="/" element={<Navigate replace to="/admin/dashboard" />} />
+              <Route path="/admin" element={<Navigate replace to="/admin/dashboard" />} />
               <Route path={adminRoutePaths.dashboard} element={<DashboardPage />} />
               <Route path={adminRoutePaths.products} element={<ProductsPage />} />
               <Route path={adminRoutePaths.categories} element={<CategoriesPage />} />

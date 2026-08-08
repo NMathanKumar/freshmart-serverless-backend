@@ -605,262 +605,26 @@ resource "aws_cloudwatch_dashboard" "this" {
 }
 
 # Lambda error alarms help surface code failures quickly.
-resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
-  for_each = local.lambda_functions
-
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-lambda-errors"
-  alarm_description   = "Lambda errors for ${each.value.function_name}."
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = var.lambda_error_threshold
-  namespace           = "AWS/Lambda"
-  metric_name         = "Errors"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    FunctionName = each.value.function_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # Lambda duration alarms catch latency regressions before they become outages.
-resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
-  for_each = local.lambda_functions
-
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-lambda-duration"
-  alarm_description   = "Lambda duration for ${each.value.function_name}."
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = var.lambda_duration_threshold_ms
-  namespace           = "AWS/Lambda"
-  metric_name         = "Duration"
-  statistic           = "Average"
-  unit                = "Milliseconds"
-  period              = var.metric_period_seconds
-  dimensions = {
-    FunctionName = each.value.function_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # Lambda throttles indicate concurrency pressure or insufficient reserved capacity.
-resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
-  for_each = local.lambda_functions
-
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-lambda-throttles"
-  alarm_description   = "Lambda throttles for ${each.value.function_name}."
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = var.lambda_throttle_threshold
-  namespace           = "AWS/Lambda"
-  metric_name         = "Throttles"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    FunctionName = each.value.function_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # API Gateway 5XX alarms track server-side failures at the API edge.
-resource "aws_cloudwatch_metric_alarm" "api_gateway_5xx" {
-  alarm_name          = "${var.project_name}-${var.environment}-api-5xx"
-  alarm_description   = "HTTP API 5XX errors."
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = var.api_5xx_threshold
-  namespace           = "AWS/ApiGateway"
-  metric_name         = "5XXError"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    ApiId = var.api_id
-    Stage = var.api_stage_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # API Gateway latency alarms highlight slow route execution.
-resource "aws_cloudwatch_metric_alarm" "api_gateway_latency" {
-  alarm_name          = "${var.project_name}-${var.environment}-api-latency"
-  alarm_description   = "HTTP API latency."
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = var.api_latency_threshold_ms
-  namespace           = "AWS/ApiGateway"
-  metric_name         = "Latency"
-  statistic           = "Average"
-  unit                = "Milliseconds"
-  period              = var.metric_period_seconds
-  dimensions = {
-    ApiId = var.api_id
-    Stage = var.api_stage_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # DynamoDB read throttle alarms protect against hot partitions and unplanned bursts.
-resource "aws_cloudwatch_metric_alarm" "dynamodb_read_throttle" {
-  for_each = local.dynamodb_tables
-
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-ddb-read-throttle"
-  alarm_description   = "DynamoDB read throttles for ${each.value.table_name}."
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = var.dynamodb_read_throttle_threshold
-  namespace           = "AWS/DynamoDB"
-  metric_name         = "ReadThrottleEvents"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    TableName = each.value.table_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # DynamoDB write throttle alarms surface write pressure before it impacts customers.
-resource "aws_cloudwatch_metric_alarm" "dynamodb_write_throttle" {
-  for_each = local.dynamodb_tables
-
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-ddb-write-throttle"
-  alarm_description   = "DynamoDB write throttles for ${each.value.table_name}."
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = var.dynamodb_write_throttle_threshold
-  namespace           = "AWS/DynamoDB"
-  metric_name         = "WriteThrottleEvents"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    TableName = each.value.table_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # SQS DLQ message count > 0
-resource "aws_cloudwatch_metric_alarm" "sqs_dlq_messages" {
-  for_each            = var.sqs_dlqs
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-dlq-messages"
-  alarm_description   = "SQS DLQ messages for ${each.value.queue_name}."
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = 0
-  namespace           = "AWS/SQS"
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    QueueName = each.value.queue_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # EventBridge FailedInvocations > 0
-resource "aws_cloudwatch_metric_alarm" "eventbridge_failed_invocations" {
-  count               = var.eventbridge_bus_name != "" ? 1 : 0
-  alarm_name          = "${var.project_name}-${var.environment}-eventbridge-failed-invocations"
-  alarm_description   = "EventBridge Failed Invocations for ${var.eventbridge_bus_name}."
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = 0
-  namespace           = "AWS/Events"
-  metric_name         = "FailedInvocations"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    EventBusName = var.eventbridge_bus_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # SNS NumberOfNotificationsFailed > 0
-resource "aws_cloudwatch_metric_alarm" "sns_notifications_failed" {
-  for_each            = var.sns_topics
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-sns-failed"
-  alarm_description   = "SNS Failed Notifications for ${each.value.topic_name}."
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = 0
-  namespace           = "AWS/SNS"
-  metric_name         = "NumberOfNotificationsFailed"
-  statistic           = "Sum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    TopicName = each.value.topic_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
 
 # SQS ApproximateAgeOfOldestMessage > 300 seconds
-resource "aws_cloudwatch_metric_alarm" "sqs_oldest_message_age" {
-  for_each            = var.sqs_queues
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-sqs-oldest-message"
-  alarm_description   = "SQS Oldest Message Age for ${each.value.queue_name}."
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = var.evaluation_periods
-  datapoints_to_alarm = var.datapoints_to_alarm
-  threshold           = 300
-  namespace           = "AWS/SQS"
-  metric_name         = "ApproximateAgeOfOldestMessage"
-  statistic           = "Maximum"
-  period              = var.metric_period_seconds
-  dimensions = {
-    QueueName = each.value.queue_name
-  }
-  treat_missing_data = "notBreaching"
-  actions_enabled    = length(var.alarm_actions) > 0 || length(var.ok_actions) > 0
-  alarm_actions      = var.alarm_actions
-  ok_actions         = var.ok_actions
-  tags               = local.merged_tags
-}
+
+data "aws_caller_identity" "current" {}
 

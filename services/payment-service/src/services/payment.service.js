@@ -36,6 +36,13 @@ const createPayment = async (requestingUser, payload, context = {}) => {
   });
 
   try {
+    const orderRepository = require('../../order-service/src/repositories/order.repository');
+    await orderRepository.updatePaymentStatus(orderId, PAYMENT_STATUS.SUCCESS, paymentId);
+  } catch (_e) {
+    // Fall back to event-driven update
+  }
+
+  try {
     const eventPayload = {
       paymentId: payment.paymentId,
       orderId: payment.orderId,

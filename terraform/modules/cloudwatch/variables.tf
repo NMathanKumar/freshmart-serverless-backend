@@ -111,16 +111,13 @@ variable "dynamodb_write_throttle_threshold" {
   default     = 1
 }
 
-variable "alarm_actions" {
-  description = "Alarm action ARNs."
-  type        = list(string)
-  default     = []
-}
-
-variable "ok_actions" {
-  description = "OK action ARNs."
-  type        = list(string)
-  default     = []
+variable "alarm_sns_topics" {
+  description = "SNS topic ARNs for alarms keyed by severity (critical, warning, info)."
+  type = object({
+    critical = string
+    warning  = string
+    info     = string
+  })
 }
 
 variable "tags" {
@@ -187,4 +184,40 @@ variable "cloudfront_cache_hit_threshold" {
   description = "Threshold for CloudFront cache hit ratio % alarms."
   type        = number
   default     = 80
+}
+
+variable "enable_lambda_insights" {
+  description = "Enable Lambda Insights enhanced runtime metrics via the LambdaInsightsExtension layer."
+  type        = bool
+  default     = true
+}
+
+variable "lambda_insights_layer_version" {
+  description = "Pinned version of the AWS-managed LambdaInsightsExtension layer. Update deliberately after review."
+  type        = number
+  default     = 38
+}
+
+variable "lambda_function_role_arns" {
+  description = "Map of Lambda service alias to IAM execution role ARN. Used to attach Lambda Insights policy additively."
+  type        = map(string)
+  default     = {}
+}
+
+variable "enable_xray_tracing" {
+  description = "Enable X-Ray tracing sampling rule and IAM permissions."
+  type        = bool
+  default     = true
+}
+
+variable "xray_sampling_rate" {
+  description = "X-Ray sampling rate (0.0 to 1.0). 0.05 = 5% of requests sampled."
+  type        = number
+  default     = 0.05
+}
+
+variable "xray_reservoir_size" {
+  description = "Number of requests per second always sampled regardless of rate (reservoir)."
+  type        = number
+  default     = 5
 }

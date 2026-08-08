@@ -18,19 +18,19 @@ const controller = createController(
 export const routes: RouteDefinition[] = [
   {
     method: 'GET',
-    path: '/api/v1/inventory/items',
+    path: '/inventory',
     authorize: true,
     handler: () => controller.list()
   },
   {
     method: 'GET',
-    path: '/api/v1/inventory/items/:sku',
+    path: '/inventory/:sku',
     authorize: true,
     handler: ({ params }) => controller.getById(params.sku)
   },
   {
     method: 'POST',
-    path: '/api/v1/inventory/items',
+    path: '/inventory',
     authorize: true,
     roles: ['admin', 'catalog-manager', 'operations'],
     handler: ({ body }) => controller.upsert(body)

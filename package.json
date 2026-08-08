@@ -39,6 +39,7 @@
     "package:user": "node scripts/package.js user",
     "package:notification": "node scripts/package.js notification",
     "package:analytics": "node scripts/package.js analytics",
+    "verify:production": "node scripts/verify-production.js",
     "verify:deployment": "node scripts/verify-deployment.js",
     "deploy:customer": "npm run build --workspace=@freshmart/customer-web && node scripts/deploy-web.js customer",
     "deploy:admin": "npm run build --workspace=@freshmart/admin-web && node scripts/deploy-web.js admin",

@@ -109,8 +109,8 @@ resource "aws_cognito_user_pool_client" "this" {
   logout_urls                          = local.oauth_enabled ? var.logout_urls : null
   default_redirect_uri                 = local.oauth_enabled ? var.callback_urls[0] : null
 
-  read_attributes      = ["email", "family_name", "given_name", "phone_number", "custom:profile"]
-  write_attributes     = ["email", "family_name", "given_name", "phone_number"]
+  read_attributes  = ["email", "family_name", "given_name", "phone_number", "custom:profile"]
+  write_attributes = ["email", "family_name", "given_name", "phone_number"]
 }
 
 resource "aws_cognito_user_pool_domain" "this" {

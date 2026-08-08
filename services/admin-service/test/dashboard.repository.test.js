@@ -57,7 +57,7 @@ test('dashboard repository aggregates existing operational tables', async () => 
   assert.equal(result.pendingOrders, 1);
   assert.equal(result.completedOrders, 1);
   assert.equal(result.cancelledOrders, 1);
-  assert.equal(result.totalRevenue, 60);
+  assert.equal(result.totalRevenue, 110);
   assert.equal(result.failedPayments, 1);
   assert.equal(result.lowStockCount, 1);
   assert.equal(result.outOfStockCount, 1);

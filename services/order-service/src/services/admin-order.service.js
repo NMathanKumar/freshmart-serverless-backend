@@ -35,14 +35,7 @@ const createAdminOrderService = ({
   const updateStatus = async (orderId, nextStatus, context = {}) => {
     const current = await orders.findById(orderId);
     if (!current) throw new NotFoundError(`Order '${orderId}' not found`);
-    const allowed = operations.ALLOWED_TRANSITIONS[current.orderStatus] || [];
-    if (!allowed.includes(nextStatus)) {
-      throw new ConflictError(
-        `Cannot move order from '${current.orderStatus}' to '${nextStatus}'. Allowed next states: ${
-          allowed.length ? allowed.join(', ') : 'none'
-        }`
-      );
-    }
+    if (current.orderStatus === nextStatus) return enrichOrder(current);
 
     try {
       const updated = nextStatus === constants.ORDER_STATUS.CANCELLED

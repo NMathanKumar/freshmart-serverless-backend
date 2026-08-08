@@ -310,6 +310,10 @@ locals {
         {
           table_arn = module.dynamodb["auth_users"].table_arn
           actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
         }
       ]
       allow_eventbridge_put_events   = true
@@ -397,6 +401,10 @@ locals {
         },
         {
           table_arn = module.dynamodb["products"].table_arn
+          actions   = local.iam_dynamodb_ro_actions
+        },
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
           actions   = local.iam_dynamodb_ro_actions
         },
       ]
@@ -577,6 +585,10 @@ locals {
         {
           table_arn = module.dynamodb["user_profiles"].table_arn
           actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["orders"].table_arn
+          actions   = local.iam_dynamodb_ro_actions
         }
       ]
       allow_eventbridge_put_events   = false
@@ -670,10 +682,11 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["auth"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME         = "auth-service"
-        AWS_EVENT_BUS_NAME   = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE     = "auth-service"
-        DDB_TABLE_AUTH_USERS = module.dynamodb["auth_users"].table_name
+        SERVICE_NAME            = "auth-service"
+        AWS_EVENT_BUS_NAME      = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE        = "auth-service"
+        DDB_TABLE_AUTH_USERS    = module.dynamodb["auth_users"].table_name
+        DDB_TABLE_USER_PROFILES = module.dynamodb["user_profiles"].table_name
       })
     })
 
@@ -1140,11 +1153,23 @@ locals {
       lambda_key         = "admin"
       authorization_type = "JWT"
     }
+    admin_users_post = {
+      method             = "POST"
+      path               = "/admin/users"
+      lambda_key         = "auth"
+      authorization_type = "JWT"
+    }
     admin_audit = {
       method             = "GET"
       path               = "/admin/audit"
       lambda_key         = "admin"
       authorization_type = "JWT"
+    }
+    admin_orders_list = {
+      method             = "GET"
+      path               = "/admin/orders"
+      lambda_key         = "order"
+      authorization_type = "NONE"
     }
 
     customer_home_get = {
@@ -1193,6 +1218,24 @@ locals {
     user_addresses_post = {
       method             = "POST"
       path               = "/users/addresses"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    admin_customers_get = {
+      method             = "GET"
+      path               = "/admin/customers"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    admin_customers_id_get = {
+      method             = "GET"
+      path               = "/admin/customers/{customerId}"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    admin_customers_id_status_patch = {
+      method             = "PATCH"
+      path               = "/admin/customers/{customerId}/status"
       lambda_key         = "user"
       authorization_type = "JWT"
     }

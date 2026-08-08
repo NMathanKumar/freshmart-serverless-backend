@@ -180,7 +180,12 @@ export function OrderDetailsContent() {
             </div>
             <span className="inline-flex items-center gap-2 rounded-full bg-[#e3f5ea] px-4 py-1.5 text-xs font-black text-[#006c4a] shadow-xs">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#006c4a]"></span>
-              Preparing your order
+              {currentStatus === 'PLACED' && 'Order Placed'}
+              {(currentStatus === 'ACCEPTED' || currentStatus === 'PREPARING') && 'Preparing your order'}
+              {(currentStatus === 'READY' || currentStatus === 'PACKED') && 'Packed & Ready'}
+              {currentStatus === 'OUT_FOR_DELIVERY' && 'Out for Delivery'}
+              {currentStatus === 'DELIVERED' && 'Order Delivered'}
+              {!['PLACED', 'ACCEPTED', 'PREPARING', 'READY', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentStatus) && `Status: ${currentStatus}`}
             </span>
           </div>
 
@@ -316,6 +321,25 @@ export function OrderDetailsContent() {
                 <span className="text-[#006c4a]">
                   {formatCurrency(displayTotal)}
                 </span>
+              </div>
+
+              {/* Payment Status & Payment ID Card */}
+              <div className="mt-4 flex items-center justify-between rounded-2xl border border-[#b8e5cd] bg-[#eff6ea] p-4 text-xs font-bold text-[#005422]">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-[#006b2c]">Payment Status:</span>
+                    <span className="rounded-full bg-[#006b2c] px-2.5 py-0.5 text-[10px] font-black text-white uppercase tracking-wider">
+                      {(realOrder?.paymentStatus || (realOrder as any)?.payment_status || 'SUCCESS').toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[#3e4a3d]">
+                    <span>Payment ID: </span>
+                    <span className="font-mono font-extrabold text-[#171d16]">
+                      {realOrder?.paymentId || (realOrder as any)?.payment_id || `PAY_${(displayOrderId || '').replace(/^ORDER_?/, '')}`}
+                    </span>
+                  </div>
+                </div>
+                <span className="font-black text-[#006c4a] text-sm">{formatCurrency(displayTotal)}</span>
               </div>
             </div>
           </div>

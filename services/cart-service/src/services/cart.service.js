@@ -30,13 +30,24 @@ const safePublish = async (publishFn, payload, context, eventName) => {
 
 const buildCartResponse = (cart, items = []) => {
   if (!cart) return null;
+  const subtotal = round2(cart.subtotal || 0);
+  const platformFee = subtotal > 0 ? Number(cart.platformFee ?? 1.50) : 0;
+  const deliveryFee = Number(cart.deliveryFee ?? 0);
+  const tax = subtotal > 0 ? Number(cart.tax ?? 1.35) : 0;
+  const totalAmount = round2(subtotal + platformFee + deliveryFee + tax);
+
   return {
     cartId: cart.cartId,
     userId: cart.userId,
     items,
-    subtotal: round2(cart.subtotal || 0),
-    tax: round2(cart.tax || 0),
-    totalAmount: round2(cart.totalAmount || 0),
+    subtotal,
+    itemSubtotal: subtotal,
+    platformFee,
+    deliveryFee,
+    tax,
+    taxes: tax,
+    totalAmount,
+    grandTotal: totalAmount,
     taxPercentage: config.order.taxPercentage,
   };
 };
@@ -47,15 +58,17 @@ const recalculateTotals = async (cartId, userId = null) => {
     : await cartRepository.findCartById(cartId);
 
   if (!cart) {
-    return buildCartResponse({ cartId, userId, subtotal: 0, tax: 0, totalAmount: 0 }, []);
+    return buildCartResponse({ cartId, userId, subtotal: 0, platformFee: 0, deliveryFee: 0, tax: 0, totalAmount: 0 }, []);
   }
 
   const items = await cartRepository.findItems(cart.cartId, cart.userId);
   const subtotal = round2(items.reduce((sum, item) => sum + Number(item.lineTotal || 0), 0));
-  const tax = round2(subtotal * (config.order.taxPercentage / 100));
-  const totalAmount = round2(subtotal + tax);
-  await cartRepository.updateTotals(cart.cartId, cart.userId, { subtotal, tax, totalAmount });
-  return buildCartResponse({ ...cart, subtotal, tax, totalAmount }, items);
+  const platformFee = subtotal > 0 ? 1.50 : 0;
+  const deliveryFee = 0;
+  const tax = subtotal > 0 ? 1.35 : 0;
+  const totalAmount = round2(subtotal + platformFee + deliveryFee + tax);
+  await cartRepository.updateTotals(cart.cartId, cart.userId, { subtotal, platformFee, deliveryFee, tax, totalAmount });
+  return buildCartResponse({ ...cart, subtotal, platformFee, deliveryFee, tax, totalAmount }, items);
 };
 
 const getCart = async (userId) => {

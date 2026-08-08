@@ -120,10 +120,12 @@ const renderOrderPlacedEmail = ({
 const renderPaymentSuccessEmail = ({
   customerName = 'Customer',
   orderId = 'N/A',
-  paymentId = 'N/A',
+  paymentId,
+  transactionId,
   amount = 0,
   paymentMethod = 'Online Payment',
 }) => {
+  const activePaymentId = paymentId || transactionId || 'N/A';
   const bodyHtml = `
     <p style="font-size: 14px; color: ${TEXT_MUTED}; line-height: 1.6;">Hi <strong>${customerName}</strong>,</p>
     <p style="font-size: 14px; color: ${TEXT_MUTED}; line-height: 1.6;">Your payment has been received successfully.</p>
@@ -132,7 +134,7 @@ const renderPaymentSuccessEmail = ({
       <table width="100%" cellpadding="6" cellspacing="0" border="0" style="font-size: 13px; font-family: system-ui, sans-serif;">
         <tr style="border-bottom: 1px solid ${BORDER_COLOR};">
           <td style="color: ${TEXT_MUTED}; font-weight: 600;">Payment ID:</td>
-          <td align="right" style="color: ${TEXT_COLOR}; font-weight: 800;">${paymentId}</td>
+          <td align="right" style="color: ${TEXT_COLOR}; font-weight: 800;">${activePaymentId}</td>
         </tr>
         <tr style="border-bottom: 1px solid ${BORDER_COLOR};">
           <td style="color: ${TEXT_MUTED}; font-weight: 600;">Order ID:</td>
@@ -144,7 +146,7 @@ const renderPaymentSuccessEmail = ({
         </tr>
         <tr style="border-bottom: 1px solid ${BORDER_COLOR};">
           <td style="color: ${TEXT_MUTED}; font-weight: 600;">Amount Paid:</td>
-          <td align="right" style="color: ${BRAND_GREEN}; font-weight: 900; font-size: 16px;">₹${Number(amount).toLocaleString('en-IN')}</td>
+          <td align="right" style="color: ${BRAND_GREEN}; font-weight: 900; font-size: 16px;">₹${Number(amount).toFixed(2)}</td>
         </tr>
         <tr style="border-bottom: 1px solid ${BORDER_COLOR};">
           <td style="color: ${TEXT_MUTED}; font-weight: 600;">Status:</td>

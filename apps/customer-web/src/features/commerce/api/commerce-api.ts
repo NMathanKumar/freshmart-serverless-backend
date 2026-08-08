@@ -486,8 +486,23 @@ export const commerceApi = authApi.injectEndpoints({
       }
     >({
       queryFn: async (payload) => {
-        const userEmail = getCurrentUser()?.email ?? 'nmadhankumar597@gmail.com';
-        const userName = getCurrentUser()?.name ?? 'Mathankumar N';
+        const sessionUser = getCurrentUser();
+        let userEmail = sessionUser?.email || '';
+        let userName = sessionUser?.name || '';
+
+        if (!userEmail && typeof localStorage !== 'undefined') {
+          try {
+            const rawSession = localStorage.getItem('freshmart_session') || localStorage.getItem('freshmart_auth') || localStorage.getItem('freshmart_auth_session');
+            if (rawSession) {
+              const parsed = JSON.parse(rawSession);
+              userEmail = parsed.email || parsed.user?.email || parsed.claims?.email || '';
+              userName = parsed.name || parsed.user?.name || parsed.claims?.name || '';
+            }
+          } catch (_) {}
+        }
+
+        userEmail = userEmail || (typeof localStorage !== 'undefined' ? localStorage.getItem('freshmart_user_email') : null) || 'nmadhankumar597@gmail.com';
+        userName = userName || (typeof localStorage !== 'undefined' ? localStorage.getItem('freshmart_user_name') : null) || 'Valued Customer';
         const subtotal = payload.subtotal ?? payload.itemSubtotal ?? (payload.items as any[])?.reduce((sum: number, i: any) => sum + (Number(i.price || 0) * Number(i.quantity || 1)), 0) ?? 2.99;
         const platformFee = payload.platformFee ?? 1.50;
         const deliveryFee = payload.deliveryFee ?? 0.00;
