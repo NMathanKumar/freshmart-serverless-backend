@@ -45,33 +45,32 @@ const LoginPage = () => {
   const submit = handleSubmit(async (values) => {
     try {
       const result = await login(values).unwrap();
-      setSuccess(true);
       const email = values.email.toLowerCase();
-      const userRole = result?.user?.role;
-
       let cognitoGroups: string[] = [];
+      let tokenRole = '';
+      let tokenProfile = '';
+      let userClaims: any = {};
+
       if (result?.idToken) {
         try {
-          const payload = JSON.parse(atob(result.idToken.split('.')[1]));
-          cognitoGroups = payload['cognito:groups'] || [];
+          userClaims = JSON.parse(atob(result.idToken.split('.')[1]));
+          cognitoGroups = Array.isArray(userClaims['cognito:groups']) ? userClaims['cognito:groups'] : [];
+          tokenRole = userClaims['custom:role'] || userClaims.role || '';
+          tokenProfile = userClaims['custom:profile'] || userClaims.profile || '';
         } catch (e) {}
       }
 
-      const userProfile = (result?.user as any)?.profile || '';
+      const userRole = (result?.user?.role || tokenRole || '').toUpperCase();
+      const userProfile = ((result?.user as any)?.profile || tokenProfile || '').toLowerCase();
       const isAdmin =
         userRole === 'ADMIN' ||
+        userRole === 'SUPER_ADMIN' ||
         userRole === 'SUPER ADMIN' ||
         userProfile === 'admin' ||
-        cognitoGroups.some(g => String(g).toUpperCase() === 'ADMIN');
+        cognitoGroups.some(g => String(g).toUpperCase() === 'ADMIN' || String(g).toUpperCase() === 'SUPER_ADMIN');
 
       if (isAdmin && result?.accessToken) {
         import('@freshmart/shared').then(({ saveSharedSession }) => {
-          let userClaims: any = {};
-          if (result.idToken) {
-            try {
-              userClaims = JSON.parse(atob(result.idToken.split('.')[1]));
-            } catch (_) {}
-          }
           saveSharedSession({
             accessToken: result.accessToken,
             idToken: result.idToken,
@@ -88,37 +87,36 @@ const LoginPage = () => {
         });
       }
 
-      setTimeout(() => {
-        const urls = getEnvironmentUrls();
-        if (isAdmin) {
-          const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-          let adminTarget = isLocalhost
-            ? 'http://localhost:5173/admin/dashboard'
-            : `${window.location.origin}/admin/dashboard`;
-            
-          if (result && result.accessToken) {
-            const tokenParams = new URLSearchParams({
-               access_token: result.accessToken,
-               id_token: result.idToken || '',
-               refresh_token: result.refreshToken || '',
-               role: result.user?.role || 'ADMIN',
-               profile: 'admin'
-            });
-            const keysForDel: string[] = [];
-            tokenParams.forEach((value, key) => {
-              if (!value) keysForDel.push(key);
-            });
-            keysForDel.forEach(key => tokenParams.delete(key));
+      if (isAdmin) {
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        let adminTarget = isLocalhost
+          ? 'http://localhost:5173/admin/dashboard'
+          : `${window.location.origin}/admin/dashboard`;
+          
+        if (result && result.accessToken) {
+          const tokenParams = new URLSearchParams({
+             access_token: result.accessToken,
+             id_token: result.idToken || '',
+             refresh_token: result.refreshToken || '',
+             role: userRole || 'ADMIN',
+             profile: 'admin'
+          });
+          const keysForDel: string[] = [];
+          tokenParams.forEach((value, key) => {
+            if (!value) keysForDel.push(key);
+          });
+          keysForDel.forEach(key => tokenParams.delete(key));
 
-            const tokenString = tokenParams.toString();
-            adminTarget = adminTarget.includes('?') ? `${adminTarget}&${tokenString}` : `${adminTarget}?${tokenString}`;
-          }
-            
-          window.location.assign(adminTarget);
-        } else {
-          navigate('/');
+          const tokenString = tokenParams.toString();
+          adminTarget = `${adminTarget}?${tokenString}`;
         }
-      }, 300);
+          
+        window.location.href = adminTarget;
+      } else {
+        setTimeout(() => {
+          navigate('/');
+        }, 300);
+      }
     } catch {
       // RTK Query exposes the API error through loginState for the form alert.
     }
