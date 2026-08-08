@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import { Skeleton, AppErrorBoundary } from '@freshmart/design-system';
 import { adminRoutePaths } from './admin-route-paths.js';
 import { useAuth } from '../context/AuthContext.js';
+import { isAdmin, isAuthenticated as isSharedAuth } from '@freshmart/shared';
 import { ToastProvider } from '@/shared/components/ui/toast';
 
 const DashboardPage = lazy(() => import('@/features/admin/pages/dashboard-page.js'));
@@ -43,26 +44,13 @@ const RouteSkeleton = () => (
 );
 
 const RequireAdminSession = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isSharedAuth()) {
     return <Navigate replace to="/login" />;
   }
   
-  const groups = user?.groups || [];
-  const role = String(user?.role || '').toUpperCase();
-  const profile = String(user?.profile || '').toLowerCase();
-  const email = String(user?.email || '').toLowerCase();
-  
-  const hasAdminRole = role === 'ADMIN' || role === 'ADMINS' || role === 'SUPER_ADMIN' || role === 'SUPER ADMIN';
-  const hasAdminGroup = groups.some((g: string) => {
-    const ug = String(g).toUpperCase();
-    return ug === 'ADMIN' || ug === 'ADMINS' || ug === 'SUPER_ADMIN' || ug === 'SUPER ADMIN';
-  });
-  const hasAdminProfile = profile === 'admin' || profile === 'admins';
-  const hasAdminEmail = email === 'nmadhankumar597@gmail.com';
-  
-  if (!hasAdminRole && !hasAdminGroup && !hasAdminProfile && !hasAdminEmail) {
+  if (!isAdmin()) {
     return <Navigate replace to="/unauthorized" />;
   }
   
