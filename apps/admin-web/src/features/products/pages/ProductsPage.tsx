@@ -115,6 +115,13 @@ export const ProductsPage: React.FC = () => {
     fetchApiCategories();
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'new') {
+      handleOpenCreateForm();
+    }
+  }, []);
+
   // Status Dropdown Options
   const statusOptions = [
     { value: 'All Status', label: 'All Status' },

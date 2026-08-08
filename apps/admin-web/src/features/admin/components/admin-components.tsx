@@ -86,10 +86,10 @@ export const AdminSidebar = ({
           </span>
         </div>
       ) : (
-        <button type="button" className="admin-button admin-button-primary mb-3 xl:mb-4 w-full">
+        <Link to="/products?action=new" className="admin-button admin-button-primary mb-3 xl:mb-4 w-full flex items-center justify-center gap-2">
           <Plus className="h-4 w-4 xl:h-5 xl:w-5" aria-hidden="true" />
           <span className="truncate">{footerPrimaryLabel}</span>
-        </button>
+        </Link>
       )}
       {!precision || precisionVariant === 'inventory' || precisionVariant === 'orders' || precisionVariant === 'suppliers' || precisionVariant === 'purchase-orders' ? (
         <div className="space-y-1.5 xl:space-y-2 text-[13px] xl:text-[14px] text-[var(--admin-text)]">
