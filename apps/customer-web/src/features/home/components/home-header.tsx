@@ -70,7 +70,7 @@ export const HomeHeader = ({
   if (variant === 'cart') {
     return (
       <header className="fixed inset-x-0 top-0 z-50 border-b border-[#bdcaba]/30 bg-[#f4fcf0]/95 shadow-xs backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 md:px-8">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 md:px-10">
           <div className="flex shrink-0 items-center gap-3">
             <Link
               aria-label="FreshMart home"
@@ -209,7 +209,7 @@ export const HomeHeader = ({
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[#bdcaba]/30 bg-[#f4fcf0]/95 shadow-xs backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 md:px-8">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 md:px-10">
         <div className="flex shrink-0 items-center gap-3">
           <Link
             aria-label="FreshMart home"

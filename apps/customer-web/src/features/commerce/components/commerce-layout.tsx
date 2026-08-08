@@ -46,7 +46,7 @@ export const CommerceHeader = ({
 
   return (
     <header className="commerce-glass fixed inset-x-0 top-0 z-50 bg-[#f4fcf0]/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-      <div className="mx-auto flex h-20 w-full max-w-[1440px] items-center justify-between px-4 md:px-10">
+      <div className="mx-auto flex h-20 w-full max-w-[1600px] items-center justify-between px-4 sm:px-6 md:px-10">
         <div className="flex items-center gap-4">
           {showBack && (
             <button

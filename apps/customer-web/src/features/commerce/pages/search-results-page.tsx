@@ -236,7 +236,7 @@ export function SearchResultsContent() {
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
       <HomeHeader />
 
-      <main className="mx-auto max-w-7xl space-y-6 px-6 pt-24 pb-16 md:px-8">
+      <main className="mx-auto max-w-[1600px] space-y-8 px-4 pt-24 pb-16 sm:px-6 md:px-10">
         {/* Title Header & Toolbar */}
         <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>

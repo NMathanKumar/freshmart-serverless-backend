@@ -166,7 +166,7 @@ export function CategoryListingContent() {
       <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
         <HomeHeader />
 
-        <main className="mx-auto max-w-7xl space-y-10 px-6 pt-24 pb-16 md:px-8">
+        <main className="mx-auto max-w-[1600px] space-y-10 px-4 pt-24 pb-16 sm:px-6 md:px-10">
           {/* Top Hero Banner */}
           <div className="group relative overflow-hidden rounded-[32px] border border-[#bdcaba]/30 bg-gradient-to-r from-[#005422] via-[#006b2c] to-[#004e20] p-8 text-white shadow-xl md:p-12">
             <div className="absolute right-0 top-0 h-full w-1/2 opacity-20 mix-blend-overlay hidden md:block">
@@ -367,7 +367,7 @@ export function CategoryListingContent() {
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
       <HomeHeader />
 
-      <main className="mx-auto max-w-7xl space-y-8 px-6 pt-24 pb-16 md:px-8">
+      <main className="mx-auto max-w-[1600px] space-y-8 px-4 pt-24 pb-16 sm:px-6 md:px-10">
         {/* Top Hero Banner matching Figma */}
         <section className="group relative h-[260px] overflow-hidden rounded-[28px] shadow-sm md:h-[300px]">
           <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />

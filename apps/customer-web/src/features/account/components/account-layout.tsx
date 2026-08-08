@@ -158,7 +158,7 @@ export const AccountShell = ({
           <Menu className="h-5 w-5" />
         </button>
       </header>
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pt-24 pb-12 md:flex-row md:px-10 md:pt-28">
+      <main className="mx-auto flex max-w-[1600px] flex-col gap-8 px-4 pt-24 pb-12 sm:px-6 md:flex-row md:px-10 md:pt-28">
         <aside className="w-full flex-shrink-0 md:w-64">
           <div className="sticky top-28 space-y-2">
             <h1 className="mb-4 px-4 text-xl font-semibold">Settings</h1>
@@ -199,7 +199,7 @@ export const AccountShell = ({
         <section className="min-w-0 flex-1 space-y-6">{children}</section>
       </main>
       <footer className="hidden border-t border-[#bdcaba] bg-[#eff6ea] md:block">
-        <div className="mx-auto grid max-w-7xl grid-cols-3 gap-12 px-10 py-12">
+        <div className="mx-auto grid max-w-[1600px] grid-cols-3 gap-12 px-6 py-12 md:px-10">
           <div>
             <h2 className="mb-4 text-xl font-semibold text-[#006b2c]">
               FreshMarket Enterprise

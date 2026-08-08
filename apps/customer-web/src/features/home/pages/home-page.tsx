@@ -71,7 +71,7 @@ const HomePage = () => {
   return (
     <div className="home-page min-h-screen w-full bg-[#f4fcf0] text-[#171d16]">
       <HomeHeader />
-      <main className="mx-auto max-w-7xl space-y-10 px-4 pt-20 pb-12 md:px-8">
+      <main className="mx-auto max-w-[1600px] space-y-10 px-4 pt-20 pb-12 sm:px-6 md:px-10">
         <HeroCarousel
           banners={query.data?.heroBanners}
           error={hasError}

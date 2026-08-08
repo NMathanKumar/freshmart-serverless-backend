@@ -84,7 +84,7 @@ export function WishlistContent() {
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
       <HomeHeader />
 
-      <main className="mx-auto max-w-7xl space-y-12 px-6 pt-24 pb-16 md:px-8">
+      <main className="mx-auto max-w-[1600px] space-y-8 px-4 pt-24 pb-16 sm:px-6 md:px-10">
         {/* Breadcrumbs & Header */}
         <div>
           <nav className="mb-3 flex items-center gap-1.5 text-xs font-bold text-[#8b9888]">

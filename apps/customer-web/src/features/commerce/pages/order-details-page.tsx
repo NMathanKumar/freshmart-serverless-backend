@@ -165,7 +165,7 @@ export function OrderDetailsContent() {
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
       <HomeHeader cartCount={items.length} />
 
-      <main className="mx-auto max-w-7xl space-y-8 px-6 pt-24 pb-16 md:px-8">
+      <main className="mx-auto max-w-[1600px] space-y-8 px-4 pt-24 pb-16 sm:px-6 md:px-10">
         {/* 1. Top Card: Arrival Time & 5-Step Order Progress Stepper */}
         <div className="space-y-8 rounded-[28px] border border-[#e2ebdE] bg-white p-6 shadow-xs md:p-8">
           {/* Header Row: Arriving in 12 mins + Badge */}

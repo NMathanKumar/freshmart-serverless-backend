@@ -13,7 +13,7 @@ const FooterLink = ({ children, to }: { children: string; to: string }) => (
 
 export const HomeFooter = () => (
   <footer className="border-t border-[#e2ebdE] bg-white">
-    <div className="mx-auto grid max-w-7xl grid-cols-3 gap-12 px-10 py-12">
+    <div className="mx-auto grid max-w-[1600px] grid-cols-3 gap-12 px-6 py-12 md:px-10">
       <div className="space-y-4">
         <strong className="text-xl font-bold tracking-tight text-[#006b2c]">
           FreshMart

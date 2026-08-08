@@ -255,15 +255,15 @@ export const isAdmin = (): boolean => {
   const groups = Array.isArray(user?.groups) ? user.groups.map(g => String(g).toUpperCase()) : [];
   const roles = Array.isArray(user?.roles) ? user.roles.map(r => String(r).toUpperCase()) : [];
   
-  if (groups.includes('ADMIN') || groups.includes('SUPER_ADMIN')) {
+  if (groups.includes('ADMIN') || groups.includes('ADMINS') || groups.includes('SUPER_ADMIN')) {
     return true;
   }
-  if (roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')) {
+  if (roles.includes('ADMIN') || roles.includes('ADMINS') || roles.includes('SUPER_ADMIN')) {
     return true;
   }
   
   const role = String(user?.role || (session as any).role || '').toUpperCase();
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+  if (role === 'ADMIN' || role === 'ADMINS' || role === 'SUPER_ADMIN') {
     return true;
   }
 

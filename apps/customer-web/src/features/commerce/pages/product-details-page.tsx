@@ -120,7 +120,7 @@ const ProductDetailsContent = () => {
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
       <HomeHeader variant="cart" />
 
-      <main className="mx-auto max-w-7xl space-y-8 px-4 pt-24 pb-16 sm:px-6 md:px-8">
+      <main className="mx-auto max-w-[1600px] space-y-12 px-4 pt-24 pb-16 sm:px-6 md:px-10">
         {/* Category Breadcrumb Nav */}
         <nav className="flex items-center gap-2 text-xs font-bold text-[#8b9888]">
           <Link className="hover:text-[#006b2c]" to="/">
