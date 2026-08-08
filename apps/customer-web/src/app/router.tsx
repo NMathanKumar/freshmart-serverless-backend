@@ -181,12 +181,18 @@ export const AppRouter = () => (
           />
           <Route path="/system-states" element={<SystemStatesPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/sign-in" element={<LoginPage />} />
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/sign-in" element={<LoginPage />} />
           <Route path={authPaths.login} element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/auth/register" element={<RegisterPage />} />
           <Route path={authPaths.register} element={<RegisterPage />} />
-          <Route
-            path={authPaths.forgotPassword}
-            element={<ForgotPasswordPage />}
-          />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
           <Route path={authPaths.verifyEmail} element={<VerifyEmailPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

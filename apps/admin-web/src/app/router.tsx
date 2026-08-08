@@ -76,6 +76,9 @@ export const AppRouter = () => (
         <ToastProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin/login" element={<LoginPage />} />
+            <Route path="/admin/sign-in" element={<LoginPage />} />
+            <Route path="/admin/auth/sign-in" element={<LoginPage />} />
             <Route path={adminRoutePaths.signIn} element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/admin/auth/callback" element={<AuthCallbackPage />} />
