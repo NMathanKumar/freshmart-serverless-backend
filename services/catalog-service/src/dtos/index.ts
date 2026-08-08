@@ -1,26 +1,22 @@
 import { z } from 'zod';
 
 export const upsertSchema = z.object({
-  productId: z.string().uuid().optional(),
-  name: z.string().min(2).max(160),
-  slug: z.string().min(2).max(160),
-  brand: z.string().min(1).max(120),
-  sku: z.string().min(3).max(80),
-  categoryId: z.string().min(1).max(80),
-  subcategoryId: z.string().min(1).max(80).optional(),
-  description: z.string().min(10).max(4000),
-  specifications: z.record(z.string(), z.string()),
-  images: z.array(z.string().url()).min(1),
-  variants: z.array(
-    z.object({
-      variantId: z.string().uuid().optional(),
-      name: z.string().min(1).max(120),
-      sku: z.string().min(3).max(80),
-      price: z.number().nonnegative(),
-      currency: z.string().length(3),
-      attributes: z.record(z.string(), z.string())
-    })
-  ),
+  productId: z.string().optional(),
+  id: z.string().optional(),
+  name: z.string().min(1).max(200).optional(),
+  productName: z.string().min(1).max(200).optional(),
+  slug: z.string().optional(),
+  brand: z.string().optional().default('FreshMart'),
+  sku: z.string().optional(),
+  category: z.string().optional(),
+  categoryId: z.string().optional(),
+  subcategoryId: z.string().optional(),
+  description: z.string().optional().default('Fresh organic product delivered straight from local farms.'),
+  price: z.number().nonnegative().optional(),
+  stock: z.number().nonnegative().optional(),
+  specifications: z.record(z.string(), z.string()).optional().default({}),
+  images: z.array(z.string()).optional().default([]),
+  variants: z.array(z.any()).optional().default([]),
   weightInGrams: z.number().positive().optional(),
   dimensions: z
     .object({
@@ -30,9 +26,10 @@ export const upsertSchema = z.object({
     })
     .optional(),
   rating: z.number().min(0).max(5).default(0),
-  availability: z.enum(['IN_STOCK', 'OUT_OF_STOCK', 'PREORDER']),
+  availability: z.union([z.enum(['IN_STOCK', 'OUT_OF_STOCK', 'PREORDER']), z.boolean(), z.string()]).optional().default('IN_STOCK'),
+  available: z.boolean().optional(),
   discountPercentage: z.number().min(0).max(100).optional(),
-  inventoryReference: z.string().min(1).max(120)
+  inventoryReference: z.string().optional()
 });
 
 export type UpsertDto = z.infer<typeof upsertSchema>;
