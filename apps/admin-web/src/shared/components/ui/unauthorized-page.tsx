@@ -17,13 +17,20 @@ export const UnauthorizedPage: React.FC = () => {
           </p>
         </div>
         <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            to="/"
+          <a
+            href="/"
             className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#04883b] text-white text-xs font-bold shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors"
           >
             <Home className="w-4 h-4" />
-            <span>Dashboard</span>
-          </Link>
+            <span>Return to Store</span>
+          </a>
+          <a
+            href="/login"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+          >
+            <LogOut className="w-4 h-4 text-rose-500" />
+            <span>Switch Account</span>
+          </a>
         </div>
       </div>
     </main>

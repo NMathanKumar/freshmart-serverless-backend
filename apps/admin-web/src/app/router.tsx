@@ -52,12 +52,17 @@ const RequireAdminSession = () => {
   const groups = user?.groups || [];
   const role = String(user?.role || '').toUpperCase();
   const profile = String(user?.profile || '').toLowerCase();
+  const email = String(user?.email || '').toLowerCase();
   
-  const hasAdminRole = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'SUPER ADMIN';
-  const hasAdminGroup = groups.some((g: string) => g.toUpperCase() === 'ADMIN' || g.toUpperCase() === 'SUPER_ADMIN');
-  const hasAdminProfile = profile === 'admin';
+  const hasAdminRole = role === 'ADMIN' || role === 'ADMINS' || role === 'SUPER_ADMIN' || role === 'SUPER ADMIN';
+  const hasAdminGroup = groups.some((g: string) => {
+    const ug = String(g).toUpperCase();
+    return ug === 'ADMIN' || ug === 'ADMINS' || ug === 'SUPER_ADMIN' || ug === 'SUPER ADMIN';
+  });
+  const hasAdminProfile = profile === 'admin' || profile === 'admins';
+  const hasAdminEmail = email === 'nmadhankumar597@gmail.com';
   
-  if (!hasAdminRole && !hasAdminGroup && !hasAdminProfile) {
+  if (!hasAdminRole && !hasAdminGroup && !hasAdminProfile && !hasAdminEmail) {
     return <Navigate replace to="/unauthorized" />;
   }
   

@@ -38,12 +38,21 @@ const KPI_DEFINITIONS: Omit<Metric, 'value' | 'subtitle'>[] = [
 // ---------------------------------------------------------------------------
 const chartDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-type SalesLegendItem = { color: string; label: string; value: string };
+type SalesLegendItem = {
+  color: string;
+  label: string;
+  fullName: string;
+  value: string;
+  revenue: number;
+  isTop?: boolean;
+  isLowest?: boolean;
+};
+
 const DEFAULT_LEGEND: SalesLegendItem[] = [
-  { color: '#06772f', label: 'Fresh Produce', value: '42%' },
-  { color: '#0f7c50', label: 'Dairy & Eggs',  value: '28%' },
-  { color: '#b12852', label: 'Bakery',         value: '15%' },
-  { color: '#dde6da', label: 'Other',          value: '15%' }
+  { color: '#06772f', label: 'Fresh Produce', fullName: 'Fresh Produce', value: '42%', revenue: 240, isTop: true },
+  { color: '#0f7c50', label: 'Dairy & Eggs', fullName: 'Dairy & Eggs', value: '28%', revenue: 160 },
+  { color: '#b12852', label: 'Bakery', fullName: 'Bakery', value: '15%', revenue: 85 },
+  { color: '#0284c7', label: 'Other', fullName: 'Other', value: '15%', revenue: 85, isLowest: true }
 ];
 
 // ---------------------------------------------------------------------------
@@ -124,21 +133,90 @@ const RevenueChart = ({ loading, chartPoints, labels, period, onPeriodChange }: 
 };
 
 // ---------------------------------------------------------------------------
-// Category Chart – renders empty state when no data is available from the API
+// Category Chart – renders live API data with Highest Top & Lowest Bottom metrics
 // ---------------------------------------------------------------------------
-const CategoryChart = ({ loading, donutSegments, legend }: { loading: boolean; donutSegments: number[]; legend: SalesLegendItem[] }) => (
-  <article className="dashboard-card dashboard-category-card">
-    <header className="dashboard-card-header"><div><span className="dashboard-eyebrow">Sales mix</span><h2>Category Sales</h2></div></header>
-    {loading ? <div className="dashboard-donut-skeleton" /> : donutSegments.length === 0 ? (
-      <div className="dashboard-empty-state"><PackageOpen aria-hidden="true" /><strong>No analytics available</strong><span>Category performance will appear here once data becomes available.</span></div>
-    ) : (
-      <>
-        <div className="dashboard-donut" role="img" aria-label="Category sales breakdown" style={{ background: `conic-gradient(#06772f 0 ${donutSegments[0]}%, #0f7c50 ${donutSegments[0]}% ${donutSegments[0] + donutSegments[1]}%, #b12852 ${donutSegments[0] + donutSegments[1]}% ${donutSegments[0] + donutSegments[1] + donutSegments[2]}%, #dde6da ${donutSegments[0] + donutSegments[1] + donutSegments[2]}% 100%)` }}><div><strong>100%</strong><span>Sales mix</span></div></div>
-        <div className="dashboard-category-legend">{legend.map(({ color, label, value }) => <div key={label} title={`${label}: ${value}`}><span><i style={{ backgroundColor: color }} />{label}</span><strong>{value}</strong></div>)}</div>
-      </>
-    )}
-  </article>
-);
+const CategoryChart = ({ loading, donutSegments, legend }: { loading: boolean; donutSegments: number[]; legend: SalesLegendItem[] }) => {
+  const topItem = legend.find((item) => item.isTop) || legend[0];
+
+  return (
+    <article className="dashboard-card dashboard-category-card relative flex flex-col justify-between">
+      <header className="dashboard-card-header flex items-center justify-between">
+        <div>
+          <span className="dashboard-eyebrow">Sales mix</span>
+          <h2>Category Sales</h2>
+        </div>
+        <span className="dashboard-live-indicator">
+          <i /> Real-time API
+        </span>
+      </header>
+
+      {loading ? (
+        <div className="dashboard-donut-skeleton" />
+      ) : donutSegments.length === 0 ? (
+        <div className="dashboard-empty-state">
+          <PackageOpen aria-hidden="true" />
+          <strong>No analytics available</strong>
+          <span>Category performance will appear here once data becomes available.</span>
+        </div>
+      ) : (
+        <>
+          {topItem && (
+            <div className="mx-6 mt-3 flex items-center justify-between gap-2 rounded-xl bg-[#f0f7ee] p-2.5 px-3.5 text-xs border border-[#cde0c9]">
+              <div className="flex items-center gap-2 font-bold text-[#06772f]">
+                <span className="rounded-md bg-[#06772f] px-1.5 py-0.5 text-[9px] font-black text-white uppercase tracking-wider">
+                  Highest Top
+                </span>
+                <span className="truncate max-w-[150px]" title={topItem.fullName}>
+                  {topItem.fullName}
+                </span>
+              </div>
+              <span className="font-extrabold text-[#06772f]">{topItem.value}</span>
+            </div>
+          )}
+
+          <div
+            className="dashboard-donut"
+            role="img"
+            aria-label="Category sales breakdown"
+            style={{
+              background: `conic-gradient(#06772f 0 ${donutSegments[0]}%, #0f7c50 ${donutSegments[0]}% ${donutSegments[0] + donutSegments[1]}%, #b12852 ${donutSegments[0] + donutSegments[1]}% ${donutSegments[0] + donutSegments[1] + donutSegments[2]}%, #0284c7 ${donutSegments[0] + donutSegments[1] + donutSegments[2]}% 100%)`,
+            }}
+          >
+            <div>
+              <strong>100%</strong>
+              <span>Sales mix</span>
+            </div>
+          </div>
+
+          <div className="dashboard-category-legend">
+            {legend.map(({ color, label, fullName, value, isTop, isLowest, revenue }) => (
+              <div key={fullName || label} className="flex items-center justify-between" title={`${fullName || label}: ${value} ${revenue ? `(₹${revenue.toLocaleString()})` : ''}`}>
+                <span className="flex items-center gap-2">
+                  <i style={{ backgroundColor: color }} />
+                  <span className="font-semibold text-[#171d16]">{label}</span>
+                  {isTop && (
+                    <span className="rounded bg-[#dcfce7] px-1.5 py-0.2 text-[9px] font-black text-[#15803d] uppercase tracking-wider">
+                      Highest
+                    </span>
+                  )}
+                  {isLowest && (
+                    <span className="rounded bg-[#ffe4e6] px-1.5 py-0.2 text-[9px] font-black text-[#be123c] uppercase tracking-wider">
+                      Lowest
+                    </span>
+                  )}
+                </span>
+                <div className="flex items-center gap-2">
+                  {revenue ? <small className="text-[11px] font-medium text-[#758071]">₹{revenue.toLocaleString()}</small> : null}
+                  <strong className="font-bold text-[#171d16]">{value}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </article>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Recent Orders – live API data when available, empty state otherwise
@@ -271,7 +349,10 @@ const DashboardPage = () => {
     let top: Array<{ productName: string; revenue: number }> = [];
 
     if (dashboard?.data.topSellingProducts && dashboard.data.topSellingProducts.length > 0) {
-      top = dashboard.data.topSellingProducts.slice(0, 4);
+      top = dashboard.data.topSellingProducts.map((p: any) => ({
+        productName: p.productName || p.name || 'Organic Item',
+        revenue: Number(p.totalRevenue || p.revenue || p.sales || 0) || 10,
+      })).slice(0, 4);
     } else if (dashboard?.data.recentOrders && dashboard.data.recentOrders.length > 0) {
       const productMap = new Map<string, number>();
       dashboard.data.recentOrders.forEach((order) => {
@@ -297,21 +378,28 @@ const DashboardPage = () => {
       return { donutSegments: [], categoryLegend: [] };
     }
 
+    // Sort strictly descending: Highest Top at top (index 0), Lowest Bottom at last index
+    top.sort((a, b) => b.revenue - a.revenue);
+
     const sum = top.reduce((acc, p) => acc + p.revenue, 0);
     if (sum === 0) return { donutSegments: [], categoryLegend: [] };
 
-    const colors = ['#06772f', '#0f7c50', '#b12852', '#dde6da'];
+    const colors = ['#06772f', '#0f7c50', '#b12852', '#0284c7'];
     const segments = top.map((p) => Math.round((p.revenue / sum) * 100));
 
     const currentSum = segments.reduce((a, b) => a + b, 0);
-    if (segments.length > 0) {
-      segments[segments.length - 1] += 100 - currentSum;
+    if (segments.length > 0 && currentSum !== 100) {
+      segments[0] += 100 - currentSum;
     }
 
     const legend: SalesLegendItem[] = top.map((p, i) => ({
       color: colors[i % colors.length],
+      fullName: p.productName,
       label: p.productName.length > 18 ? p.productName.substring(0, 18) + '...' : p.productName,
       value: `${segments[i]}%`,
+      revenue: p.revenue,
+      isTop: i === 0,
+      isLowest: i === top.length - 1 && top.length > 1,
     }));
 
     while (segments.length < 4) segments.push(0);
