@@ -548,7 +548,7 @@ export const commerceApi = authApi.injectEndpoints({
           }
         }
       },
-      invalidatesTags: ['CommerceOrders' as never, 'CommerceCart' as never, 'Cart' as never]
+      invalidatesTags: ['CommerceOrders' as never, 'CommerceCart' as never, 'Cart' as never, 'CommerceNotifications' as never]
     }),
     getNotifications: builder.query<unknown[], void>({
       queryFn: async () => {
@@ -558,8 +558,12 @@ export const commerceApi = authApi.injectEndpoints({
             url: '/api/v1/customer/notifications'
           });
           const record = asRecord(response);
-          const candidate = record && 'data' in record ? (record.data as unknown[]) : (response as unknown as unknown[]);
-          return { data: Array.isArray(candidate) ? candidate : [] };
+          const candidate = record && 'data' in record && Array.isArray(record.data)
+            ? (record.data as unknown[])
+            : (record && 'notifications' in record && Array.isArray(record.notifications)
+                ? (record.notifications as unknown[])
+                : (Array.isArray(response) ? (response as unknown[]) : []));
+          return { data: candidate };
         } catch (_) {
           return { data: [] };
         }

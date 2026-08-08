@@ -26,6 +26,7 @@ import { logout } from '@freshmart/shared';
 import {
   useGetAccountSettingsQuery,
   useUpdateAccountProfileMutation,
+  useUploadAvatarUrlMutation,
 } from '../api/account-api.js';
 import { useGetOrdersQuery, useGetWishlistQuery } from '../../commerce/api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
@@ -51,6 +52,7 @@ const AccountSettingsContent = () => {
   const { data: orders = [] } = useGetOrdersQuery();
   const { data: wishlist = [] } = useGetWishlistQuery();
   const [updateProfile, updateState] = useUpdateAccountProfileMutation();
+  const [uploadAvatarUrl] = useUploadAvatarUrlMutation();
   const { unreadCount } = useNotifications();
 
   const profile = accountData?.profile
@@ -61,11 +63,46 @@ const AccountSettingsContent = () => {
 
   // Edit Profile Modal state
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [formData, setFormData] = useState({
     fullName: profile.fullName,
     email: profile.email,
     phone: profile.phone,
+    avatarUrl: profile.avatarUrl,
   });
+
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const res = await uploadAvatarUrl({
+        fileName: file.name,
+        contentType: file.type || 'image/jpeg',
+      }).unwrap();
+
+      const { uploadUrl, avatarUrl } = res;
+      if (uploadUrl && uploadUrl !== avatarUrl) {
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'image/jpeg' },
+          body: file,
+        });
+      }
+      setFormData((prev) => ({ ...prev, avatarUrl }));
+    } catch (_) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setFormData((prev) => ({ ...prev, avatarUrl: reader.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +112,7 @@ const AccountSettingsContent = () => {
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
+        avatarUrl: formData.avatarUrl,
       }).unwrap();
     } catch (_) {
       // Fallback update
@@ -104,6 +142,7 @@ const AccountSettingsContent = () => {
                     fullName: profile.fullName,
                     email: profile.email,
                     phone: profile.phone,
+                    avatarUrl: profile.avatarUrl,
                   });
                   setIsEditing(true);
                 }}
@@ -382,6 +421,7 @@ const AccountSettingsContent = () => {
                       fullName: profile.fullName,
                       email: profile.email,
                       phone: profile.phone,
+                      avatarUrl: profile.avatarUrl,
                     });
                     setIsEditing(true);
                   }}
@@ -417,6 +457,43 @@ const AccountSettingsContent = () => {
               className="space-y-4"
               onSubmit={(e) => void handleSaveProfile(e)}
             >
+              {/* Profile Photo Upload Section */}
+              <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#bdcaba]/70 bg-[#f8fbf5] p-3 text-center">
+                <div className="relative h-20 w-20">
+                  <img
+                    alt={formData.fullName}
+                    className="h-20 w-20 rounded-full border-2 border-[#006b2c] object-cover shadow-xs"
+                    src={formData.avatarUrl || profile.avatarUrl}
+                  />
+                  <label
+                    className="absolute right-0 bottom-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#006b2c] text-white shadow-xs transition-all hover:bg-[#005422]"
+                    htmlFor="avatar-upload-file-input"
+                    title="Upload photo to S3"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <input
+                      accept="image/*"
+                      className="hidden"
+                      id="avatar-upload-file-input"
+                      onChange={(e) => void handleAvatarFileSelect(e)}
+                      type="file"
+                    />
+                  </label>
+                </div>
+                {isUploadingPhoto ? (
+                  <span className="animate-pulse text-[11px] font-extrabold text-[#006b2c]">
+                    Uploading to AWS S3...
+                  </span>
+                ) : (
+                  <label
+                    className="cursor-pointer text-xs font-black text-[#006b2c] hover:underline"
+                    htmlFor="avatar-upload-file-input"
+                  >
+                    Change Profile Photo (S3)
+                  </label>
+                )}
+              </div>
+
               <div className="space-y-1">
                 <label className="block text-xs font-extrabold text-[#3e4a3d]">
                   Full Name

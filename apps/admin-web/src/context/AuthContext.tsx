@@ -41,7 +41,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         // Sanitize URL if any legacy parameters exist
         const params = new URLSearchParams(window.location.search);
-        if (params.has('access_token') || params.has('id_token') || params.has('code')) {
+        if (params.has('access_token') || params.has('id_token')) {
+          const accessToken = params.get('access_token');
+          const idToken = params.get('id_token');
+          const refreshToken = params.get('refresh_token');
+          const role = params.get('role');
+          const profile = params.get('profile');
+
+          if (accessToken) {
+            let userClaims: any = {};
+            if (idToken) {
+              try {
+                userClaims = JSON.parse(atob(idToken.split('.')[1]));
+              } catch (_) {}
+            }
+            const userEmail = userClaims.email || userClaims['cognito:username'] || '';
+            const userName = userClaims.name || userClaims.given_name || userClaims.nickname || userClaims['cognito:username'] || userEmail || 'Administrator';
+            const userGroups = Array.isArray(userClaims['cognito:groups']) ? userClaims['cognito:groups'] : [];
+            const userRole = role || userClaims['custom:role'] || (userGroups.length > 0 ? userGroups[0] : 'ADMIN');
+            const userProfile = profile || userClaims['custom:profile'] || (userGroups.map((g: string) => String(g).toLowerCase()).includes('admin') ? 'admin' : 'customer');
+
+            saveSharedSession({
+              accessToken,
+              idToken: idToken || undefined,
+              refreshToken: refreshToken || undefined,
+              user: {
+                userId: userClaims.sub || '',
+                email: userEmail,
+                name: userName,
+                role: userRole,
+                groups: userGroups,
+                profile: userProfile,
+              },
+            });
+          }
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        } else if (params.has('code')) {
           const cleanUrl = window.location.origin + window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
         }

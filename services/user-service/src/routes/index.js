@@ -9,6 +9,7 @@ router.use(authenticate);
 
 router.get('/profile', controller.getProfile);
 router.put('/profile', validate(profileSchema), controller.upsertProfile);
+router.post('/profile/avatar/upload-url', controller.getAvatarUploadUrl);
 router.post('/addresses', validate(addressSchema), controller.addAddress);
 router.delete('/addresses/:addressId', controller.deleteAddress);
 

@@ -46,41 +46,47 @@ const getRelativeTime = (isoString?: string): string => {
 };
 
 const mapBackendNotification = (n: any): NotificationItem => {
-  const type = n.type || 'system';
+  const rawType = String(n.type || n.eventType || 'system').toUpperCase();
   let icon = ShieldCheck;
   let iconBg = 'bg-[#e9f0e5]';
   let iconColor = 'text-[#3e4a3d]';
+  let category: 'order' | 'offer' | 'system' = 'system';
 
-  if (type === 'order' || type === 'ORDER') {
+  if (rawType.includes('ORDER')) {
+    category = 'order';
     icon = Truck;
     iconBg = 'bg-[#d8f4ce]';
     iconColor = 'text-[#006b2c]';
-  } else if (type === 'offer' || type === 'OFFER' || type === 'PROMO') {
+  } else if (rawType.includes('OFFER') || rawType.includes('PROMO') || rawType.includes('DISCOUNT')) {
+    category = 'offer';
     icon = Tag;
     iconBg = 'bg-[#ffd9de]';
     iconColor = 'text-[#a72d51]';
-  } else if (type === 'alert' || type === 'ALERT') {
+  } else if (rawType.includes('ALERT') || rawType.includes('WELCOME')) {
+    category = 'system';
     icon = Check;
     iconBg = 'bg-[#e3f5ea]';
     iconColor = 'text-[#006c4a]';
   }
 
+  const isRead = !!n.read || !!n.isRead || n.status === 'READ';
+
   return {
     id: String(n.id || n.notificationId || Math.random()),
-    type: (type.toLowerCase() as 'order' | 'offer' | 'system') || 'system',
-    title: n.title || 'Notification',
-    description: n.message || n.description || '',
-    time: getRelativeTime(n.createdAt || n.created_at),
-    read: !!n.read || !!n.isRead,
+    type: category,
+    title: n.title || n.subject || 'Order Notification',
+    description: n.message || n.description || n.body || `Notification for ${n.subject || 'your order'}`,
+    time: getRelativeTime(n.createdAt || n.created_at || n.updatedAt),
+    read: isRead,
     icon,
     iconBg,
     iconColor,
-    hasDot: !(!!n.read || !!n.isRead),
+    hasDot: !isRead,
   };
 };
 
 export function useNotifications() {
-  const { data: rawData = [] } = useGetNotificationsQuery(undefined, { pollingInterval: 30000 });
+  const { data: rawData = [] } = useGetNotificationsQuery(undefined, { pollingInterval: 5000 });
   const [markReadApi] = useMarkNotificationReadMutation();
   const [markAllReadApi] = useMarkAllNotificationsReadMutation();
   const [deleteApi] = useDeleteNotificationMutation();

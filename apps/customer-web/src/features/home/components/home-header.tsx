@@ -18,10 +18,11 @@ import { isAuthenticated, getCurrentUser, logout } from '@freshmart/shared';
 import { useState, useEffect } from 'react';
 import { useGetCartQuery, useGetWishlistQuery } from '../../commerce/api/commerce-api.js';
 import { useNotifications } from '../../account/hooks/use-notifications.js';
+import { useGetAccountSettingsQuery } from '../../account/api/account-api.js';
 
 export const HomeHeader = ({
   cartCount: overrideCartCount,
-  variant,
+  variant = 'default',
 }: {
   cartCount?: number;
   variant?: 'cart' | 'default';
@@ -34,6 +35,9 @@ export const HomeHeader = ({
   const { data: cartItems = [] } = useGetCartQuery();
   const { data: wishlistItems = [] } = useGetWishlistQuery();
   const { unreadCount } = useNotifications();
+  const { data: accountSettings } = useGetAccountSettingsQuery(undefined, { skip: !authed });
+
+  const headerAvatarUrl = accountSettings?.profile?.avatarUrl;
 
   const liveCartCount =
     overrideCartCount !== undefined
@@ -183,11 +187,19 @@ export const HomeHeader = ({
 
             <Link
               aria-label="Account Profile"
-              className="p-2 transition-colors hover:text-[#006b2c]"
+              className="p-1.5 transition-colors hover:text-[#006b2c]"
               title="Account Profile"
               to="/settings"
             >
-              <UserRound className="h-5 w-5" />
+              {headerAvatarUrl ? (
+                <img
+                  alt="Profile"
+                  className="h-6 w-6 rounded-full border border-[#006b2c]/30 object-cover shadow-2xs"
+                  src={headerAvatarUrl}
+                />
+              ) : (
+                <UserRound className="h-5 w-5" />
+              )}
             </Link>
           </div>
         </div>
@@ -297,11 +309,19 @@ export const HomeHeader = ({
           {authed ? (
             <Link
               aria-label="Profile"
-              className="rounded-full p-2 text-[#006b2c] transition-all hover:bg-[#eff6ea] focus-visible:ring-2 focus-visible:ring-[#006b2c] focus-visible:outline-none"
+              className="rounded-full p-1.5 text-[#006b2c] transition-all hover:bg-[#eff6ea] focus-visible:ring-2 focus-visible:ring-[#006b2c] focus-visible:outline-none"
               title="Profile"
               to="/settings"
             >
-              <UserRound className="h-5 w-5" />
+              {headerAvatarUrl ? (
+                <img
+                  alt="Profile"
+                  className="h-6 w-6 rounded-full border border-[#006b2c]/30 object-cover shadow-2xs"
+                  src={headerAvatarUrl}
+                />
+              ) : (
+                <UserRound className="h-5 w-5" />
+              )}
             </Link>
           ) : (
             <div className="flex items-center gap-1.5 pl-1">

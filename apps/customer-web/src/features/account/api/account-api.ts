@@ -62,7 +62,8 @@ export const accountApi = authApi.injectEndpoints({
               data: {
                 email: profile.email,
                 name: profile.fullName,
-                phone: profile.phone
+                phone: profile.phone,
+                avatarUrl: profile.avatarUrl,
               }
             })
           };
@@ -71,6 +72,21 @@ export const accountApi = authApi.injectEndpoints({
         }
       },
       invalidatesTags: ['AccountSettings' as never]
+    }),
+    uploadAvatarUrl: builder.mutation<{ uploadUrl: string; avatarUrl: string }, { fileName: string; contentType: string }>({
+      queryFn: async ({ fileName, contentType }) => {
+        try {
+          const res = await userTransport.request<{ data: { uploadUrl: string; avatarUrl: string } }>({
+            method: 'POST',
+            url: '/v1/users/profile/avatar/upload-url',
+            data: { fileName, contentType }
+          });
+          const payload = (res as any)?.data || res;
+          return { data: payload };
+        } catch (error) {
+          return { error: toApiError(error) };
+        }
+      }
     }),
     getSecuritySettings: builder.query<SecuritySettingsResponse, void>({
       queryFn: async () => ({
@@ -154,5 +170,6 @@ export const {
   useGetAccountSettingsQuery,
   useGetSecuritySettingsQuery,
   useUpdateAccountProfileMutation,
-  useUpdateMfaMutation
+  useUpdateMfaMutation,
+  useUploadAvatarUrlMutation
 } = accountApi;

@@ -15,6 +15,9 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as shared from '@freshmart/shared';
 
+import { useNotifications } from '../../account/hooks/use-notifications.js';
+import { useGetAccountSettingsQuery } from '../../account/api/account-api.js';
+
 const { customerRoutePaths } = shared;
 
 const navItems = [
@@ -37,6 +40,9 @@ export const CommerceHeader = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadCount } = useNotifications();
+  const { data: accountSettings } = useGetAccountSettingsQuery();
+  const userAvatarUrl = accountSettings?.profile?.avatarUrl;
 
   return (
     <header className="commerce-glass fixed inset-x-0 top-0 z-50 bg-[#f4fcf0]/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
@@ -98,9 +104,11 @@ export const CommerceHeader = ({
             to="/notifications"
           >
             <Bell aria-hidden="true" className="h-5 w-5" />
-            <span className="absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[10px] font-bold text-white">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[10px] font-bold text-white">
+                {unreadCount}
+              </span>
+            )}
           </Link>
 
           <button
@@ -122,6 +130,23 @@ export const CommerceHeader = ({
               <span className="absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#006b2c] px-1 text-[10px] font-bold text-white">
                 {cartCount}
               </span>
+            )}
+          </Link>
+
+          <Link
+            aria-label="Account Profile"
+            className="commerce-focus rounded-full p-1.5 text-[#006b2c] hover:bg-[#d8f4ce]"
+            title="Account Profile"
+            to={customerRoutePaths.settings}
+          >
+            {userAvatarUrl ? (
+              <img
+                alt="Profile"
+                className="h-6 w-6 rounded-full border border-[#006b2c]/30 object-cover shadow-2xs"
+                src={userAvatarUrl}
+              />
+            ) : (
+              <UserRound aria-hidden="true" className="h-5 w-5" />
             )}
           </Link>
         </div>

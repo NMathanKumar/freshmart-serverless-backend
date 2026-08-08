@@ -91,6 +91,12 @@ const createProfileRepository = ({ client = documentClient } = {}) => {
       expressionAttributeValues[':phone'] = data.phone;
     }
 
+    if (data.avatarUrl !== undefined) {
+      updateExpressions.push('#avatarUrl = :avatarUrl');
+      expressionAttributeNames['#avatarUrl'] = 'avatarUrl';
+      expressionAttributeValues[':avatarUrl'] = data.avatarUrl;
+    }
+
     if (data.addresses !== undefined) {
       updateExpressions.push('#addresses = :addresses');
       expressionAttributeNames['#addresses'] = 'addresses';

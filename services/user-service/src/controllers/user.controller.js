@@ -98,9 +98,40 @@ const deleteAddress = asyncHandler(async (req, res) => {
   });
 });
 
+const getAvatarUploadUrl = asyncHandler(async (req, res) => {
+  const { fileName, contentType } = req.body || {};
+  const userId = req.user.userId;
+  const cleanName = (fileName || 'avatar.jpg').replace(/[^a-zA-Z0-9.-]/g, '_');
+  const key = `avatars/${userId}/${Date.now()}_${cleanName}`;
+  const bucket = process.env.AWS_S3_BUCKET || 'freshmart-dev-assets-769044546162';
+  const region = process.env.AWS_REGION || 'ap-southeast-1';
+  const avatarUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+  let uploadUrl = avatarUrl;
+  try {
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+    const { s3Client } = require('@freshmart/service-shared').aws;
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType || 'image/jpeg',
+    });
+    uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+  } catch (err) {
+    console.warn('Failed to generate presigned avatar S3 URL:', err.message);
+  }
+
+  success(res, {
+    message: 'Avatar upload URL generated',
+    data: { uploadUrl, avatarUrl, bucket, key },
+  });
+});
+
 module.exports = {
   getProfile,
   upsertProfile,
   addAddress,
   deleteAddress,
+  getAvatarUploadUrl,
 };

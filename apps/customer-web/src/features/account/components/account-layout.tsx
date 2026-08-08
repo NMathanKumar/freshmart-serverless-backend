@@ -20,6 +20,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import * as shared from '@freshmart/shared';
+import { useGetAccountSettingsQuery } from '../api/account-api.js';
 
 const { customerRoutePaths } = shared;
 
@@ -58,6 +59,8 @@ export const AccountShell = ({
   children: ReactNode;
 }) => {
   const location = useLocation();
+  const { data: accountSettings } = useGetAccountSettingsQuery();
+  const userAvatarUrl = accountSettings?.profile?.avatarUrl;
 
   return (
     <div className="account-page min-h-screen bg-[#f4fcf0] pb-20 text-[#171d16] md:pb-0">
@@ -128,11 +131,19 @@ export const AccountShell = ({
           </Link>
           <Link
             aria-label="Account"
-            className="commerce-focus rounded-full p-2 text-[#006b2c] hover:bg-[#eff6ea]"
+            className="commerce-focus rounded-full p-1.5 text-[#006b2c] hover:bg-[#eff6ea]"
             title="Account Profile"
             to={customerRoutePaths.settings}
           >
-            <UserRound className="h-5 w-5" />
+            {userAvatarUrl ? (
+              <img
+                alt="Profile"
+                className="h-6 w-6 rounded-full border border-[#006b2c]/30 object-cover shadow-2xs"
+                src={userAvatarUrl}
+              />
+            ) : (
+              <UserRound className="h-5 w-5" />
+            )}
           </Link>
         </div>
         <button
