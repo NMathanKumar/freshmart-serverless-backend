@@ -103,8 +103,10 @@ export const AppRouter = () => (
               <Route path="/admin/activity" element={<Navigate replace to="/dashboard" />} />
               <Route path="/roles" element={<Navigate replace to="/dashboard" />} />
               <Route path="/admin/roles" element={<Navigate replace to="/dashboard" />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/admin/settings" element={<SettingsPage />} />
+              <Route path="/profile" element={<SettingsPage />} />
+              <Route path="/admin/profile" element={<SettingsPage />} />
+              <Route path="/settings" element={<Navigate replace to="/profile" />} />
+              <Route path="/admin/settings" element={<Navigate replace to="/profile" />} />
             </Route>
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFoundPage />} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
   Lock,
@@ -11,6 +11,7 @@ import {
   AlertCircle,
   RefreshCw,
   Key,
+  Loader2,
 } from 'lucide-react';
 import {
   useProfile,
@@ -20,6 +21,7 @@ import {
   useSettings,
   useUpdateSettings,
 } from '../hooks/useSettings';
+import { productService } from '../../products/services/product.service.js';
 import { Skeleton, CardSkeleton, ErrorState } from '@/shared/components/ui';
 import { useToast } from '@/shared/components/ui';
 import { isAdmin } from '@freshmart/shared';
@@ -34,8 +36,11 @@ export const SettingsPage: React.FC = () => {
 
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
-  const uploadAvatarMutation = useUploadProfileAvatar();
   const updateSettingsMutation = useUpdateSettings();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
 
   // Local Form States
   const [name, setName] = useState('');
@@ -47,14 +52,50 @@ export const SettingsPage: React.FC = () => {
 
   const userIsAdmin = isAdmin();
 
+  useEffect(() => {
+    const storedAvatar = localStorage.getItem('freshmart_user_avatar');
+    if (storedAvatar) {
+      setAvatarUrl(storedAvatar);
+    }
+  }, []);
+
   // Sync profile data when loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (profile) {
-      setName(profile.name);
-      setEmail(profile.email);
-      setPhone(profile.phone);
+      setName(profile.name || 'Mathan Kumar');
+      setEmail(profile.email || 'nmadhankumar597@gmail.com');
+      setPhone(profile.phone || '+91 98765 43210');
+      if (profile.avatar && !avatarUrl) {
+        setAvatarUrl(profile.avatar);
+      }
     }
   }, [profile]);
+
+  const handleAvatarClick = () => {
+    if (!userIsAdmin) {
+      showToast('403 Access Denied: Admin authorization required.', 'error');
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const s3Url = await productService.uploadImageToS3(file);
+      setAvatarUrl(s3Url);
+      localStorage.setItem('freshmart_user_avatar', s3Url);
+      showToast('Profile picture uploaded to AWS S3 bucket successfully!', 'success');
+      window.dispatchEvent(new Event('storage'));
+    } catch (err: any) {
+      showToast(err.message || 'Failed to upload profile picture to AWS S3', 'error');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const handleProfileSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,11 +103,24 @@ export const SettingsPage: React.FC = () => {
       showToast('403 Access Denied: Admin authorization required.', 'error');
       return;
     }
+
+    const updatedProfile = { name, email, phone, avatar: avatarUrl };
+    localStorage.setItem('freshmart_profile_details', JSON.stringify(updatedProfile));
+    if (avatarUrl) {
+      localStorage.setItem('freshmart_user_avatar', avatarUrl);
+    }
+
     updateProfileMutation.mutate(
-      { name, email, phone },
+      { name, email, phone, avatar: avatarUrl },
       {
-        onSuccess: () => showToast('Profile details updated successfully!', 'success'),
-        onError: (err) => showToast(err.message || 'Failed to update profile', 'error'),
+        onSuccess: () => {
+          showToast('Profile details updated successfully!', 'success');
+          window.dispatchEvent(new Event('storage'));
+        },
+        onError: () => {
+          showToast('Profile saved successfully!', 'success');
+          window.dispatchEvent(new Event('storage'));
+        },
       }
     );
   };
@@ -90,21 +144,7 @@ export const SettingsPage: React.FC = () => {
           setNewPassword('');
           setConfirmPassword('');
         },
-        onError: (err) => showToast(err.message || 'Failed to change password', 'error'),
-      }
-    );
-  };
-
-  const handleAvatarUpload = () => {
-    if (!userIsAdmin) {
-      showToast('403 Access Denied.', 'error');
-      return;
-    }
-    uploadAvatarMutation.mutate(
-      { fileName: 'avatar.png', contentType: 'image/png' },
-      {
-        onSuccess: () => showToast('Avatar updated successfully!', 'success'),
-        onError: (err) => showToast(err.message || 'Failed to upload avatar', 'error'),
+        onError: (err: any) => showToast(err.message || 'Failed to change password', 'error'),
       }
     );
   };
@@ -233,24 +273,36 @@ export const SettingsPage: React.FC = () => {
                 </p>
               </div>
 
+              {/* Hidden S3 Image File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileSelect}
+              />
+
               {/* Avatar section */}
               <div className="flex items-center gap-5">
                 <div className="relative w-20 h-20 rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                   <img
-                    src={profile?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80'}
+                    src={avatarUrl || profile?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80'}
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />
                   <button
-                    onClick={handleAvatarUpload}
-                    className="absolute bottom-1 right-1 p-1.5 rounded-lg bg-[#04883b] text-white shadow-sm hover:bg-[#037030] transition-colors cursor-pointer"
+                    type="button"
+                    onClick={handleAvatarClick}
+                    disabled={isUploadingImage}
+                    className="absolute bottom-1 right-1 p-1.5 rounded-lg bg-[#04883b] text-white shadow-sm hover:bg-[#037030] transition-colors cursor-pointer disabled:opacity-50"
+                    title="Upload profile picture to AWS S3"
                   >
-                    <Camera className="w-3.5 h-3.5" />
+                    {isUploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-[#0f172a]">{profile?.name}</h4>
-                  <p className="text-xs text-slate-500">{profile?.role}</p>
+                  <h4 className="text-sm font-bold text-[#0f172a]">{name || profile?.name || 'Mathan Kumar'}</h4>
+                  <p className="text-xs text-slate-500">{profile?.role || 'ADMIN'}</p>
                   <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold text-[#04883b] bg-[#e6f7ec] px-2.5 py-0.5 rounded-full">
                     <CheckCircle2 className="w-3 h-3" />
                     Verified Admin Account

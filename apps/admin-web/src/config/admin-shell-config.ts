@@ -55,7 +55,7 @@ export const retailNav: NavItem[] = [
   { label: 'Customers', path: '/customers', icon: Users },
   { label: 'Analytics', path: '/analytics', icon: ChartNoAxesColumnIncreasing },
   { label: 'Notifications', path: '/notifications', icon: MessageSquareText },
-  { label: 'Settings', path: '/settings', icon: UserCog }
+  { label: 'Profile', path: '/profile', icon: UserCog }
 ];
 
 /** Catalog management navigation (Products + Categories focus). */
@@ -73,7 +73,7 @@ export const catalogNav: NavItem[] = [
   { label: 'Categories', path: '/categories', icon: Shapes },
   { label: 'Orders', path: '/orders', icon: ShoppingCart },
   { label: 'Analytics', path: '/analytics', icon: ChartNoAxesColumnIncreasing },
-  { label: 'Settings', path: '/settings', icon: UserCog }
+  { label: 'Profile', path: '/profile', icon: UserCog }
 ];
 
 /** Operations-focused navigation (Orders + Inventory + Users). */
@@ -83,7 +83,7 @@ export const operationsNav: NavItem[] = [
   { label: 'Inventory', path: '/inventory', icon: Box },
   { label: 'Users', path: '/customers', icon: Users },
   { label: 'Analytics', path: '/analytics', icon: SquareChartGantt },
-  { label: 'Settings', path: '/settings', icon: UserCog }
+  { label: 'Profile', path: '/profile', icon: UserCog }
 ];
 
 /** Procurement navigation (Purchase Orders + Suppliers + Inventory). */
@@ -93,7 +93,7 @@ export const procurementNav: NavItem[] = [
   { label: 'Inventory', path: '/inventory', icon: Box },
   { label: 'Users', path: '/suppliers', icon: Users },
   { label: 'Analytics', path: '/analytics', icon: SquareChartGantt },
-  { label: 'Settings', path: '/settings', icon: UserCog }
+  { label: 'Profile', path: '/profile', icon: UserCog }
 ];
 
 // ---------------------------------------------------------------------------

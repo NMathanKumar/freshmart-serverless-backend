@@ -37,13 +37,31 @@ function resolveRealtimeUser(profile: any, fallbackUser: typeof adminUsers[keyof
   const session = getSharedSession();
   let name = '';
   let role = '';
+  let avatar = fallbackUser.avatar;
+
+  if (typeof window !== 'undefined') {
+    const customAvatar = window.localStorage.getItem('freshmart_user_avatar');
+    if (customAvatar) avatar = customAvatar;
+    
+    try {
+      const storedDetails = window.localStorage.getItem('freshmart_profile_details');
+      if (storedDetails) {
+        const parsed = JSON.parse(storedDetails);
+        if (parsed.name) name = parsed.name;
+        if (parsed.avatar) avatar = parsed.avatar;
+      }
+    } catch (e) {}
+  }
 
   // 1. From live API profile
   if (profile) {
-    if (profile.firstName) {
-      name = `${profile.firstName} ${profile.lastName || ''}`.trim();
-    } else if (profile.name && typeof profile.name === 'string' && !profile.name.includes('@')) {
-      name = profile.name.trim();
+    if (profile.avatar && !avatar) avatar = profile.avatar;
+    if (!name) {
+      if (profile.firstName) {
+        name = `${profile.firstName} ${profile.lastName || ''}`.trim();
+      } else if (profile.name && typeof profile.name === 'string' && !profile.name.includes('@')) {
+        name = profile.name.trim();
+      }
     }
     if (profile.role) {
       role = profile.role;
@@ -87,7 +105,8 @@ function resolveRealtimeUser(profile: any, fallbackUser: typeof adminUsers[keyof
   return {
     ...fallbackUser,
     name: finalName,
-    role: (role || profile?.role || fallbackUser.role || 'ADMIN').toUpperCase()
+    role: (role || profile?.role || fallbackUser.role || 'ADMIN').toUpperCase(),
+    avatar: avatar || fallbackUser.avatar
   };
 }
 
