@@ -94,9 +94,7 @@ const LoginPage = () => {
           const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
           let adminTarget = isLocalhost
             ? 'http://localhost:5173/admin/dashboard'
-            : window.location.origin.includes('/admin')
-              ? `${window.location.origin}/admin/dashboard`
-              : urls.adminWebUrl.replace(/\/$/, '') + '/admin/dashboard';
+            : `${window.location.origin}/admin/dashboard`;
             
           if (result && result.accessToken) {
             const tokenParams = new URLSearchParams({
