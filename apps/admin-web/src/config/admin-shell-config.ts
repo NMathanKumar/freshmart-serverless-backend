@@ -47,7 +47,6 @@ export const retailNav: NavItem[] = [
   { label: 'Customers', path: '/customers', icon: Users },
   { label: 'Analytics', path: '/analytics', icon: ChartNoAxesColumnIncreasing },
   { label: 'Notifications', path: '/notifications', icon: MessageSquareText },
-  { label: 'Activity Logs', path: '/activity', icon: Activity },
   { label: 'Settings', path: '/settings', icon: UserCog }
 ];
 
@@ -68,7 +67,6 @@ export const operationsNav: NavItem[] = [
   { label: 'Inventory', path: '/inventory', icon: Box },
   { label: 'Users', path: '/customers', icon: Users },
   { label: 'Analytics', path: '/analytics', icon: SquareChartGantt },
-  { label: 'Activity', path: '/activity', icon: Activity },
   { label: 'Roles', path: '/roles', icon: ShieldCheck },
   { label: 'Settings', path: '/settings', icon: UserCog }
 ];

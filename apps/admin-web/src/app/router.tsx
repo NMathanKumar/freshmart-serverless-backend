@@ -108,8 +108,8 @@ export const AppRouter = () => (
               <Route path="/admin/analytics" element={<AnalyticsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/admin/notifications" element={<NotificationsPage />} />
-              <Route path="/activity" element={<ActivityPage />} />
-              <Route path="/admin/activity" element={<ActivityPage />} />
+              <Route path="/activity" element={<Navigate replace to="/dashboard" />} />
+              <Route path="/admin/activity" element={<Navigate replace to="/dashboard" />} />
               <Route path="/roles" element={<RolesPage />} />
               <Route path="/admin/roles" element={<RolesPage />} />
               <Route path="/settings" element={<SettingsPage />} />
