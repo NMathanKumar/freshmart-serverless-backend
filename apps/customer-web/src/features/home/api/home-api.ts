@@ -37,7 +37,7 @@ const defaultProducts = [
     available: true,
     stock: 100,
     unit: '1 kg',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR']
+    images: ['https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&auto=format&fit=crop&q=80']
   },
   {
     productId: 'PROD-002',
@@ -49,7 +49,7 @@ const defaultProducts = [
     available: true,
     stock: 150,
     unit: '1 Litre',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S']
+    images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80']
   },
   {
     productId: 'PROD-003',
@@ -61,7 +61,7 @@ const defaultProducts = [
     available: true,
     stock: 80,
     unit: '400g',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuAocIVc-EoYCbFmS10USZQHrW2cBY3jC44RL3aegAleg9zH39V0IHSWwM6MIKPQO6ifSz4gqZNGdwbezCWTwpjY26PgUPmNirsv572TsUAyQLu6A8XrYc_0UG8v0nwTw-VYaT0SMJPhU_zb_d9e0nSrxGxXQbl6Lx_YXZsdI0Y_-NYBK5I62D_ProCKkx-hG1xm3k6nMB89NGrtr-8Z1cQoVuXM7LxVdoQLwhsZlw2KSjnxaqws6Q_tmOCTfNEAnRlce3LxYTMFdXYO']
+    images: ['https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80']
   },
   {
     productId: 'PROD-004',
@@ -73,7 +73,7 @@ const defaultProducts = [
     available: true,
     stock: 60,
     unit: '500g',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u']
+    images: ['https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80']
   }
 ];
 
@@ -118,6 +118,7 @@ export const homeApi = authApi.injectEndpoints({
                   createdAt: typeof product.createdAt === 'string' ? product.createdAt : undefined,
                   description: typeof product.description === 'string' ? product.description : undefined,
                   images: primaryImage ? [primaryImage, ...images.filter((image: string) => image !== primaryImage)] : images,
+                  imageUrl: primaryImage,
                   name: productName,
                   price,
                   productId,
@@ -131,7 +132,31 @@ export const homeApi = authApi.injectEndpoints({
               })
             : defaultProducts;
 
-          const categories = rawProducts.length > 0
+          let categoriesResponse: unknown = null;
+          try {
+            const rawCat = await sdk.category.listCategories();
+            categoriesResponse = unwrap(rawCat);
+          } catch (_) {
+            // Unhandled category error fallback
+          }
+
+          const rawCategories = Array.isArray(categoriesResponse)
+            ? categoriesResponse
+            : Array.isArray((categoriesResponse as { data?: Array<Record<string, unknown>> })?.data)
+              ? (categoriesResponse as { data: Array<Record<string, unknown>> }).data
+              : [];
+
+          const categories = rawCategories.length > 0
+            ? rawCategories.map((rawCatItem, index) => {
+                const cat = rawCatItem as Record<string, unknown>;
+                return {
+                  categoryId: String(cat.categoryId ?? cat.id ?? `category-${index + 1}`),
+                  name: String(cat.name ?? `Category ${index + 1}`),
+                  slug: String(cat.slug ?? ''),
+                  imageUrl: String(cat.imageUrl ?? ''),
+                };
+              })
+            : rawProducts.length > 0
             ? [...new Set(rawProducts.map((product) => String(product.category || '').trim()).filter(Boolean))]
                 .slice(0, 6)
                 .map((name, index) => ({ categoryId: `category-${index + 1}`, name }))

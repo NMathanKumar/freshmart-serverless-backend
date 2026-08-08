@@ -272,8 +272,14 @@ const AddressManagementContent = () => {
           {/* Deliver to Selected Address CTA */}
           <div className="flex justify-end pt-2">
             <button
-              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#006b2c] px-8 text-xs font-extrabold text-white shadow-md transition-all hover:bg-[#005422] active:scale-98"
-              onClick={() => navigate('/checkout')}
+              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#006b2c] px-8 text-xs font-extrabold text-white shadow-md transition-all hover:bg-[#005422] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={addresses.length === 0}
+              onClick={() => {
+                const effectiveSelectedId = selectedId || addresses.find((a) => a.isDefault)?.addressId || addresses[0]?.addressId;
+                const addr = addresses.find(a => a.addressId === effectiveSelectedId);
+                const addressString = addr ? [...addr.lines, `${addr.city}, ${addr.state} ${addr.postalCode}`].join(', ') : 'Home';
+                navigate('/checkout', { state: { deliveryAddress: addressString } });
+              }}
               type="button"
             >
               <span>Deliver to Selected Address</span>

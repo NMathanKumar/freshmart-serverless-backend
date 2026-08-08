@@ -3,15 +3,18 @@ import {
   saveSharedSession,
   getSharedSession,
   clearSharedSession,
+  isAuthenticated as checkIsAuthenticated,
+  refreshAuthSession,
   type SharedAuthSession,
 } from '@freshmart/shared';
-import { freshmartSdk } from '../lib/sdk';
 
 export interface UserProfile {
   userId: string;
   email: string;
   name?: string;
   role?: string;
+  groups?: string[];
+  profile?: string;
 }
 
 interface AuthContextType {
@@ -28,19 +31,63 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<SharedAuthSession | null>(() => getSharedSession());
+  const [session, setSession] = useState<SharedAuthSession | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const existing = getSharedSession();
-    if (existing) {
-      setSession(existing);
-    }
+    const initAuth = async () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const accessToken = params.get('access_token');
+        const idToken = params.get('id_token');
+        const refreshToken = params.get('refresh_token');
+        const role = params.get('role');
+        const profile = params.get('profile');
+        
+        if (accessToken) {
+          saveSharedSession({
+            accessToken,
+            idToken: idToken || undefined,
+            refreshToken: refreshToken || undefined,
+            user: {
+              role: role || undefined,
+              profile: profile || undefined
+            }
+          });
+          
+          const newUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+
+        const existing = getSharedSession();
+        if (existing) {
+          if (!checkIsAuthenticated()) {
+            const success = await refreshAuthSession();
+            if (success) {
+              setSession(getSharedSession());
+            } else {
+              setSession(null);
+            }
+          } else {
+            setSession(existing);
+          }
+        } else {
+          setSession(null);
+        }
+      } catch (err) {
+        console.error('Session initialization failed:', err);
+        setSession(null);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    initAuth();
   }, []);
 
   const login = () => {
-    import('@freshmart/shared').then(({ redirectToSSO, getEnvironmentUrls }) => {
+    import('@freshmart/shared').then(({ redirectToSSO }) => {
       redirectToSSO(window.location.origin + '/auth/callback');
     });
   };
@@ -55,12 +102,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const userProfile: UserProfile | null = session?.user
     ? {
-        userId: session.user.userId || 'admin-1',
-        email: session.user.email || 'admin@freshmart.com',
-        name: session.user.name || session.user.fullName || 'Alex Rivera',
-        role: session.user.role || 'ADMIN',
+        userId: session.user.userId || '',
+        email: session.user.email || '',
+        name: session.user.name || session.user.fullName || '',
+        role: session.user.role,
+        groups: session.user.groups,
+        profile: session.user.profile,
       }
     : null;
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f4fcf0] p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full text-center border border-[#e9f2e7]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-sm font-bold text-slate-700">Validating Session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider
@@ -68,7 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         user: userProfile,
         idToken: session?.idToken || null,
         accessToken: session?.accessToken || null,
-        isAuthenticated: !!session?.accessToken,
+        isAuthenticated: !!session?.accessToken && checkIsAuthenticated(),
         isLoading,
         login,
         logout,

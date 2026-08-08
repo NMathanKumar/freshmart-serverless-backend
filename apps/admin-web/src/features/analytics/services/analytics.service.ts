@@ -15,8 +15,8 @@ export interface AnalyticsSummaryModel {
 }
 
 export class AnalyticsService {
-  async getAnalyticsDashboard(period = '30d'): Promise<AnalyticsSummaryModel> {
-    const res = await freshmartSdk.admin.getAnalyticsDashboard({ period });
+  async getAnalyticsDashboard(period = '30d', signal?: AbortSignal): Promise<AnalyticsSummaryModel> {
+    const res = await freshmartSdk.admin.getAnalyticsDashboard({ period }, { signal });
     const d = (res?.data || res || {}) as Record<string, any>;
 
     return {
@@ -33,14 +33,14 @@ export class AnalyticsService {
     };
   }
 
-  async getRevenueAnalytics(params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
-    const res = await freshmartSdk.admin.getRevenueAnalytics(params);
-    return res.data ?? {};
+  async getRevenueAnalytics(params: Record<string, unknown> = {}, signal?: AbortSignal): Promise<Record<string, unknown>> {
+    const res = await freshmartSdk.admin.getRevenueAnalytics(params, { signal });
+    return res?.data || res || {};
   }
 
-  async getOrderAnalytics(params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
-    const res = await freshmartSdk.admin.getOrderAnalytics(params);
-    return res.data ?? {};
+  async getOrderAnalytics(params: Record<string, unknown> = {}, signal?: AbortSignal): Promise<Record<string, unknown>> {
+    const res = await freshmartSdk.admin.getOrderAnalytics(params, { signal });
+    return res?.data || res || {};
   }
 
   async getCustomerAnalytics(params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {

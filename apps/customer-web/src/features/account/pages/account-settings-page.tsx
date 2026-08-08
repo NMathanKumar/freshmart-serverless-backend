@@ -27,14 +27,15 @@ import {
   useGetAccountSettingsQuery,
   useUpdateAccountProfileMutation,
 } from '../api/account-api.js';
-import { useGetOrdersQuery } from '../../commerce/api/commerce-api.js';
+import { useGetOrdersQuery, useGetWishlistQuery } from '../../commerce/api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
+import { useNotifications } from '../hooks/use-notifications.js';
 
 const SAMPLE_PROFILE = {
   fullName: 'Alex Thompson',
   email: 'alex.thompson@premium.com',
-  phone: '+1 (555) 000-1234',
+  phone: 'Not provided',
   storeLocation: 'San Francisco, CA',
   avatarUrl:
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
@@ -42,19 +43,21 @@ const SAMPLE_PROFILE = {
   tier: 'Gold Member',
   creditBalance: '₹42.50',
   totalSaved: '₹128.40',
-  wishlistCount: 12,
 };
 
 const AccountSettingsContent = () => {
   const navigate = useNavigate();
   const { data: accountData } = useGetAccountSettingsQuery();
   const { data: orders = [] } = useGetOrdersQuery();
+  const { data: wishlist = [] } = useGetWishlistQuery();
   const [updateProfile, updateState] = useUpdateAccountProfileMutation();
+  const { unreadCount } = useNotifications();
 
   const profile = accountData?.profile
     ? { ...SAMPLE_PROFILE, ...accountData.profile }
     : SAMPLE_PROFILE;
   const recentOrder = orders.length > 0 ? orders[0] : null;
+  const liveWishlistCount = wishlist.length;
 
   // Edit Profile Modal state
   const [isEditing, setIsEditing] = useState(false);
@@ -177,7 +180,7 @@ const AccountSettingsContent = () => {
                 <span>Notifications</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                {unreadCount > 0 && <span className="h-2 w-2 rounded-full bg-rose-500" />}
                 <ChevronRight className="h-4 w-4 text-[#bdcaba]" />
               </div>
             </Link>
@@ -299,13 +302,16 @@ const AccountSettingsContent = () => {
             {/* Widget 2: 2 Quick Metric Cards */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {/* Wishlist Summary Card */}
-              <div className="flex flex-col justify-between space-y-4 rounded-[24px] border border-[#e2ebdE] bg-white p-5 shadow-xs">
+              <div
+                className="flex cursor-pointer flex-col justify-between space-y-4 rounded-[24px] border border-[#e2ebdE] bg-white p-5 shadow-xs transition-all hover:border-[#bdcaba] hover:shadow-md"
+                onClick={() => navigate('/wishlist')}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eff6ea] text-[#006b2c]">
                     <Heart className="h-5 w-5" />
                   </div>
                   <span className="rounded-full bg-[#eff6ea] px-3 py-1 text-[11px] font-black text-[#006c4a]">
-                    {profile.wishlistCount} Items
+                    {liveWishlistCount} {liveWishlistCount === 1 ? 'Item' : 'Items'}
                   </span>
                 </div>
                 <div>

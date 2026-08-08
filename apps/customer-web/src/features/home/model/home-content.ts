@@ -25,10 +25,9 @@ export const featuredCategoryImage = 'https://lh3.googleusercontent.com/aida-pub
 export const toTrendingProducts = (products: ProductSummary[]): ProductViewModel[] => 
   products.map((product) => ({ 
     ...product, 
-    name: product.productName,
-    imageUrl: product.images?.[0] || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
+    name: product.productName || (product as any).name,
+    imageUrl: (product as any).imageUrl || product.images?.[0] || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500',
     quantity: product.weight && product.unit ? `${product.weight}${product.unit}` : '1 Unit',
-    // We mock the badge conditionally based on price for the visual parity, but the array is removed
     badge: product.price > 10 ? 'BESTSELLER' : '10% OFF',
     badgeTone: product.price > 10 ? 'bestseller' : 'offer',
   }));
@@ -36,8 +35,8 @@ export const toTrendingProducts = (products: ProductSummary[]): ProductViewModel
 export const toRecommendedProducts = (products: ProductSummary[]): ProductViewModel[] => 
   products.map((product) => ({ 
     ...product, 
-    name: product.productName,
-    imageUrl: product.images?.[0] || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCVNTMlttKu2Hz7Unjegu948DLlY9waR6xqugQ631kofvTund94IrAi2wZb5g_3cK2nGc_Qtb9VYmlp683nRCi2AoK39GpgwYie1_quon7cRVkCfcjv5f8cx4WWmdawpRb1ElaEFk6URX0axMs2yYuLSTNFOnAPm0bYXr_OzTGeUVneZJx55tIMcpmjxBOKUrvI2H6CeYeifXokv1FLY6BQye9DFgqfU31UKb1v7IR61uTbLniSyvvVBqVVGCFoH2EOqNchgG8okWTu',
+    name: product.productName || (product as any).name,
+    imageUrl: (product as any).imageUrl || product.images?.[0] || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500',
     quantity: product.weight && product.unit ? `${product.weight}${product.unit}` : '',
     badge: product.price > 15 ? 'SMART BUNDLE' : 'DAILY PICK',
     note: product.price > 15 ? 'Save 15%' : 'New in store'

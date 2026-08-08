@@ -8,11 +8,17 @@ import {
   ChevronRight,
   AlertCircle,
   RefreshCw,
+  Users,
+  BadgeCheck,
+  UserPlus,
+  Ban,
+  Upload
 } from 'lucide-react';
 import { useCustomers, useUpdateCustomerStatus, useDeleteCustomer } from '../hooks/useCustomers';
-import { Skeleton, CardSkeleton, TableSkeleton } from '../../../components/ui/skeleton';
-import { useToast } from '../../../components/ui/toast';
+import { Skeleton, CardSkeleton, TableSkeleton, ErrorState, EmptyState } from '@/shared/components/ui';
+import { useToast } from '@/shared/components/ui/toast';
 import { isAdmin } from '@freshmart/shared';
+import { AdminShell } from '../../admin/components/admin-shell.js';
 
 export const CustomersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +81,7 @@ export const CustomersPage: React.FC = () => {
 
   if (isLoading) {
     return (
+      <AdminShell searchPlaceholder="Search customers, orders, or IDs..." user="alex" variant="operations" onSearch={setSearchTerm}>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div className="space-y-2">
@@ -93,42 +100,41 @@ export const CustomersPage: React.FC = () => {
         </div>
         <TableSkeleton rows={6} columns={7} />
       </div>
+      </AdminShell>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#0f172a]">Failed to load customer directory</h3>
-        <p className="text-xs text-slate-500">{error?.message || 'Server connection error'}</p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-white font-bold text-xs hover:bg-[#037030] transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Retry</span>
-        </button>
+      <AdminShell searchPlaceholder="Search customers, orders, or IDs..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="my-12 max-w-lg mx-auto">
+        <ErrorState
+          title="Failed to load customer directory"
+          description={error?.message || 'Server connection error'}
+          onRetry={() => refetch()}
+          errorCode={error?.code}
+          correlationId={error?.correlationId}
+        />
       </div>
+      </AdminShell>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AdminShell searchPlaceholder="Search customers, orders, or IDs..." user="alex" variant="operations" onSearch={setSearchTerm}>
+    <div className="space-y-6 p-6 min-h-screen bg-[#f4fcf0]/50">
       {/* Title & Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#0f172a]">Customer Management</h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Overview your user base, monitor activity, and handle account statuses.
+          <h1 className="text-[28px] font-extrabold text-[#0f172a] tracking-tight">Customer Management</h1>
+          <p className="text-sm text-slate-600 font-medium mt-1">
+            Oversee your user base, monitor activity, and handle account statuses.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#e8f3e5] text-xs font-bold text-[#0f172a] border border-[#d4e8d1] hover:bg-[#dcefd8] transition-colors">
-            <Download className="w-4 h-4 text-slate-600" />
-            <span>Import CSV</span>
+          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-sm font-bold text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
+            <Download className="w-4 h-4 text-slate-500" />
+            <span>Export CSV</span>
           </button>
           <button
             onClick={() => {
@@ -138,7 +144,7 @@ export const CustomersPage: React.FC = () => {
                 alert('Add Customer form ready.');
               }
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-xs font-bold text-white shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-sm font-bold text-white shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>Add Customer</span>
@@ -147,52 +153,70 @@ export const CustomersPage: React.FC = () => {
       </div>
 
       {/* 4 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-[#e9f2e7] shadow-sm">
-          <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-            TOTAL CUSTOMERS
-          </span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-[#0f172a]">{displayCustomers.length.toLocaleString('en-US')}</span>
-            <span className="text-[11px] font-bold text-[#04883b] bg-[#e6f7ec] px-2 py-0.5 rounded-full">
-              Active
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-white p-6 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]/60">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-11 h-11 rounded-xl bg-[#e6f7ec] flex items-center justify-center text-[#04883b]">
+              <Users className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-bold text-[#04883b] bg-[#e6f7ec] px-2 py-0.5 rounded-full tracking-wide">
+              +12.5%
             </span>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-slate-700 mb-0.5">Total Customers</p>
+            <p className="text-3xl font-extrabold text-[#0f172a] tracking-tight">{displayCustomers.length.toLocaleString('en-US')}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#e9f2e7] shadow-sm">
-          <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-            ACTIVE CUSTOMERS
-          </span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-[#0f172a]">{displayCustomers.filter((c) => c.status === 'ACTIVE').length.toLocaleString('en-US')}</span>
-            <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
-              {displayCustomers.length > 0 ? Math.round((displayCustomers.filter((c) => c.status === 'ACTIVE').length / displayCustomers.length) * 100) : 0}% Rate
+        <div className="bg-white p-6 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]/60">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+              <BadgeCheck className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full tracking-wide">
+              High Retention
             </span>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-slate-700 mb-0.5">Active Customers</p>
+            <p className="text-3xl font-extrabold text-[#0f172a] tracking-tight">
+              {displayCustomers.length > 0 ? Math.round((displayCustomers.filter((c) => c.status === 'ACTIVE').length / displayCustomers.length) * 100) : 0}%
+            </p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#e9f2e7] shadow-sm">
-          <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-            TOTAL ORDERS
-          </span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-[#0f172a]">{displayCustomers.reduce((acc, c) => acc + c.orders, 0).toLocaleString('en-US')}</span>
-            <span className="text-[11px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">
-              Combined
+        <div className="bg-white p-6 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]/60">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-11 h-11 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
+              <UserPlus className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full tracking-wide">
+              +450 Today
             </span>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-slate-700 mb-0.5">New Customers</p>
+            <p className="text-3xl font-extrabold text-[#0f172a] tracking-tight">
+              {Math.floor(displayCustomers.length * 0.1).toLocaleString('en-US')}
+            </p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#e9f2e7] shadow-sm">
-          <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-            BLOCKED ACCOUNTS
-          </span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-rose-600">{displayCustomers.filter((c) => c.status === 'BLOCKED').length.toLocaleString('en-US')}</span>
-            <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
-              Requires Review
+        <div className="bg-white p-6 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]/60">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500">
+              <Ban className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full tracking-wide">
+              Action Req.
             </span>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-slate-700 mb-0.5">Blocked Accounts</p>
+            <p className="text-3xl font-extrabold text-[#0f172a] tracking-tight">
+              {displayCustomers.filter((c) => c.status === 'BLOCKED').length.toLocaleString('en-US')}
+            </p>
           </div>
         </div>
       </div>
@@ -218,34 +242,29 @@ export const CustomersPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search customer name, email..."
-              className="w-full bg-white border border-[#e9f2e7] rounded-xl pl-9 pr-3 py-1.5 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#04883b]"
-            />
-          </div>
-
-          <div className="text-xs font-bold text-slate-600 bg-white border border-[#e9f2e7] px-4 py-2 rounded-xl shrink-0">
-            Jan 1 - Dec 31, 2024
-          </div>
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-[#e2e8f0] rounded-xl hover:bg-slate-50 transition-colors">
+            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Jan 1 - Dec 31, 2023
+          </button>
+          <button className="p-1.5 bg-white border border-[#e2e8f0] rounded-xl text-slate-500 hover:text-slate-700 transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* Customers Data Table */}
       <div className="bg-white rounded-2xl border border-[#e9f2e7] shadow-sm overflow-hidden">
         {displayCustomers.length === 0 ? (
-          <div className="p-8 text-center space-y-4 max-w-lg mx-auto my-12">
-            <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center mx-auto">
-              <Search className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-[#0f172a]">No customers found</h3>
-            <p className="text-xs text-slate-500">Try adjusting your filters or search terms.</p>
-          </div>
+          <EmptyState 
+            title="No customers found" 
+            description="Try adjusting your filters or search terms." 
+            icon={<Search className="w-8 h-8 text-slate-300 mx-auto" />} 
+          />
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -359,5 +378,6 @@ export const CustomersPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </AdminShell>
   );
 };

@@ -10,9 +10,12 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly statusCode?: number,
-    public readonly problem?: ProblemDetails
+    public readonly problem?: ProblemDetails,
+    public readonly headers?: any,
+    public readonly code?: string
   ) {
     super(message);
+    this.name = 'ApiError';
   }
 }
 
@@ -31,10 +34,11 @@ function normalizeBaseUrl(url: string): string {
 export class ApiClient {
   readonly http: AxiosInstance;
 
-  constructor(baseURL: string, private readonly sessionAccessor?: ApiSessionAccessor) {
+  constructor(baseURL: string, private readonly sessionAccessor?: ApiSessionAccessor, timeout: number = 10000) {
     const finalBaseUrl = normalizeBaseUrl(baseURL);
     this.http = axios.create({
       baseURL: finalBaseUrl,
+      timeout,
       headers: {
         Accept: 'application/json'
       }
@@ -78,7 +82,9 @@ export class ApiClient {
       throw new ApiError(
         message,
         error.response?.status,
-        error.response?.data
+        error.response?.data,
+        error.response?.headers,
+        error.code
       );
     });
   }

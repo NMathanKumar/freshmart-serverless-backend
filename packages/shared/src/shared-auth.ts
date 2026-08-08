@@ -23,6 +23,8 @@ export interface UserSummary {
   fullName?: string;
   name?: string;
   profile?: string;
+  phone?: string;
+  phoneNumber?: string;
 }
 
 export interface SharedAuthSession extends Partial<AuthSessionResponse> {
@@ -133,13 +135,37 @@ export const saveSharedSession = (session: AuthSessionResponse, remember = true)
 
   const resolvedIdToken = session.idToken || (session as unknown as { IdToken?: string }).IdToken;
 
+  let decodedUser: Record<string, unknown> = {};
+  if (resolvedIdToken) {
+    try {
+      const parts = resolvedIdToken.split('.');
+      if (parts.length === 3) {
+        const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadJson);
+        decodedUser = {
+          userId: payload.sub,
+          email: payload.email,
+          fullName: payload.name || payload.given_name || (payload.email ? payload.email.split('@')[0] : undefined),
+          phone: payload.phone_number || payload.phone,
+          phoneNumber: payload.phone_number || payload.phone,
+          groups: payload['cognito:groups'] || []
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const sessionUser = (session as unknown as { user?: Record<string, unknown> }).user ?? {};
   const payload: SharedAuthSession = {
     accessToken: session.accessToken,
     refreshToken: session.refreshToken,
     idToken: resolvedIdToken,
-    user: (session as unknown as { user?: UserSummary }).user ?? {
+    user: {
       email: (session as unknown as { email?: string }).email,
-      role: (session as unknown as { role?: string }).role
+      role: (session as unknown as { role?: string }).role,
+      ...decodedUser,
+      ...sessionUser
     }
   };
 
@@ -271,15 +297,18 @@ export const initializeSession = () => {
   getSharedSession();
 };
 
+export const refreshAuthSession = async (): Promise<boolean> => {
+  const session = getSharedSession();
+  if (!session || !session.refreshToken) return false;
+  // TODO: implement actual refresh token logic with the backend if needed
+  return false;
+};
+
 export const requireAdmin = () => {
   if (!isAuthenticated()) {
-    logout();
     return false;
   }
   if (!isAdmin()) {
-    if (typeof window !== 'undefined') {
-      window.location.replace('/login');
-    }
     return false;
   }
   return true;
@@ -287,7 +316,6 @@ export const requireAdmin = () => {
 
 export const requireCustomer = () => {
   if (!isAuthenticated()) {
-    logout();
     return false;
   }
   return true;

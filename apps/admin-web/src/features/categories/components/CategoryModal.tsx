@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Logger } from '@/shared/utils/logger';
 import { CategoryModel } from '../services/category.service';
 import { useCreateCategory, useUpdateCategory } from '../hooks/useCategories';
-import { useToast } from '../../../components/ui/toast';
+import { useToast } from '@/shared/components/ui/toast';
 
 const categorySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(120),
@@ -82,7 +83,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, c
       }
       onClose();
     } catch (err: any) {
-      console.error('Failed to save category', err);
+      Logger.error('Failed to save category', err, { module: 'CategoryModal', operation: isEditing ? 'update' : 'create' });
       showToast(err.message || 'Failed to save category', 'error');
     }
   };

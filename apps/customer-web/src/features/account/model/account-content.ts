@@ -57,21 +57,50 @@ export const loginActivity: LoginActivity[] = [
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const text = (record: Record<string, unknown>, keys: string[], fallback: string) =>
   keys.map((key) => record[key]).find((value): value is string => typeof value === 'string' && value.length > 0) ?? fallback;
+import { getCurrentUser } from '@freshmart/shared';
+
+const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
 
 export const mergeProfile = (remote: unknown): AccountProfile => {
   const record = isRecord(remote) && isRecord(remote.data) ? (remote.data as Record<string, unknown>) : remote;
   const user = isRecord(record) && isRecord(record.user) ? record.user : record;
-  if (!isRecord(user)) return accountProfile;
 
-  const firstName = text(user, ['firstName'], '');
-  const lastName = text(user, ['lastName'], '');
-  const fullName = text(user, ['fullName', 'name'], [firstName, lastName].filter(Boolean).join(' ') || accountProfile.fullName);
+  const sessionUser = getCurrentUser() || {};
+  const emailVal = isRecord(user) ? text(user, ['email'], sessionUser.email || accountProfile.email) : (sessionUser.email || accountProfile.email);
+  const emailFallbackName = emailVal && emailVal.includes('@') ? emailVal.split('@')[0] : accountProfile.fullName;
+
+  if (!isRecord(user)) {
+    const rawFallback = sessionUser.fullName || sessionUser.name || '';
+    const safeFallback = isUuid(rawFallback) ? emailFallbackName : (rawFallback || emailFallbackName);
+    return {
+      ...accountProfile,
+      email: emailVal,
+      fullName: safeFallback
+    };
+  }
+
+  const firstName = text(user, ['firstName', 'given_name'], '');
+  const lastName = text(user, ['lastName', 'family_name'], '');
+  const generatedFullName = [firstName, lastName].filter(Boolean).join(' ');
+
+  let rawName = text(user, ['fullName', 'name'], '');
+  if (isUuid(rawName)) {
+    rawName = '';
+  }
+
+  const rawSessionFallback = sessionUser.name || sessionUser.fullName || '';
+  const safeSessionFallback = isUuid(rawSessionFallback) ? '' : rawSessionFallback;
+  const fallbackName = safeSessionFallback || emailFallbackName;
+  const fullName = generatedFullName || rawName || fallbackName;
+
+  const rawPhone = text(user, ['phone', 'phoneNumber', 'phone_number'], sessionUser.phone || sessionUser.phoneNumber || '');
+  const phone = rawPhone || 'Not provided';
 
   return {
     avatarUrl: text(user, ['avatarUrl', 'avatar'], accountProfile.avatarUrl),
-    email: text(user, ['email'], accountProfile.email),
+    email: emailVal,
     fullName,
-    phone: text(user, ['phone', 'phoneNumber'], accountProfile.phone),
+    phone,
     storeLocation: text(user, ['storeLocation', 'preferredStore'], accountProfile.storeLocation)
   };
 };

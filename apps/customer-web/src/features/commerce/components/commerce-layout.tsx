@@ -149,58 +149,7 @@ export const CommerceSearchBar = ({
   </label>
 );
 
-export const CommerceFooter = () => (
-  <footer className="mt-16 border-t border-[#bdcaba]/30 bg-[#eff6ea]">
-    <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-8 px-4 py-10 md:grid-cols-4 md:px-10">
-      <div className="space-y-4">
-        <strong className="text-xl font-bold text-[#006b2c]">FreshMart</strong>
-        <p className="text-base text-[#3e4a3d]">
-          Premium quality groceries delivered to your doorstep in minutes.
-        </p>
-      </div>
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold uppercase">Company</h2>
-        <a className="block text-[#3e4a3d] hover:text-[#006b2c]" href="#about">
-          About Us
-        </a>
-        <a className="block text-[#3e4a3d] hover:text-[#006b2c]" href="#areas">
-          Delivery Areas
-        </a>
-        <a className="block text-[#3e4a3d] hover:text-[#006b2c]" href="#help">
-          Help Center
-        </a>
-      </div>
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold uppercase">Legal</h2>
-        <a
-          className="block text-[#3e4a3d] hover:text-[#006b2c]"
-          href="#privacy"
-        >
-          Privacy Policy
-        </a>
-        <a className="block text-[#3e4a3d] hover:text-[#006b2c]" href="#terms">
-          Terms of Service
-        </a>
-      </div>
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold uppercase">Newsletter</h2>
-        <div className="flex">
-          <Input
-            className="rounded-r-none bg-white"
-            placeholder="Email address"
-            type="email"
-          />
-          <Button className="rounded-l-none px-4" type="button">
-            Join
-          </Button>
-        </div>
-      </div>
-    </div>
-    <p className="border-t border-[#bdcaba]/30 px-4 py-6 text-center text-xs text-[#3e4a3d]">
-      © 2024 FreshMart. Premium Quick Commerce.
-    </p>
-  </footer>
-);
+export const CommerceFooter = () => null;
 
 export const CommerceMobileNav = ({
   active,

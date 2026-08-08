@@ -91,7 +91,14 @@ export const AppRouter = () => (
     <Suspense fallback={<AuthRouteSkeleton />}>
       <AppErrorBoundary>
         <Routes>
-          <Route path={customerRoutePaths.home} element={<HomePage />} />
+          <Route
+            path={customerRoutePaths.home}
+            element={
+              <RequireAuth>
+                <HomePage />
+              </RequireAuth>
+            }
+          />
           <Route
             path={customerRoutePaths.search}
             element={<SearchResultsPage />}
@@ -106,7 +113,11 @@ export const AppRouter = () => (
           />
           <Route
             path={customerRoutePaths.wishlist}
-            element={<WishlistPage />}
+            element={
+              <RequireAuth>
+                <WishlistPage />
+              </RequireAuth>
+            }
           />
           <Route path={customerRoutePaths.cart} element={<CartPage />} />
           <Route

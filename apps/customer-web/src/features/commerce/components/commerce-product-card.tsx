@@ -18,6 +18,9 @@ const { customerRoutePaths, formatCurrency } = shared;
 import {
   useRemoveCartItemMutation,
   useUpdateCartItemMutation,
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
+  useGetWishlistQuery,
 } from '../api/commerce-api.js';
 import type { CartLine, CommerceProduct } from '../model/commerce-content.js';
 
@@ -32,7 +35,31 @@ export const CommerceProductCard = ({
   variant?: 'grid' | 'category' | 'compact';
 }) => {
   const [added, setAdded] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const { data: wishlist = [] } = useGetWishlistQuery();
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [removeFromWishlist] = useRemoveFromWishlistMutation();
+
+  const isLiked = wishlist.some((item) => item.productId === product.productId);
+
+  const toggleWishlist = async () => {
+    try {
+      if (isLiked) {
+        await removeFromWishlist({ productId: product.productId }).unwrap();
+      } else {
+        await addToWishlist({
+          productId: product.productId,
+          name: product.name,
+          price: product.price,
+          brand: product.brand || 'Organic',
+          imageUrl: product.imageUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300',
+          quantity: product.quantity || '1 Unit',
+        }).unwrap();
+      }
+    } catch (_) {
+      // Ignore
+    }
+  };
+
   const [updateCart, updateState] = useUpdateCartItemMutation();
   const add = async () => {
     try {
@@ -61,7 +88,7 @@ export const CommerceProductCard = ({
               : `Add ${product.name} to wishlist`
           }
           className="absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-md transition-all hover:scale-110 active:scale-95"
-          onClick={() => setIsLiked(!isLiked)}
+          onClick={toggleWishlist}
           type="button"
         >
           <Heart
@@ -120,7 +147,7 @@ export const CommerceProductCard = ({
             : `Add ${product.name} to wishlist`
         }
         className="absolute top-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-md transition-all hover:scale-110 active:scale-95"
-        onClick={() => setIsLiked(!isLiked)}
+        onClick={toggleWishlist}
         type="button"
       >
         <Heart

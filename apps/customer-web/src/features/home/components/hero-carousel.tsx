@@ -121,9 +121,10 @@ export const HeroCarousel = ({
       aria-label="Featured promotions"
       className="group relative overflow-hidden rounded-[28px] border border-[#e2ebdE] bg-[#f4fcf0] shadow-md max-w-full"
     >
-      <div className="relative h-[280px] sm:h-[320px] md:h-[360px] overflow-hidden">
+      <div className="relative h-[300px] sm:h-[340px] md:h-[380px] overflow-hidden">
         {slides.map((slide, index) => {
           const isActive = index === currentIndex;
+          const BadgeIcon = slide.badgeIcon;
           return (
             <article
               key={slide.id}
@@ -138,35 +139,46 @@ export const HeroCarousel = ({
                 onClick={() => onBannerClick?.(slide)}
                 type="button"
               >
-                <div className="absolute inset-0 z-10 flex flex-col justify-center px-6 sm:px-10 pb-6 md:px-14">
-                  <div className="max-w-xl space-y-3 sm:space-y-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 sm:px-3.5 sm:py-1 text-[10px] sm:text-[11px] font-extrabold tracking-widest text-white uppercase ${slide.accentBg} shadow-sm w-fit`}
-                    >
-                      {slide.badge}
-                    </span>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl leading-tight font-black tracking-[-0.02em] text-white drop-shadow-md line-clamp-2">
+                {/* Content Overlay Container with Professional Spacing & Breathing Room */}
+                <div className="absolute inset-0 z-10 flex flex-col justify-center px-6 sm:px-12 md:px-16 pt-4 pb-12">
+                  <div className="max-w-xl space-y-3.5 sm:space-y-4">
+                    {/* Badge */}
+                    <div className="flex items-center">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[11px] font-black tracking-wider text-white uppercase ${slide.accentBg} shadow-sm backdrop-blur-md border border-white/20`}
+                      >
+                        <BadgeIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                        <span>{slide.badge.replace(/^[\u2600-\u27BF\u1F300-\u1F9FF]\s*/, '')}</span>
+                      </span>
+                    </div>
+
+                    {/* Headline */}
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] leading-[1.15] font-black tracking-tight text-white drop-shadow-md line-clamp-2">
                       {slide.title}
                     </h1>
-                    <p className="max-w-md text-xs sm:text-sm leading-relaxed text-white/95 drop-shadow line-clamp-2 md:text-base">
+
+                    {/* Description */}
+                    <p className="max-w-lg text-xs sm:text-sm md:text-base leading-relaxed font-medium text-white/90 drop-shadow-xs line-clamp-2">
                       {slide.description}
                     </p>
-                    <div className="pt-1">
-                      <span className="inline-flex h-10 sm:h-12 items-center rounded-full bg-[#006b2c] px-5 sm:px-7 text-xs sm:text-sm font-bold text-white shadow-[0_6px_16px_rgba(0,107,44,0.35)] transition-all hover:scale-105 hover:bg-[#00873a]">
-                        {slide.ctaText}{' '}
-                        <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
+
+                    {/* CTA Button */}
+                    <div className="pt-2">
+                      <span className="inline-flex h-11 sm:h-12 items-center gap-2 rounded-full bg-[#006b2c] px-6 sm:px-8 text-xs sm:text-sm font-extrabold text-white shadow-[0_6px_20px_rgba(0,107,44,0.4)] transition-all duration-300 hover:scale-105 hover:bg-[#005422] active:scale-95">
+                        <span>{slide.ctaText}</span>
+                        <ArrowRight aria-hidden="true" className="h-4 w-4 stroke-[2.5]" />
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Gradient Overlay for Readable Contrast */}
-                <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black/80 via-black/45 to-transparent" />
+                {/* Rich Gradient Overlay for High Readability & Image Vibrancy */}
+                <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black/85 via-black/50 to-black/10 md:from-black/80 md:via-black/40 md:to-transparent" />
 
-                {/* Slide Background Image */}
+                {/* Background Image */}
                 <img
                   alt={slide.title}
-                  className="h-full w-full object-cover object-center transition-transform duration-700 hover:scale-105"
+                  className="h-full w-full object-cover object-center transition-transform duration-1000 group-hover:scale-105"
                   decoding="async"
                   fetchPriority={index === 0 ? 'high' : 'low'}
                   src={slide.imageUrl}
@@ -177,13 +189,13 @@ export const HeroCarousel = ({
         })}
       </div>
 
-      {/* Slide Navigation Dots */}
-      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 rounded-full border border-white/20 bg-black/35 px-3.5 py-1.5 backdrop-blur-md">
+      {/* Sleek Pagination Dots */}
+      <div className="absolute bottom-4 right-6 sm:right-8 z-20 flex items-center gap-2 rounded-full border border-white/20 bg-black/40 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
         {slides.map((slide, index) => (
           <button
             key={slide.id}
             aria-label={`Go to slide ${index + 1}`}
-            className={`h-2.5 rounded-full transition-all duration-500 ${index === currentIndex ? 'w-7 bg-white shadow-sm' : 'w-2.5 bg-white/40 hover:bg-white/70'}`}
+            className={`h-2 rounded-full transition-all duration-500 ${index === currentIndex ? 'w-7 bg-white shadow-xs' : 'w-2 bg-white/40 hover:bg-white/70'}`}
             onClick={() => setCurrentIndex(index)}
             type="button"
           />

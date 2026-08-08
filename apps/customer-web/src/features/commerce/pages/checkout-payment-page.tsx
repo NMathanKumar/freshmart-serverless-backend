@@ -13,7 +13,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
 import {
@@ -52,6 +52,9 @@ const SAVED_CARDS: SavedCard[] = [
 
 export function CheckoutPaymentContent() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const deliveryAddress = location.state?.deliveryAddress || (typeof location.state?.address === 'string' ? location.state.address : 'Home');
+  const deliveryAddressData = location.state?.addressData || location.state?.addressObj || (typeof location.state?.address === 'object' ? location.state.address : null);
   const { data: cartItems = [] } = useGetCartQuery();
   const [createOrder, orderState] = useCreateOrderMutation();
   const [createPayment, paymentState] = useCreatePaymentMutation();
@@ -72,48 +75,90 @@ export function CheckoutPaymentContent() {
     [cartItems]
   );
 
-  const discount = subtotal > 0 ? 2.9 : 0;
   const deliveryFee = 0;
   const platformFee = 1.5;
+  const taxes = 1.35;
+  const discount = 0;
   const grandTotal = Math.max(
     0,
-    subtotal - discount + deliveryFee + platformFee
+    subtotal + platformFee + taxes - discount
   );
 
   const handlePay = async () => {
     try {
+      if (typeof deliveryAddress === 'string' && deliveryAddress.trim().length > 3) {
+        try {
+          localStorage.setItem('freshmart_selected_address', deliveryAddress.trim());
+        } catch (_) {}
+      }
+
       const orderRes = await createOrder({
         items: cartItems.map((c) => ({
           productId: c.productId,
+          productName: c.name,
+          name: c.name,
+          imageUrl: c.imageUrl,
           quantity: c.quantityInCart,
           price: c.price,
         })),
-        deliveryAddress: 'Home',
+        itemSubtotal: subtotal,
+        subtotal,
+        platformFee,
+        deliveryFee,
+        tax: taxes,
+        taxes,
+        discount: 0,
+        totalAmount: grandTotal,
+        grandTotal,
+        deliveryAddress,
+        deliveryAddressData,
         paymentMethod: selectedOption.toUpperCase(),
       }).unwrap();
 
+      // Backend returns { message, data: { orderId: 'ORDER_<uuid>' } }
+      // .unwrap() gives us the raw response envelope
       const rawOrderId =
-        (orderRes as any)?.orderId ||
-        (orderRes as any)?.id ||
         (orderRes as any)?.data?.orderId ||
-        (orderRes as any)?.data?.id;
+        (orderRes as any)?.orderId ||
+        (orderRes as any)?.data?.id ||
+        (orderRes as any)?.id;
 
-      const orderId = String(rawOrderId || `FM-${Date.now().toString().slice(-6)}`);
+      if (!rawOrderId) {
+        throw new Error('Order was placed but no order ID was returned from server');
+      }
+      const orderId = String(rawOrderId);
 
       await createPayment({
         orderId,
         paymentMethod: selectedOption.toUpperCase(),
+        amount: grandTotal,
         currency: 'INR',
       })
         .unwrap()
         .catch(() => undefined);
 
+      // ✅ Clear local cart immediately after successful order
+      const { saveStoredCart } = await import('../model/commerce-content.js');
+      saveStoredCart([]);
+
+      // ✅ Also clear remote cart (backend) silently
+      try {
+        const sdkModule = await import('@freshmart/api-sdk');
+        const sdkDefault = (sdkModule as any).default ?? sdkModule;
+        await (sdkDefault as any)?.cart?.clearCart?.();
+      } catch (_) {
+        // Ignore remote clear errors — local cart is already cleared
+      }
+
       navigate(`/checkout/confirmation?orderId=${encodeURIComponent(orderId)}`);
-    } catch (_) {
-      const fallbackId = `FM-${Date.now().toString().slice(-6)}`;
-      navigate(
-        `/checkout/confirmation?orderId=${encodeURIComponent(fallbackId)}`
-      );
+    } catch (err) {
+      // Clear local cart even on error
+      try {
+        const { saveStoredCart } = await import('../model/commerce-content.js');
+        saveStoredCart([]);
+      } catch (_) {}
+      // Do NOT navigate to confirmation with a fake ID — let the error surface
+      console.error('Order placement failed:', err);
     }
   };
 
@@ -341,11 +386,6 @@ export function CheckoutPaymentContent() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[#006c4a]">
-                  <span>Discount Applied (FRESH20)</span>
-                  <span className="font-black">-₹{discount.toFixed(2)}</span>
-                </div>
-
                 <div className="flex items-center justify-between">
                   <span>Delivery Fee</span>
                   <span className="font-black text-[#006c4a]">
@@ -360,6 +400,13 @@ export function CheckoutPaymentContent() {
                   <span>Platform Fee</span>
                   <span className="font-black text-[#171d16]">
                     ₹{platformFee.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span>Taxes</span>
+                  <span className="font-black text-[#171d16]">
+                    ₹{taxes.toFixed(2)}
                   </span>
                 </div>
               </div>

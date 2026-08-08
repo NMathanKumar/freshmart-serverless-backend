@@ -10,6 +10,7 @@ export interface ProductSummary {
   productName: string;
   description?: string | null;
   category: string;
+  categoryId?: string | null;
   brand?: string | null;
   price: number;
   images: string[];
@@ -50,6 +51,7 @@ export interface InventoryUpdateRequest {
   currentStock: number;
   minimumStock: number;
   unit: string;
+  warehouseId: string;
 }
 
 export interface CartSnapshot {

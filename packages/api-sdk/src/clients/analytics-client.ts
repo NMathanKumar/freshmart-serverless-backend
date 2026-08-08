@@ -7,7 +7,7 @@ export class AnalyticsClient {
   async getDashboard(dateRange?: string) {
     const response = await this.client.request<{ data: AnalyticsDashboardResponse }>({
       method: 'GET',
-      url: '/admin/api/v1/dashboard',
+      url: '/v1/admin/dashboard',
       params: dateRange ? { dateRange } : undefined
     });
     return response.data;

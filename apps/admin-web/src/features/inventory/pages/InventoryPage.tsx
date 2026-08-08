@@ -11,11 +11,16 @@ import {
 } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { type InventoryModel } from '../services/inventory.service';
-import { Skeleton, CardSkeleton, TableSkeleton } from '../../../components/ui/skeleton';
+import { Skeleton, CardSkeleton, TableSkeleton } from '@/shared/components/ui/skeleton';
 import { freshmartSdk } from '../../../lib/sdk';
+import { EmptyState } from '@/shared/components/ui/empty-state';
+import { ErrorState } from '@/shared/components/ui/error-state';
+import { Logger } from '@/shared/utils/logger';
 import { AdjustmentModal } from '../components/AdjustmentModal';
-import { Select } from '../../../components/ui/select';
+import { Select } from '@/shared/components/ui/select';
 import { isAdmin } from '@freshmart/shared';
+
+import { AdminShell } from '../../admin/components/admin-shell.js';
 
 export const InventoryPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,7 +45,7 @@ export const InventoryPage: React.FC = () => {
           setWarehouseOptions([{ value: 'All Warehouses', label: 'All Warehouses' }, ...ops]);
         }
       } catch (err) {
-        console.error('Failed to load warehouses', err);
+        Logger.error('Failed to load warehouses', err, { module: 'InventoryPage' });
       }
     };
     loadWarehouses();
@@ -55,7 +60,7 @@ export const InventoryPage: React.FC = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data: inventoryItems, isLoading, isError, error, refetch } = useInventory({
+  const { data: inventoryData, isLoading, isError, error, refetch } = useInventory({
     search: debouncedSearch,
     warehouse: selectedWarehouse,
     page,
@@ -76,7 +81,7 @@ export const InventoryPage: React.FC = () => {
 
 
 
-  const displayInventory = inventoryItems || [];
+  const displayInventory = inventoryData || [];
 
   const totalProducts = displayInventory.length;
   const inStockCount = displayInventory.filter((i) => i.status === 'IN_STOCK').length;
@@ -86,10 +91,11 @@ export const InventoryPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <AdminShell searchPlaceholder="Search inventory..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="space-y-6 px-5 lg:px-8">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div className="space-y-2">
-            <Skeleton className="h-8 w-56 rounded-xl" />
+            <Skeleton className="h-8 w-60 rounded-xl" />
             <Skeleton className="h-4 w-96 rounded-md" />
           </div>
           <div className="flex gap-3">
@@ -104,30 +110,30 @@ export const InventoryPage: React.FC = () => {
         </div>
         <TableSkeleton rows={6} columns={7} />
       </div>
+      </AdminShell>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#0f172a]">Failed to load inventory stock</h3>
-        <p className="text-xs text-slate-500">{error?.message || 'An error occurred while fetching inventory records.'}</p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#04883b] text-white text-xs font-bold shadow-md hover:bg-[#037030] transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Retry</span>
-        </button>
+      <AdminShell searchPlaceholder="Search inventory..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="my-12 max-w-lg mx-auto px-5 lg:px-8">
+        <ErrorState
+          title="Failed to load inventory stock"
+          description={error?.message || 'An error occurred while fetching inventory records.'}
+          onRetry={() => refetch()}
+          errorCode={error?.code}
+          correlationId={error?.correlationId}
+        />
       </div>
+      </AdminShell>
     );
   }
 
+
   return (
-    <div className="space-y-6 min-h-[calc(100vh-120px)] pb-12">
+    <AdminShell searchPlaceholder="Search inventory..." user="alex" variant="operations" onSearch={setSearchTerm}>
+    <div className="space-y-6 min-h-[calc(100vh-120px)] pb-12 px-5 lg:px-8">
       {/* Top Title & Actions Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
@@ -249,12 +255,11 @@ export const InventoryPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs">
               {displayInventory.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <Package className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    <p className="font-semibold">No inventory records found</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Create products in the Products page to view them in Inventory.
-                    </p>
+                  <td colSpan={8} className="p-0">
+                    <EmptyState 
+                      title="No inventory records found" 
+                      description="Create products in the Products page to view them in Inventory." 
+                    />
                   </td>
                 </tr>
               ) : (
@@ -362,5 +367,6 @@ export const InventoryPage: React.FC = () => {
         item={stockModalItem}
       />
     </div>
+    </AdminShell>
   );
 };

@@ -23,7 +23,13 @@ import { sharedSessionAccessor as adminSessionAccessor } from '@freshmart/shared
 
 const environment = import.meta.env as Record<string, string | undefined>;
 const configuredBaseUrl = environment.VITE_ADMIN_API_BASE_URL ?? environment.VITE_AUTH_API_BASE_URL ?? 'http://localhost:3000';
-const apiBaseUrl = configuredBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
+
+// In development, use Vite's proxy to bypass CORS on AWS API Gateway
+// Must include /v1 so the SDK interceptor deduplicates /v1 path prefixes correctly
+const isDev = import.meta.env.DEV;
+const apiBaseUrl = isDev 
+  ? `${window.location.origin}/api-proxy/v1`
+  : configuredBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
 
 export const adminSdk = createFreshMartSdk({
   adminBaseUrl: apiBaseUrl,
@@ -34,8 +40,35 @@ export const adminSdk = createFreshMartSdk({
 
 export const unwrapApiData = <T,>(response: ApiEnvelope<T>) => response.data;
 
-export const fetchDashboard = async (): Promise<AdminDashboardResponse> =>
-  unwrapApiData(await adminSdk.admin.getDashboard());
+export const fetchDashboard = async (): Promise<AdminDashboardResponse> => {
+  const [dashboard, inventoryRes] = await Promise.all([
+    adminSdk.admin.getDashboard().then(unwrapApiData),
+    adminSdk.inventory.listInventory(1, 100).catch(() => ({ data: [] }))
+  ]);
+
+  const inventoryData = inventoryRes?.data || [];
+  
+  if (inventoryData.length > 0) {
+    const inventoryAlerts = inventoryData
+      .filter((item: any) => item.status === 'LOW_STOCK' || item.status === 'OUT_OF_STOCK' || (item.currentStock != null && item.minimumStock != null && item.currentStock <= item.minimumStock))
+      .sort((a: any, b: any) => (a.currentStock ?? 0) - (b.currentStock ?? 0));
+      
+    dashboard.data.inventoryAlerts = inventoryAlerts.map((item: any) => ({
+      productId: item.productId,
+      productName: item.productName || item.productId || 'Unknown Product',
+      currentStock: item.currentStock || 0,
+      minimumStock: item.minimumStock || 0,
+      availableStock: item.availableStock || 0,
+      status: (item.currentStock === 0 || item.status === 'OUT_OF_STOCK') ? 'OUT_OF_STOCK' : 'LOW_STOCK',
+      updatedAt: item.updatedAt
+    })) as any;
+    
+    dashboard.data.lowStockCount = inventoryAlerts.filter((i: any) => (i.currentStock || 0) > 0).length;
+    dashboard.data.outOfStockCount = inventoryAlerts.filter((i: any) => (i.currentStock || 0) === 0).length;
+  }
+  
+  return dashboard;
+};
 
 export const fetchAdminConfig = async (): Promise<AdminEntity[]> =>
   unwrapApiData(await adminSdk.admin.getDashboard() as any);

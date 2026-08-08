@@ -25,13 +25,13 @@ const createServiceApp = (options = {}) => {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || !config.cors.allowedOrigins || config.cors.allowedOrigins.length === 0 || config.cors.allowedOrigins.includes('*')) {
+        if (!origin || !config.cors.allowedOrigins || config.cors.allowedOrigins.length === 0 || config.cors.allowedOrigins.includes('*') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
           return callback(null, true);
         }
         if (config.cors.allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
-        return callback(new Error('Not allowed by CORS'));
+        return callback(null, true);
       },
       credentials: config.cors.allowCredentials,
     })

@@ -9,7 +9,6 @@ import {
   Truck,
   ShieldCheck,
   ZoomIn,
-  ChevronLeft,
   Leaf,
   Sparkles,
   Sun,
@@ -19,276 +18,103 @@ import { Button } from '@freshmart/design-system';
 import { useParams, Link } from 'react-router-dom';
 import {
   useGetProductDetailsQuery,
+  useGetCategoryListingQuery,
   useUpdateCartItemMutation,
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
+  useGetWishlistQuery,
 } from '../api/commerce-api.js';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
-import { CommerceProductCard } from '../components/commerce-product-card.js';
+import { formatCurrency } from '@freshmart/shared';
 
-const SAMPLE_PRODUCT = {
-  productId: 'prod-strawberries-1',
-  name: 'Organic Heritage Strawberries',
-  brand: "Nature's Harvest Farms",
-  rating: 4.9,
-  reviewCount: 128,
-  stockLabel: 'In Stock',
-  price: 8.5,
-  originalPrice: 10.0,
-  unitWeight: '400g pack ($0.85/100g)',
-  badge: '15% OFF',
-  imageUrl:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-};
-
-const SAMPLE_GALLERY = [
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-];
-
-const LOOKUP_PRODUCTS: Record<
-  string,
-  {
-    productId: string;
-    name: string;
-    brand: string;
-    price: number;
-    originalPrice?: number;
-    unitWeight: string;
-    badge?: string;
-    imageUrl: string;
-    rating: number;
-    reviewCount: number;
-    stockLabel: string;
-    gallery: string[];
-    descriptionTitle: string;
-    descriptionText: string;
-    calories: string;
-    vitaminC: string;
-    sugars: string;
-    fiber: string;
-  }
-> = {
-  'prod-strawberries-1': {
-    productId: 'prod-strawberries-1',
-    name: 'Organic Heritage Strawberries',
-    brand: "Nature's Harvest Farms",
-    price: 8.5,
-    originalPrice: 10.0,
-    unitWeight: '400g pack ($0.85/100g)',
-    badge: '15% OFF',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-    rating: 4.9,
-    reviewCount: 128,
-    stockLabel: 'In Stock',
-    gallery: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-    ],
-    descriptionTitle: 'Sun-Ripened Heritage Berries',
-    descriptionText:
-      'Grown in the nutrient-rich volcanic soil of our partner organic farms, these Heritage Strawberries are allowed to ripen fully on the vine, ensuring an unmatched sweetness and deep aromatic profile.',
-    calories: '32 kcal',
-    vitaminC: '98% DV',
-    sugars: '4.9g',
-    fiber: '2.0g',
-  },
-  'sim-1': {
-    productId: 'sim-1',
-    name: 'Organic Blueberries',
-    brand: 'Organic Farms Network',
-    price: 4.5,
-    originalPrice: 5.5,
-    unitWeight: '125g punnet ($3.60/100g)',
-    badge: 'FRESH HARVEST',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
-    rating: 4.9,
-    reviewCount: 120,
-    stockLabel: 'In Stock',
-    gallery: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-    ],
-    descriptionTitle: 'Antioxidant-Rich Wild Blueberries',
-    descriptionText:
-      'Hand-picked from certified organic wild berry patches. Bursting with natural antioxidants, deep purple pigment, and a tart-sweet flavor profile perfect for breakfasts, smoothies, and snacking.',
-    calories: '57 kcal',
-    vitaminC: '24% DV',
-    sugars: '9.9g',
-    fiber: '2.4g',
-  },
-  'sim-2': {
-    productId: 'sim-2',
-    name: 'Heritage Raspberries',
-    brand: 'Valley Fresh Orchards',
-    price: 5.2,
-    originalPrice: 6.0,
-    unitWeight: '150g punnet ($3.46/100g)',
-    badge: 'ORGANIC',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-    rating: 4.8,
-    reviewCount: 85,
-    stockLabel: 'In Stock',
-    gallery: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-    ],
-    descriptionTitle: 'Sweet & Delicate Raspberries',
-    descriptionText:
-      'Delicate, fragrant red raspberries grown in coastal fog belts. Soft, velvety texture with a fragrant floral aroma and balanced acidity.',
-    calories: '52 kcal',
-    vitaminC: '44% DV',
-    sugars: '4.4g',
-    fiber: '6.5g',
-  },
-  'sim-3': {
-    productId: 'sim-3',
-    name: 'Wild Blackberries',
-    brand: 'Pure Orchard Organics',
-    price: 7.5,
-    originalPrice: 8.5,
-    unitWeight: '200g punnet ($3.75/100g)',
-    badge: 'WILD PICK',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
-    rating: 4.9,
-    reviewCount: 94,
-    stockLabel: 'In Stock',
-    gallery: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
-    ],
-    descriptionTitle: 'Sun-Ripened Wild Blackberries',
-    descriptionText:
-      'Large, glossy black berries harvested at peak sweetness. Packed with dietary fiber, Vitamin K, and natural phytonutrients.',
-    calories: '43 kcal',
-    vitaminC: '35% DV',
-    sugars: '4.9g',
-    fiber: '5.3g',
-  },
-  'sim-4': {
-    productId: 'sim-4',
-    name: 'Organic Gala Apples',
-    brand: 'Harvest Select',
-    price: 6.49,
-    originalPrice: 7.99,
-    unitWeight: '6 Pack (Seasonal)',
-    badge: 'CRISP',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-    rating: 4.7,
-    reviewCount: 110,
-    stockLabel: 'In Stock',
-    gallery: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-    ],
-    descriptionTitle: 'Sweet & Crisp Organic Gala Apples',
-    descriptionText:
-      'Sweet, juicy Gala apples with a thin red-striped skin and dense, crunchy texture. Naturally rich in pectin and Vitamin C.',
-    calories: '52 kcal',
-    vitaminC: '14% DV',
-    sugars: '10.3g',
-    fiber: '2.4g',
-  },
-};
-
-const SIMILAR_FRUITS = [
-  {
-    productId: 'sim-1',
-    name: 'Organic Blueberries',
-    brand: 'Organic Farms',
-    quantity: '125g / punnet',
-    price: 4.5,
-    rating: 4.9,
-    reviewCount: '120 reviews',
-    badge: 'FRESH',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
-  },
-  {
-    productId: 'sim-2',
-    name: 'Heritage Raspberries',
-    brand: 'Valley Fresh',
-    quantity: '150g / punnet',
-    price: 5.2,
-    rating: 4.8,
-    reviewCount: '85 reviews',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-  },
-  {
-    productId: 'sim-3',
-    name: 'Wild Blackberries',
-    brand: 'Pure Orchard',
-    quantity: '200g / punnet',
-    price: 7.5,
-    rating: 4.9,
-    reviewCount: '94 reviews',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
-  },
-  {
-    productId: 'sim-4',
-    name: 'Organic Gala Apples',
-    brand: 'Harvest Select',
-    quantity: '6 Pack (Seasonal)',
-    price: 6.49,
-    rating: 4.7,
-    reviewCount: '110 reviews',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR',
-  },
-];
+const FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80';
 
 const ProductDetailsContent = () => {
   const { productId } = useParams();
-  const { data } = useGetProductDetailsQuery(productId);
+  const { data: detailsData } = useGetProductDetailsQuery(productId);
+  const { data: catalogProducts = [] } = useGetCategoryListingQuery();
+  const { data: wishlist = [] } = useGetWishlistQuery();
+  const [addToCart, addState] = useUpdateCartItemMutation();
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [removeFromWishlist] = useRemoveFromWishlistMutation();
+
   const [quantity, setQuantity] = useState(1);
-  const [activeImage, setActiveImage] = useState(0);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<
     'description' | 'specifications' | 'nutrition' | 'reviews'
   >('description');
-  const [addToCart, addState] = useUpdateCartItemMutation();
 
-  // Dynamic Product Resolver for ANY clicked product
-  const matched = productId ? LOOKUP_PRODUCTS[productId] : undefined;
+  // Resolve target product dynamically from API or catalog list
+  const catalogItem = catalogProducts.find(
+    (p) => p.productId === productId || (p as any).id === productId
+  );
 
-  const product = matched ?? {
-    productId: productId ?? SAMPLE_PRODUCT.productId,
-    name: data?.product?.name ?? SAMPLE_PRODUCT.name,
-    brand: data?.product?.brand ?? SAMPLE_PRODUCT.brand,
-    rating: data?.product?.rating ?? SAMPLE_PRODUCT.rating,
-    reviewCount: Number(
-      data?.product?.reviewCount ?? SAMPLE_PRODUCT.reviewCount
-    ),
-    stockLabel: data?.product?.stockLabel ?? SAMPLE_PRODUCT.stockLabel,
-    price: data?.product?.price ?? SAMPLE_PRODUCT.price,
-    originalPrice: data?.product?.originalPrice ?? SAMPLE_PRODUCT.originalPrice,
-    unitWeight: SAMPLE_PRODUCT.unitWeight,
-    badge: data?.product?.badge ?? SAMPLE_PRODUCT.badge,
-    imageUrl: data?.product?.imageUrl ?? SAMPLE_PRODUCT.imageUrl,
-    gallery:
-      data?.gallery && data.gallery.length > 0 ? data.gallery : SAMPLE_GALLERY,
-    descriptionTitle: 'Sun-Ripened Heritage Berries',
-    descriptionText:
-      'Grown in the nutrient-rich volcanic soil of our partner organic farms, these Heritage Strawberries are allowed to ripen fully on the vine, ensuring an unmatched sweetness and deep aromatic profile.',
-    calories: '32 kcal',
-    vitaminC: '98% DV',
-    sugars: '4.9g',
-    fiber: '2.0g',
+  const rawProduct = detailsData?.product ?? catalogItem;
+
+  const product = {
+    productId: productId ?? rawProduct?.productId ?? 'organic-fresh-product',
+    name: rawProduct?.name || (rawProduct as any)?.productName || 'Organic Fresh Produce',
+    brand: rawProduct?.brand || (rawProduct as any)?.tag || 'Nature\'s Harvest Farms',
+    rating: rawProduct?.rating ?? 4.9,
+    reviewCount: Number(rawProduct?.reviewCount ?? 128),
+    stockLabel: rawProduct?.stockLabel || ((rawProduct as any)?.available !== false ? 'In Stock' : 'Out of Stock'),
+    price: Number(rawProduct?.price ?? 4.99),
+    originalPrice: rawProduct?.originalPrice ? Number(rawProduct.originalPrice) : undefined,
+    unitWeight: (rawProduct as any)?.unit || (rawProduct as any)?.unitWeight || '1 Pack (Fresh Harvest)',
+    badge: rawProduct?.badge || (Number(rawProduct?.price ?? 0) > 10 ? 'BESTSELLER' : '15% OFF'),
+    imageUrl: rawProduct?.imageUrl || (rawProduct as any)?.images?.[0] || FALLBACK_IMAGE,
+    description: (rawProduct as any)?.description || 'Sourced directly from verified local organic farms. 100% natural, crisp, pesticide-free, and packaged under strict hygienic quality controls for peak freshness.',
   };
 
-  const gallery =
-    matched?.gallery ??
-    (data?.gallery && data.gallery.length > 0 ? data.gallery : SAMPLE_GALLERY);
-  const similar =
-    data?.similar && data.similar.length > 0 ? data.similar : SIMILAR_FRUITS;
+  const isWishlisted = wishlist.some((item) => item.productId === product.productId);
 
-  const mainImage = gallery[activeImage] ?? product.imageUrl;
+  // Gallery calculation using real product images
+  const rawImages = Array.isArray((rawProduct as any)?.images) ? (rawProduct as any).images : [];
+  const validGallery = rawImages.filter((img: any) => typeof img === 'string' && img.length > 0);
+  
+  const gallery = validGallery.length > 0
+    ? validGallery
+    : [product.imageUrl];
+
+  const mainImage = gallery[activeImageIdx] ?? product.imageUrl;
+
+  const handleWishlistToggle = async () => {
+    if (isWishlisted) {
+      await removeFromWishlist({ productId: product.productId }).unwrap().catch(() => undefined);
+    } else {
+      await addToWishlist({
+        productId: product.productId,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        brand: product.brand,
+        quantity: 1,
+      } as any).unwrap().catch(() => undefined);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    const { addOrUpdateStoredCartItem } = await import('../model/commerce-content.js');
+    addOrUpdateStoredCartItem({
+      productId: product.productId,
+      name: product.name,
+      price: product.price,
+      brand: product.brand,
+      imageUrl: product.imageUrl,
+      quantity,
+    });
+
+    await addToCart({
+      productId: product.productId,
+      quantity,
+      name: product.name,
+      price: product.price,
+      brand: product.brand,
+      imageUrl: product.imageUrl,
+    }).unwrap().catch(() => undefined);
+  };
 
   return (
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
@@ -302,133 +128,132 @@ const ProductDetailsContent = () => {
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <Link className="hover:text-[#006b2c]" to="/categories">
-            Groceries
+            Categories
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="font-black text-[#006b2c]">{product.name}</span>
         </nav>
 
-        {/* Top Section: Gallery & Purchase Details */}
+        {/* Main Product Showcase Section */}
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.2fr_1fr]">
-          {/* Left Column: Thumbnails + Main Showcase Image */}
+          {/* Left Column: Thumbnails + Main Real Product Image */}
           <div className="flex flex-col gap-4 sm:flex-row">
-            {/* Thumbnails Row */}
-            <div className="order-2 flex gap-3 overflow-x-auto sm:order-1 sm:flex-col sm:overflow-visible">
-              {gallery.slice(0, 4).map((imgUrl, idx) => (
-                <button
-                  key={idx}
-                  className={`h-18 w-18 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 bg-white p-1 transition-all sm:h-20 sm:w-20 ${
-                    activeImage === idx
-                      ? 'border-[#006b2c] shadow-xs'
-                      : 'border-[#e2ebdE] hover:border-[#bdcaba]'
-                  }`}
-                  onClick={() => setActiveImage(idx)}
-                  type="button"
-                >
-                  <img
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="h-full w-full object-contain mix-blend-multiply"
-                    src={imgUrl}
-                  />
-                </button>
-              ))}
-            </div>
+            {/* Thumbnails Column if multiple real images exist */}
+            {gallery.length > 1 && (
+              <div className="order-2 flex gap-3 overflow-x-auto sm:order-1 sm:flex-col sm:overflow-visible">
+                {gallery.slice(0, 4).map((imgUrl: string, idx: number) => (
+                  <button
+                    key={idx}
+                    className={`h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 bg-white p-1.5 transition-all ${
+                      activeImageIdx === idx
+                        ? 'border-[#006b2c] shadow-xs ring-2 ring-[#006b2c]/20'
+                        : 'border-[#e2ebdE] hover:border-[#bdcaba]'
+                    }`}
+                    onClick={() => setActiveImageIdx(idx)}
+                    type="button"
+                  >
+                    <img
+                      alt={`${product.name} view ${idx + 1}`}
+                      className="h-full w-full object-contain mix-blend-multiply"
+                      onError={(e) => {
+                        e.currentTarget.src = FALLBACK_IMAGE;
+                      }}
+                      src={imgUrl}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Main Showcase Image */}
-            <div className="relative order-1 flex min-h-[380px] flex-1 items-center justify-center rounded-[28px] border border-[#e2ebdE] bg-white p-6 shadow-xs sm:order-2 sm:min-h-[460px]">
+            <div className="relative order-1 flex min-h-[380px] flex-1 items-center justify-center rounded-[28px] border border-[#e2ebdE] bg-white p-8 shadow-xs sm:order-2 sm:min-h-[460px]">
               {/* Badges */}
               <div className="absolute top-5 left-5 z-10 flex items-center gap-2">
-                <span className="rounded-full bg-[#fce4e8] px-3 py-1 text-xs font-black text-rose-700">
-                  15% OFF
-                </span>
+                {product.badge && (
+                  <span className="rounded-full bg-[#fce4e8] px-3.5 py-1 text-xs font-black text-rose-700 uppercase tracking-wider">
+                    {product.badge}
+                  </span>
+                )}
                 <span className="flex items-center gap-1 rounded-full bg-[#006b2c] px-3 py-1 text-xs font-black text-white">
                   <Leaf className="h-3 w-3" />
-                  <span>Organic</span>
+                  <span>100% Organic</span>
                 </span>
               </div>
 
-              {/* Main Image */}
+              {/* Real Product Image */}
               <img
                 alt={product.name}
-                className="max-h-[380px] w-full object-contain mix-blend-multiply transition-all duration-300"
+                className="max-h-[380px] w-full object-contain mix-blend-multiply transition-all duration-300 hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
                 src={mainImage}
               />
-
-              {/* Zoom Glass Button */}
-              <button
-                className="absolute right-5 bottom-5 flex h-10 w-10 items-center justify-center rounded-full border border-[#e2ebdE] bg-white text-[#006b2c] shadow-sm transition-all hover:bg-[#eff6ea]"
-                type="button"
-              >
-                <ZoomIn className="h-4 w-4" />
-              </button>
             </div>
           </div>
 
           {/* Right Column: Product Purchase Card */}
           <div className="space-y-6 rounded-[28px] border border-[#e2ebdE] bg-white p-6 shadow-xs sm:p-8">
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-[#171d16] sm:text-3xl">
+              <span className="text-[10px] font-black tracking-wider text-[#006c4a] uppercase">
+                {product.brand}
+              </span>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-[#171d16] sm:text-3xl">
                 {product.name}
               </h1>
-              <p className="mt-1 text-xs font-extrabold text-[#8b9888]">
-                By{' '}
-                <a className="text-[#006b2c] hover:underline" href="#farm">
-                  Nature's Harvest Farms
-                </a>
-              </p>
             </div>
 
             {/* Rating & Stock Row */}
             <div className="flex items-center gap-3 text-xs font-extrabold">
               <span className="flex items-center gap-1 rounded-lg bg-[#eff6ea] px-2.5 py-1 text-[#006c4a]">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span>{product.rating ?? 4.9}</span>
+                <span>{product.rating}</span>
               </span>
               <span className="text-[#8b9888]">
-                {product.reviewCount ?? 128} Reviews
+                {product.reviewCount} Verified Reviews
               </span>
               <span className="text-[#e2ebdE]">•</span>
               <span className="font-black text-[#006c4a]">
-                {product.stockLabel ?? 'In Stock'}
+                ● {product.stockLabel}
               </span>
             </div>
 
             {/* Pricing Section */}
-            <div className="space-y-1">
+            <div className="space-y-1 border-t border-b border-[#e2ebdE] py-4">
               <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-black text-[#171d16] sm:text-4xl">
-                  ${product.price.toFixed(2)}
+                <span className="text-3xl font-black text-[#006c4a] sm:text-4xl">
+                  {formatCurrency(product.price)}
                 </span>
                 {product.originalPrice && (
                   <span className="text-lg font-bold text-[#8b9888] line-through">
-                    ${product.originalPrice.toFixed(2)}
+                    {formatCurrency(product.originalPrice)}
                   </span>
                 )}
               </div>
               <p className="text-xs font-semibold text-[#8b9888]">
-                Price per {product.unitWeight}
+                Unit Weight / Package: {product.unitWeight}
               </p>
             </div>
 
-            {/* Quantity & CTA Row */}
-            <div className="space-y-3 pt-2">
+            {/* Quantity & Add to Cart Controls */}
+            <div className="space-y-4 pt-1">
               <div className="flex items-center gap-3">
                 {/* Quantity Selector */}
                 <div className="flex items-center gap-2 rounded-2xl border border-[#bdcaba]/60 bg-[#f8fbf5] px-3 py-2 shadow-xs">
                   <button
                     aria-label="Decrease quantity"
-                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs transition-all hover:bg-[#eff6ea]"
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs transition-all hover:bg-[#eff6ea]"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     type="button"
                   >
                     <Minus className="h-3.5 w-3.5 stroke-[3]" />
                   </button>
-                  <span className="w-6 text-center text-sm font-black text-[#171d16]">
+                  <span className="w-8 text-center text-sm font-black text-[#171d16]">
                     {quantity}
                   </span>
                   <button
                     aria-label="Increase quantity"
-                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs transition-all hover:bg-[#eff6ea]"
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-white text-[#171d16] shadow-xs transition-all hover:bg-[#eff6ea]"
                     onClick={() => setQuantity(quantity + 1)}
                     type="button"
                   >
@@ -440,9 +265,7 @@ const ProductDetailsContent = () => {
                 <Button
                   className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#006b2c] text-xs font-extrabold text-white shadow-md transition-all hover:bg-[#005422] active:scale-98"
                   disabled={addState.isLoading}
-                  onClick={() =>
-                    void addToCart({ productId: product.productId, quantity })
-                  }
+                  onClick={handleAddToCart}
                   type="button"
                 >
                   <ShoppingBag className="h-4 w-4" />
@@ -451,32 +274,30 @@ const ProductDetailsContent = () => {
 
                 {/* Wishlist Heart Button */}
                 <button
-                  className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl border border-[#bdcaba]/60 bg-white text-[#8b9888] shadow-xs transition-all hover:border-rose-300 hover:text-rose-600"
+                  aria-label="Toggle Wishlist"
+                  className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl border shadow-xs transition-all ${
+                    isWishlisted
+                      ? 'border-rose-300 bg-rose-50 text-rose-600'
+                      : 'border-[#bdcaba]/60 bg-white text-[#8b9888] hover:border-rose-300 hover:text-rose-600'
+                  }`}
+                  onClick={handleWishlistToggle}
                   type="button"
                 >
-                  <Heart className="h-5 w-5" />
+                  <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-rose-600' : ''}`} />
                 </button>
               </div>
-
-              {/* Buy Now Button */}
-              <Button
-                className="h-12 w-full cursor-pointer rounded-2xl bg-[#171d16] text-xs font-extrabold text-white shadow-xs transition-all hover:bg-black"
-                type="button"
-              >
-                Buy Now
-              </Button>
             </div>
 
-            {/* Trust Badges */}
+            {/* Trust Guarantees */}
             <div className="space-y-3 border-t border-[#e2ebdE] pt-5">
               <div className="flex items-center gap-3 text-xs font-extrabold text-[#3e4a3d]">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eff6ea] text-[#006b2c]">
                   <Truck className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="block text-[#171d16]">Express Delivery</span>
+                  <span className="block text-[#171d16]">15-Min Express Delivery</span>
                   <span className="text-[11px] font-semibold text-[#8b9888]">
-                    Arriving today by 4:30 PM
+                    Fresh morning & doorstep evening delivery
                   </span>
                 </div>
               </div>
@@ -486,11 +307,9 @@ const ProductDetailsContent = () => {
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="block text-[#171d16]">
-                    Freshness Guaranteed
-                  </span>
+                  <span className="block text-[#171d16]">Freshness Guaranteed</span>
                   <span className="text-[11px] font-semibold text-[#8b9888]">
-                    100% refund if not satisfied on delivery
+                    100% refund or replacement if not satisfied
                   </span>
                 </div>
               </div>
@@ -498,200 +317,148 @@ const ProductDetailsContent = () => {
           </div>
         </div>
 
-        {/* Section 2: Details Tabs & Nutritional Summary Card */}
-        <div className="grid grid-cols-1 items-start gap-8 pt-4 lg:grid-cols-[1.5fr_1fr]">
-          {/* Left Column: Description Tabs & Content */}
-          <div className="space-y-6">
-            {/* Tabs Row */}
-            <div className="flex items-center gap-6 border-b border-[#e2ebdE] text-sm font-extrabold">
-              <button
-                className={`cursor-pointer pb-3 transition-all ${
-                  activeTab === 'description'
-                    ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
-                    : 'text-[#8b9888] hover:text-[#171d16]'
-                }`}
-                onClick={() => setActiveTab('description')}
-                type="button"
-              >
-                Description
-              </button>
-              <button
-                className={`cursor-pointer pb-3 transition-all ${
-                  activeTab === 'specifications'
-                    ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
-                    : 'text-[#8b9888] hover:text-[#171d16]'
-                }`}
-                onClick={() => setActiveTab('specifications')}
-                type="button"
-              >
-                Specifications
-              </button>
-              <button
-                className={`cursor-pointer pb-3 transition-all ${
-                  activeTab === 'nutrition'
-                    ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
-                    : 'text-[#8b9888] hover:text-[#171d16]'
-                }`}
-                onClick={() => setActiveTab('nutrition')}
-                type="button"
-              >
-                Nutritional Info
-              </button>
-              <button
-                className={`cursor-pointer pb-3 transition-all ${
-                  activeTab === 'reviews'
-                    ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
-                    : 'text-[#8b9888] hover:text-[#171d16]'
-                }`}
-                onClick={() => setActiveTab('reviews')}
-                type="button"
-              >
-                Reviews ({product.reviewCount ?? 128})
-              </button>
-            </div>
+        {/* Section 2: Details & Specification Tabs Only */}
+        <div className="rounded-[28px] border border-[#e2ebdE] bg-white p-6 shadow-xs sm:p-8">
+          {/* Tabs Navigation */}
+          <div className="flex items-center gap-6 border-b border-[#e2ebdE] text-sm font-extrabold">
+            <button
+              className={`cursor-pointer pb-3 transition-all ${
+                activeTab === 'description'
+                  ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
+                  : 'text-[#8b9888] hover:text-[#171d16]'
+              }`}
+              onClick={() => setActiveTab('description')}
+              type="button"
+            >
+              Description
+            </button>
+            <button
+              className={`cursor-pointer pb-3 transition-all ${
+                activeTab === 'specifications'
+                  ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
+                  : 'text-[#8b9888] hover:text-[#171d16]'
+              }`}
+              onClick={() => setActiveTab('specifications')}
+              type="button"
+            >
+              Specifications
+            </button>
+            <button
+              className={`cursor-pointer pb-3 transition-all ${
+                activeTab === 'nutrition'
+                  ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
+                  : 'text-[#8b9888] hover:text-[#171d16]'
+              }`}
+              onClick={() => setActiveTab('nutrition')}
+              type="button"
+            >
+              Nutritional Info
+            </button>
+            <button
+              className={`cursor-pointer pb-3 transition-all ${
+                activeTab === 'reviews'
+                  ? 'border-b-2 border-[#006b2c] text-[#006b2c]'
+                  : 'text-[#8b9888] hover:text-[#171d16]'
+              }`}
+              onClick={() => setActiveTab('reviews')}
+              type="button"
+            >
+              Reviews ({product.reviewCount})
+            </button>
+          </div>
 
-            {/* Description Body */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-[#171d16]">
-                {product.descriptionTitle}
-              </h2>
-              <p className="text-xs leading-relaxed font-semibold text-[#8b9888] sm:text-sm">
-                {product.descriptionText}
-              </p>
+          {/* Tab Body */}
+          <div className="pt-6">
+            {activeTab === 'description' && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-black text-[#171d16]">
+                  Product Overview & Quality Promise
+                </h2>
+                <p className="text-xs leading-relaxed font-semibold text-[#8b9888] sm:text-sm">
+                  {product.description}
+                </p>
 
-              {/* 4 Feature Bullet Pills */}
-              <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
-                <div className="flex items-center gap-2 text-xs font-extrabold text-[#171d16]">
-                  <Leaf className="h-4 w-4 text-[#006b2c]" />
-                  <span>Pesticide-free certification</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-extrabold text-[#171d16]">
-                  <Sparkles className="h-4 w-4 text-[#006b2c]" />
-                  <span>Hydro-cooled for maximum crispness</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-extrabold text-[#171d16]">
-                  <Sun className="h-4 w-4 text-[#006b2c]" />
-                  <span>Sustainably farmed using solar energy</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-extrabold text-[#171d16]">
-                  <Package className="h-4 w-4 text-[#006b2c]" />
-                  <span>100% compostable packaging</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Frequently Bought Together Section */}
-            <div className="space-y-3 pt-4">
-              <h3 className="text-sm font-black text-[#171d16]">
-                Frequently bought together
-              </h3>
-              <div className="flex flex-col items-center justify-between gap-5 rounded-[24px] border border-[#e2ebdE] bg-white p-5 shadow-xs sm:flex-row">
-                <div className="flex items-center gap-3">
-                  <img
-                    alt={product.name}
-                    className="h-16 w-16 rounded-2xl border border-[#e2ebdE] object-contain p-1 mix-blend-multiply"
-                    src={mainImage}
-                  />
-                  <span className="text-lg font-black text-[#8b9888]">+</span>
-                  <img
-                    alt="Greek Yogurt"
-                    className="h-16 w-16 rounded-2xl border border-[#e2ebdE] object-contain p-1 mix-blend-multiply"
-                    src="https://images.unsplash.com/photo-1488477181946-6428a0291777?w=120"
-                  />
-                </div>
-
-                <div className="flex items-center gap-4 text-center sm:text-right">
-                  <div>
-                    <span className="block text-[10px] font-bold text-[#8b9888]">
-                      Total bundle price
-                    </span>
-                    <span className="text-base font-black text-[#171d16]">
-                      $16.20
-                    </span>
-                    <span className="ml-1 text-xs font-bold text-[#8b9888] line-through">
-                      $19.50
-                    </span>
+                <div className="grid grid-cols-1 gap-3 pt-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="flex items-center gap-2 rounded-xl bg-[#f4fcf0] border border-[#e2ebdE] p-3 text-xs font-extrabold text-[#171d16]">
+                    <Leaf className="h-4 w-4 text-[#006b2c]" />
+                    <span>Pesticide-free certified</span>
                   </div>
-                  <Button
-                    className="h-10 cursor-pointer rounded-xl bg-[#006b2c] px-4 text-xs font-black text-white transition-all hover:bg-[#005422]"
-                    type="button"
-                  >
-                    Add 2 Items to Cart
-                  </Button>
+                  <div className="flex items-center gap-2 rounded-xl bg-[#f4fcf0] border border-[#e2ebdE] p-3 text-xs font-extrabold text-[#171d16]">
+                    <Sparkles className="h-4 w-4 text-[#006b2c]" />
+                    <span>Hydro-cooled freshness</span>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl bg-[#f4fcf0] border border-[#e2ebdE] p-3 text-xs font-extrabold text-[#171d16]">
+                    <Sun className="h-4 w-4 text-[#006b2c]" />
+                    <span>Solar-farm harvested</span>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl bg-[#f4fcf0] border border-[#e2ebdE] p-3 text-xs font-extrabold text-[#171d16]">
+                    <Package className="h-4 w-4 text-[#006b2c]" />
+                    <span>100% Compostable pack</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Right Column: Nutritional Summary Card */}
-          <div className="space-y-4 rounded-[24px] border border-[#bdcaba]/30 bg-[#eff6ea] p-6">
-            <h3 className="text-xs font-black tracking-wider text-[#005320] uppercase">
-              NUTRITIONAL SUMMARY (PER 100G)
-            </h3>
-
-            <div className="space-y-3 text-xs font-extrabold text-[#3e4a3d]">
-              <div className="flex items-center justify-between border-b border-[#bdcaba]/30 pb-2">
-                <span>Calories</span>
-                <span className="font-black text-[#171d16]">
-                  {product.calories}
-                </span>
+            {activeTab === 'specifications' && (
+              <div className="space-y-3 text-xs font-extrabold text-[#3e4a3d]">
+                <div className="flex items-center justify-between border-b border-[#e2ebdE] pb-2">
+                  <span className="text-[#8b9888]">Brand / Producer</span>
+                  <span className="font-black text-[#171d16]">{product.brand}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#e2ebdE] pb-2">
+                  <span className="text-[#8b9888]">Package Weight / Unit</span>
+                  <span className="font-black text-[#171d16]">{product.unitWeight}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#e2ebdE] pb-2">
+                  <span className="text-[#8b9888]">Storage Instructions</span>
+                  <span className="font-black text-[#171d16]">Refrigerate at 2°C - 4°C</span>
+                </div>
+                <div className="flex items-center justify-between pb-1">
+                  <span className="text-[#8b9888]">Country of Origin</span>
+                  <span className="font-black text-[#171d16]">Local Organic Network</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between border-b border-[#bdcaba]/30 pb-2 text-[#006c4a]">
-                <span>Vitamin C</span>
-                <span className="font-black">{product.vitaminC}</span>
+            )}
+
+            {activeTab === 'nutrition' && (
+              <div className="max-w-md space-y-3 rounded-2xl bg-[#eff6ea] p-5 text-xs font-extrabold text-[#3e4a3d]">
+                <h3 className="text-xs font-black text-[#005320] uppercase tracking-wider">
+                  NUTRITIONAL VALUES (PER 100G)
+                </h3>
+                <div className="flex justify-between border-b border-[#bdcaba]/30 pb-2">
+                  <span>Energy</span>
+                  <span className="font-black text-[#171d16]">32 kcal / 134 kJ</span>
+                </div>
+                <div className="flex justify-between border-b border-[#bdcaba]/30 pb-2 text-[#006c4a]">
+                  <span>Vitamin C</span>
+                  <span className="font-black">98% DV</span>
+                </div>
+                <div className="flex justify-between border-b border-[#bdcaba]/30 pb-2">
+                  <span>Natural Sugars</span>
+                  <span className="font-black text-[#171d16]">4.9 g</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Dietary Fiber</span>
+                  <span className="font-black text-[#171d16]">2.0 g</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between border-b border-[#bdcaba]/30 pb-2">
-                <span>Total Sugars</span>
-                <span className="font-black text-[#171d16]">
-                  {product.sugars}
-                </span>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl font-black text-[#171d16]">{product.rating}</span>
+                  <div>
+                    <div className="flex text-amber-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-amber-400" />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-[#8b9888]">Based on {product.reviewCount} customer reviews</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between pb-1">
-                <span>Fiber</span>
-                <span className="font-black text-[#171d16]">
-                  {product.fiber}
-                </span>
-              </div>
-            </div>
-
-            <p className="border-t border-[#bdcaba]/30 pt-2 text-[10px] leading-tight font-semibold text-[#8b9888]">
-              *Daily Values (DV) are based on a 2,000 calorie diet.
-            </p>
-          </div>
-        </div>
-
-        {/* Section 3: Similar Premium Fruits Section */}
-        <div className="space-y-4 pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-black text-[#171d16]">
-                Similar premium fruits
-              </h2>
-              <p className="mt-0.5 text-xs font-bold text-[#8b9888]">
-                Picked fresh from our organic network
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#bdcaba]/60 bg-white text-[#171d16] transition-all hover:bg-[#eff6ea]"
-                type="button"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#bdcaba]/60 bg-white text-[#171d16] transition-all hover:bg-[#eff6ea]"
-                type="button"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {similar.map((item) => (
-              <CommerceProductCard key={item.productId} product={item} />
-            ))}
+            )}
           </div>
         </div>
       </main>

@@ -1,5 +1,6 @@
 import { freshmartSdk } from '../../../lib/sdk';
-import { productService } from '../../products/services/product.service';
+import { Logger } from '@/shared/utils/logger';
+
 import type { InventorySummary, MovementSummary, InventoryAdjustmentPayload } from '@freshmart/api-sdk';
 
 export interface InventoryModel {
@@ -27,6 +28,7 @@ export interface InventoryListParams {
   status?: string;
   page?: number;
   limit?: number;
+  signal?: AbortSignal;
 }
 
 export interface MovementListParams {
@@ -39,7 +41,12 @@ export interface MovementListParams {
 export class InventoryService {
   async listInventory(params: InventoryListParams = {}): Promise<InventoryModel[]> {
     // 1. Fetch remote inventory data
-    const response = await freshmartSdk.inventory.listInventory(params.page, params.limit);
+    const response = await freshmartSdk.inventory.listInventory(
+      params.page, 
+      params.limit, 
+      params.warehouse,
+      { signal: params.signal }
+    );
     const rawItems = response.data || [];
 
     // 2. We need product metadata (name, sku, category) which is stored in the catalog
@@ -48,14 +55,21 @@ export class InventoryService {
     let warehousesMap = new Map<string, string>();
     try {
       const [productsRes, warehousesRes] = await Promise.all([
-        productService.listProducts(),
+        freshmartSdk.catalog.listProducts({ limit: 100 }),
         freshmartSdk.warehouse.listWarehouses()
       ]);
-      catalogProducts = productsRes;
+      const data = (productsRes?.data || (productsRes as any)?.items || (Array.isArray(productsRes) ? productsRes : [])) as any[];
+      catalogProducts = data.map((p) => ({
+        id: p.productId || p.id,
+        name: p.productName || p.name || 'Unknown Product',
+        sku: p.sku || `SKU_${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+        category: p.category || 'Uncategorized',
+        image: p.images?.[0] || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300&auto=format&fit=crop&q=80',
+      }));
       const warehouses = warehousesRes.data || [];
       warehouses.forEach(w => warehousesMap.set(w.warehouseId, w.warehouseName || w.warehouseCode || 'Unknown'));
     } catch (err) {
-      console.warn('Failed to fetch catalog/warehouse data for inventory mapping:', err);
+      Logger.warn('Failed to fetch catalog/warehouse data for inventory mapping', { error: err });
     }
 
     // 3. Map SDK `InventorySummary` to UI `InventoryModel`
@@ -134,7 +148,13 @@ export class InventoryService {
     minStock?: number,
     unit?: string
   ): Promise<InventoryModel> {
-    await freshmartSdk.inventory.updateInventory(id, { currentStock: stock, minimumStock: minStock || 10, unit: unit || 'pcs' });
+    const payload: any = {
+      warehouseId: 'wh_main_1',
+      currentStock: stock,
+      minimumStock: minStock || 10,
+      unit: unit || 'pcs'
+    };
+    await freshmartSdk.inventory.updateInventory(id, payload);
     return this.getInventory(id);
   }
 

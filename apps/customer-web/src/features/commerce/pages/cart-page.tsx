@@ -10,7 +10,6 @@ import {
   Tag,
   Trash2,
 } from 'lucide-react';
-import { Button, Input } from '@freshmart/design-system';
 import { Link } from 'react-router-dom';
 import {
   useGetCartQuery,
@@ -27,8 +26,6 @@ export function CartContent() {
   const [updateCart] = useUpdateCartItemMutation();
   const [removeCartItem] = useRemoveCartItemMutation();
 
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState('');
   const [savedForLater, setSavedForLater] = useState<Record<string, boolean>>(
     {}
   );
@@ -49,7 +46,7 @@ export function CartContent() {
   const deliveryFee = 0;
   const platformFee = 1.5;
   const taxes = 1.35;
-  const discount = appliedCoupon === 'FRESH20' ? 4.0 : 0;
+  const discount = 0;
   const grandTotal = Math.max(0, subtotal + platformFee + taxes - discount);
 
   const toggleSaveForLater = (id: string) => {
@@ -287,25 +284,6 @@ export function CartContent() {
                       </span>
                     </span>
                   </div>
-                </div>
-
-                {/* Apply Coupon Row */}
-                <div className="flex gap-2">
-                  <Input
-                    className="h-11 flex-1 rounded-xl border border-[#bdcaba]/60 bg-[#f8fbf5] px-4 text-xs font-bold placeholder:text-[#8b9888] focus:bg-white focus:ring-2 focus:ring-[#006b2c]"
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    placeholder="Apply Coupon"
-                    value={couponCode}
-                  />
-                  <Button
-                    className="h-11 rounded-xl bg-[#006b2c] px-5 text-xs font-extrabold text-white shadow-xs transition-all hover:bg-[#005422]"
-                    onClick={() =>
-                      setAppliedCoupon(couponCode.trim().toUpperCase())
-                    }
-                    type="button"
-                  >
-                    Apply
-                  </Button>
                 </div>
 
                 {/* Proceed to Checkout CTA Button */}

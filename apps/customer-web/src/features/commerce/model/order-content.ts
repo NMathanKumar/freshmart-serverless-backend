@@ -13,9 +13,16 @@ export interface OrderSummaryView {
   orderStatusLabel: string;
   paymentStatus: string;
   paymentStatusLabel: string;
+  paymentId?: string;
+  status?: string;
   totalAmount: number;
+  grandTotal?: number;
   subtotal: number;
+  itemSubtotal?: number;
+  deliveryFee?: number;
+  platformFee?: number;
   tax: number;
+  taxes?: number;
   discount: number;
   totalItems: number;
   totalQuantity: number;

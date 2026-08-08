@@ -2,18 +2,18 @@ import { useState } from 'react';
 import {
   Check,
   MessageSquare,
-  Navigation,
   Package,
   PhoneCall,
-  ShoppingBag,
   Store,
   Truck,
   MapPin,
 } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
 import { formatCurrency } from '@freshmart/shared';
+import { useParams } from 'react-router-dom';
 import { HomeHeader } from '../../home/components/home-header.js';
 import { HomeFooter } from '../../home/components/home-footer.js';
+import { useGetOrderQuery } from '../api/commerce-api.js';
 
 interface TrackItem {
   id: string;
@@ -24,7 +24,7 @@ interface TrackItem {
   imageUrl: string;
 }
 
-const ORDER_ITEMS: TrackItem[] = [
+const SAMPLE_ITEMS: TrackItem[] = [
   {
     id: 'track-1',
     name: 'Organic Red Apples',
@@ -42,15 +42,6 @@ const ORDER_ITEMS: TrackItem[] = [
     price: 5.2,
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
-  },
-  {
-    id: 'track-3',
-    name: 'Artisan Sourdough',
-    weight: '500g',
-    quantity: 1,
-    price: 8.9,
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAocIVc-EoYCbFmS10USZQHrW2cBY3jC44RL3aegAleg9zH39V0IHSWwM6MIKPQO6ifSz4gqZNGdwbezCWTwpjY26PgUPmNirsv572TsUAyQLu6A8XrYc_0UG8v0nwTw-VYaT0SMJPhU_zb_d9e0nSrxGxXQbl6Lx_YXZsdI0Y_-NYBK5I62D_ProCKkx-hG1xm3k6nMB89NGrtr-8Z1cQoVuXM7LxVdoQLwhsZlw2KSjnxaqws6Q_tmOCTfNEAnRlce3LxYTMFdXYO',
   },
 ];
 
@@ -93,15 +84,86 @@ const TRACKER_STEPS = [
 ];
 
 export function OrderDetailsContent() {
+  const params = useParams<{ orderId: string }>();
+  const orderId = params.orderId || 'FM-99283';
+  const { data: realOrder } = useGetOrderQuery(orderId, { pollingInterval: 10000 });
   const [deliveryNote, setDeliveryNote] = useState(false);
 
-  const subtotal = ORDER_ITEMS.reduce((sum, item) => sum + item.price, 0);
-  const deliveryFee = 1.99;
-  const totalPaid = subtotal + deliveryFee;
+  const currentStatus = (realOrder?.orderStatus || (realOrder as any)?.status || 'PLACED').toUpperCase();
+
+  const STATUS_RANKS: Record<string, number> = {
+    PLACED: 1,
+    ACCEPTED: 2,
+    PREPARING: 2,
+    READY: 3,
+    OUT_FOR_DELIVERY: 4,
+    DELIVERED: 5,
+  };
+
+  const currentRank = STATUS_RANKS[currentStatus] || 1;
+
+  const dynamicTrackerSteps = [
+    {
+      id: 'step-1',
+      label: 'Placed',
+      icon: Check,
+      completed: currentRank >= 1,
+      active: currentRank === 1,
+    },
+    {
+      id: 'step-2',
+      label: 'Preparing',
+      icon: Store,
+      completed: currentRank > 2,
+      active: currentRank === 2,
+    },
+    {
+      id: 'step-3',
+      label: 'Packed & Ready',
+      icon: Package,
+      completed: currentRank > 3,
+      active: currentRank === 3,
+    },
+    {
+      id: 'step-4',
+      label: 'Out for Delivery',
+      icon: Truck,
+      completed: currentRank > 4,
+      active: currentRank === 4,
+    },
+    {
+      id: 'step-5',
+      label: 'Delivered',
+      icon: Check,
+      completed: currentRank >= 5,
+      active: currentRank === 5,
+    },
+  ];
+
+  const displayOrderId = realOrder?.orderId || orderId;
+  const items: TrackItem[] = (realOrder?.items && realOrder.items.length > 0)
+    ? realOrder.items.map((item: any, idx: number) => ({
+        id: item.productId || `item-${idx}`,
+        name: item.productName || item.name || 'Fresh Item',
+        weight: item.weight || 'Standard',
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+        imageUrl: item.imageUrl || SAMPLE_ITEMS[0].imageUrl,
+      }))
+    : SAMPLE_ITEMS;
+
+  const displaySubtotal = Number(realOrder?.itemSubtotal ?? realOrder?.subtotal ?? items.reduce((sum, item) => sum + item.price * item.quantity, 0));
+  const displayDeliveryFee = Number(realOrder?.deliveryFee ?? 0);
+  const displayPlatformFee = Number(realOrder?.platformFee ?? 1.50);
+  const displayTax = Number(realOrder?.taxes ?? realOrder?.tax ?? 1.35);
+  const displayTotal = Number((displaySubtotal + displayDeliveryFee + displayPlatformFee + displayTax).toFixed(2));
+  const displayAddress = realOrder?.deliveryAddress ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('freshmart_selected_address') : null) ||
+    'Flat 402, Green Park Apartments, Indiranagar, Bengaluru 560038';
 
   return (
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
-      <HomeHeader cartCount={3} />
+      <HomeHeader cartCount={items.length} />
 
       <main className="mx-auto max-w-7xl space-y-8 px-6 pt-24 pb-16 md:px-8">
         {/* 1. Top Card: Arrival Time & 5-Step Order Progress Stepper */}
@@ -113,7 +175,7 @@ export function OrderDetailsContent() {
                 Arriving in 12 mins
               </h1>
               <p className="mt-1 text-sm font-semibold text-[#8b9888]">
-                Order #FM-99283 • Estimated at 2:45 PM
+                Order #{displayOrderId} • Estimated at 2:45 PM
               </p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full bg-[#e3f5ea] px-4 py-1.5 text-xs font-black text-[#006c4a] shadow-xs">
@@ -125,7 +187,7 @@ export function OrderDetailsContent() {
           {/* Horizontal 5-Step Progress Bar */}
           <div className="relative pt-2 pb-2">
             <div className="relative z-10 flex items-center justify-between">
-              {TRACKER_STEPS.map((step, index) => {
+              {dynamicTrackerSteps.map((step, index) => {
                 const Icon = step.icon;
                 return (
                   <div
@@ -133,7 +195,7 @@ export function OrderDetailsContent() {
                     className="relative flex flex-1 flex-col items-center gap-2 text-center"
                   >
                     {/* Connecting Line Segment */}
-                    {index < TRACKER_STEPS.length - 1 && (
+                    {index < dynamicTrackerSteps.length - 1 && (
                       <div
                         className={`absolute top-5 right-[-50%] left-[50%] -z-10 h-[3px] transition-colors ${
                           step.completed ? 'bg-[#006b2c]' : 'bg-[#e2ebdE]'
@@ -181,7 +243,7 @@ export function OrderDetailsContent() {
 
             {/* Items List */}
             <div className="space-y-4 divide-y divide-[#e2ebdE]/60">
-              {ORDER_ITEMS.map((item, idx) => (
+              {items.map((item, idx) => (
                 <div
                   key={item.id}
                   className={`flex items-center justify-between gap-4 ${idx > 0 ? 'pt-4' : ''}`}
@@ -193,11 +255,11 @@ export function OrderDetailsContent() {
                         className="h-full w-full object-contain mix-blend-multiply"
                         src={item.imageUrl}
                         onError={(e) => {
-    const fallback = 'https://placehold.co/400x400/e2ebdE/006c4a.png?text=FreshMart';
-    if (!e.currentTarget.src.includes('product-placeholder.png')) {
-      e.currentTarget.src = fallback;
-    }
-  }}
+                          const fallback = 'https://placehold.co/400x400/e2ebdE/006c4a.png?text=FreshMart';
+                          if (!e.currentTarget.src.includes('product-placeholder.png')) {
+                            e.currentTarget.src = fallback;
+                          }
+                        }}
                       />
                     </div>
                     <div>
@@ -210,7 +272,7 @@ export function OrderDetailsContent() {
                     </div>
                   </div>
                   <span className="text-sm font-black text-[#171d16]">
-                    {formatCurrency(item.price)}
+                    {formatCurrency(item.price * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -221,19 +283,38 @@ export function OrderDetailsContent() {
               <div className="flex items-center justify-between">
                 <span>Subtotal</span>
                 <span className="font-black text-[#171d16]">
-                  {formatCurrency(subtotal)}
+                  {formatCurrency(displaySubtotal)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Delivery Fee</span>
+                <span className="font-black text-[#006c4a]">
+                  {displayDeliveryFee === 0 ? (
+                    <span>
+                      <span className="mr-1.5 text-[#8b9888] line-through">₹2.50</span>
+                      FREE
+                    </span>
+                  ) : (
+                    formatCurrency(displayDeliveryFee)
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Platform Fee</span>
                 <span className="font-black text-[#171d16]">
-                  {formatCurrency(deliveryFee)}
+                  {formatCurrency(displayPlatformFee)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Taxes</span>
+                <span className="font-black text-[#171d16]">
+                  {formatCurrency(displayTax)}
                 </span>
               </div>
               <div className="flex items-center justify-between border-t border-[#e2ebdE]/60 pt-3 text-base font-black text-[#171d16]">
                 <span>Total Paid</span>
                 <span className="text-[#006c4a]">
-                  {formatCurrency(totalPaid)}
+                  {formatCurrency(displayTotal)}
                 </span>
               </div>
             </div>
@@ -249,11 +330,7 @@ export function OrderDetailsContent() {
               </div>
 
               <p className="text-sm leading-relaxed font-extrabold text-[#171d16]">
-                24th Street, Urban Oasis
-                <br />
-                <span className="text-xs font-semibold text-[#6e7b6c]">
-                  Apartment 5B, Level 2
-                </span>
+                {displayAddress}
               </p>
 
               <div className="pt-2">
@@ -287,7 +364,7 @@ export function OrderDetailsContent() {
 
               <div className="space-y-2.5 pt-1">
                 <Button
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-xs font-black text-[#006b2c] shadow-xs transition-all hover:bg-[#eff6ea] active:scale-98"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-xs font-black text-[#006c4a] shadow-xs transition-all hover:bg-[#eff6ea] active:scale-98"
                   type="button"
                 >
                   <MessageSquare className="h-4 w-4" />
@@ -305,8 +382,6 @@ export function OrderDetailsContent() {
           </div>
         </div>
       </main>
-
-      <HomeFooter />
     </div>
   );
 }

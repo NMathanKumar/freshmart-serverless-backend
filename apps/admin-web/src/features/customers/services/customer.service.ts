@@ -19,6 +19,7 @@ export interface CustomerListParams {
   status?: string;
   page?: number;
   limit?: number;
+  signal?: AbortSignal;
 }
 
 export class CustomerService {
@@ -29,7 +30,7 @@ export class CustomerService {
       limit: params.limit || 50,
       search: params.search,
       status: params.status && params.status !== 'All Customers' ? (params.status.toUpperCase() as AdminCustomerStatus) : undefined,
-    });
+    }, { signal: params.signal });
     rawCustomers = (res?.data || (res as any)?.items || (Array.isArray(res) ? res : [])) as AdminCustomer[];
 
     const mapped: CustomerModel[] = rawCustomers.map((c, idx) => {

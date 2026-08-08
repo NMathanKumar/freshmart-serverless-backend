@@ -20,8 +20,10 @@ import {
   useSettings,
   useUpdateSettings,
 } from '../hooks/useSettings';
-import { Skeleton, useToast, ErrorState } from '../../../components/ui';
+import { Skeleton, CardSkeleton, ErrorState } from '@/shared/components/ui';
+import { useToast } from '@/shared/components/ui';
 import { isAdmin } from '@freshmart/shared';
+import { AdminShell } from '../../admin/components/admin-shell.js';
 
 export const SettingsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -109,7 +111,8 @@ export const SettingsPage: React.FC = () => {
 
   if (!userIsAdmin) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
+      <AdminShell searchPlaceholder="Search settings..." user="alex" variant="operations">
+      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12 px-5 lg:px-8">
         <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
           <AlertCircle className="w-6 h-6" />
         </div>
@@ -118,36 +121,46 @@ export const SettingsPage: React.FC = () => {
           You do not have administrative permissions to view or edit store system settings.
         </p>
       </div>
+      </AdminShell>
     );
   }
 
   if (isProfileLoading || isSettingsLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <AdminShell searchPlaceholder="Search settings..." user="alex" variant="operations">
+      <div className="space-y-6 px-5 lg:px-8">
         <Skeleton className="h-8 w-48 rounded-xl" />
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <Skeleton className="h-64 rounded-2xl" />
-          <Skeleton className="h-96 lg:col-span-3 rounded-2xl" />
+          <CardSkeleton />
+          <div className="lg:col-span-3">
+            <CardSkeleton />
+          </div>
         </div>
       </div>
+      </AdminShell>
     );
   }
 
   if (isProfileError) {
     return (
-      <ErrorState 
-        title="Failed to load profile" 
-        description="Could not load profile settings. Please try again."
-        onRetry={() => {
-          refetchProfile();
-          refetchSettings();
-        }} 
-      />
+      <AdminShell searchPlaceholder="Search settings..." user="alex" variant="operations">
+      <div className="my-12 max-w-lg mx-auto px-5 lg:px-8">
+        <ErrorState 
+          title="Failed to load profile" 
+          description="Could not load profile settings. Please try again."
+          onRetry={() => {
+            refetchProfile();
+            refetchSettings();
+          }} 
+        />
+      </div>
+      </AdminShell>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AdminShell searchPlaceholder="Search settings..." user="alex" variant="operations">
+    <div className="space-y-6 min-h-[calc(100vh-120px)] pb-12 px-5 lg:px-8">
       {/* Title */}
       <div>
         <h1 className="text-2xl font-extrabold text-[#0f172a]">Store Settings & Profile</h1>
@@ -440,5 +453,6 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </AdminShell>
   );
 };

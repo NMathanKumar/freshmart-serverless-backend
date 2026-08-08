@@ -1,6 +1,7 @@
 import { Input } from '@freshmart/design-system';
 import {
   Bell,
+  Heart,
   Home,
   LogOut,
   MapPin,
@@ -15,7 +16,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { isAuthenticated, getCurrentUser, logout } from '@freshmart/shared';
 import { useState, useEffect } from 'react';
-import { useGetCartQuery } from '../../commerce/api/commerce-api.js';
+import { useGetCartQuery, useGetWishlistQuery } from '../../commerce/api/commerce-api.js';
+import { useNotifications } from '../../account/hooks/use-notifications.js';
 
 export const HomeHeader = ({
   cartCount: overrideCartCount,
@@ -30,11 +32,15 @@ export const HomeHeader = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   const { data: cartItems = [] } = useGetCartQuery();
+  const { data: wishlistItems = [] } = useGetWishlistQuery();
+  const { unreadCount } = useNotifications();
 
   const liveCartCount =
     overrideCartCount !== undefined
       ? overrideCartCount
       : cartItems.reduce((sum, item) => sum + (item.quantityInCart || 1), 0);
+
+  const wishlistCount = wishlistItems.length;
 
   useEffect(() => {
     const isAuth = isAuthenticated();
@@ -109,7 +115,7 @@ export const HomeHeader = ({
             </Link>
           </nav>
 
-          {/* Right Header Controls (Home first, Notifications second) */}
+          {/* Right Header Controls */}
           <div className="flex shrink-0 items-center gap-2 text-[#3e4a3d]">
             <Link
               aria-label="Home"
@@ -127,9 +133,25 @@ export const HomeHeader = ({
               to="/notifications"
             >
               <Bell aria-hidden="true" className="h-5 w-5" />
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[9px] font-extrabold text-white shadow-sm">
-                3
-              </span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[9px] font-extrabold text-white shadow-sm">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              aria-label="Wishlist"
+              className="relative rounded-full p-2 text-[#006b2c] transition-all hover:bg-[#eff6ea] focus-visible:ring-2 focus-visible:ring-[#006b2c] focus-visible:outline-none"
+              title="Wishlist"
+              to="/wishlist"
+            >
+              <Heart aria-hidden="true" className="h-5 w-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#006b2c] px-1 text-[9px] font-extrabold text-white shadow-sm">
+                  {wishlistCount}
+                </span>
+              )}
             </Link>
 
             <button
@@ -199,7 +221,7 @@ export const HomeHeader = ({
           </div>
         </div>
 
-        {/* Central Search Bar with Search Magnifying Glass Icon */}
+        {/* Central Search Bar */}
         <form
           className="relative mx-2 max-w-xl flex-1 sm:mx-4"
           onSubmit={handleSearchSubmit}
@@ -218,7 +240,7 @@ export const HomeHeader = ({
           />
         </form>
 
-        {/* Right Header Icons (Home first, Notifications second) */}
+        {/* Right Header Icons */}
         <nav
           aria-label="Account actions"
           className="flex shrink-0 items-center gap-1.5 sm:gap-2"
@@ -239,9 +261,25 @@ export const HomeHeader = ({
             to="/notifications"
           >
             <Bell aria-hidden="true" className="h-5 w-5" />
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[9px] font-extrabold text-white shadow-sm">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#a72d51] px-1 text-[9px] font-extrabold text-white shadow-sm">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            aria-label="Wishlist"
+            className="relative rounded-full p-2 text-[#006b2c] transition-all hover:bg-[#eff6ea] focus-visible:ring-2 focus-visible:ring-[#006b2c] focus-visible:outline-none"
+            title="Wishlist"
+            to="/wishlist"
+          >
+            <Heart aria-hidden="true" className="h-5 w-5" />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#006b2c] px-1 text-[9px] font-extrabold text-white shadow-sm">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
 
           <Link

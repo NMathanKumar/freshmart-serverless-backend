@@ -6,9 +6,14 @@ export const adminRoutePaths = {
   inventory: '/inventory',
   orders: '/orders',
   customers: '/customers',
+  delivery: '/delivery',
+  coupons: '/coupons',
+  reviews: '/reviews',
+  suppliers: '/suppliers',
+  purchaseOrders: '/purchase-orders',
   analytics: '/analytics',
+  notifications: '/notifications',
   activity: '/activity',
   roles: '/roles',
-  reports: '/reports',
   settings: '/settings'
 } as const;

@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { freshmartSdk } from '../../../lib/sdk';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/card';
 import { LineChart, Line, PieChart, Pie, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
-import { Skeleton } from '../../../components/ui/skeleton';
+import { Skeleton, CardSkeleton, ErrorState } from '@/shared/components/ui';
 import { AlertCircle, IndianRupee, Clock, RotateCcw, Package } from 'lucide-react';
 
 export const ProcurementDashboard = () => {
@@ -17,10 +17,10 @@ export const ProcurementDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-64 rounded-xl" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+          {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
         </div>
       </div>
     );
@@ -28,9 +28,12 @@ export const ProcurementDashboard = () => {
 
   if (isError || !data?.data) {
     return (
-      <div className="p-8 text-center text-rose-500">
-        <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-        <p>Failed to load analytics</p>
+      <div className="my-12 max-w-lg mx-auto">
+        <ErrorState
+          title="Failed to load procurement analytics"
+          description="Server connection error or no data available."
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }

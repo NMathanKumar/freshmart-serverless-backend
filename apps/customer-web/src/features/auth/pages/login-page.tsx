@@ -48,17 +48,51 @@ const LoginPage = () => {
       setSuccess(true);
       const email = values.email.toLowerCase();
       const userRole = result?.user?.role;
+
+      let cognitoGroups: string[] = [];
+      if (result?.idToken) {
+        try {
+          const payload = JSON.parse(atob(result.idToken.split('.')[1]));
+          cognitoGroups = payload['cognito:groups'] || [];
+        } catch (e) {}
+      }
+
       const isAdmin =
         email === 'mathankumar@gmail.com' ||
         userRole === 'ADMIN' ||
-        userRole === 'SUPER ADMIN';
+        userRole === 'SUPER ADMIN' ||
+        cognitoGroups.some(g => g.toUpperCase() === 'ADMIN');
 
       setTimeout(() => {
         const urls = getEnvironmentUrls();
         if (isAdmin) {
-          const adminTarget = window.location.hostname.includes('admin')
-            ? '/admin/dashboard'
-            : `${urls.adminWebUrl}/admin/dashboard`;
+          // In local development, Admin Web runs on a separate Vite server (port 5173) with base path /
+          const isAdminOrigin = window.location.hostname.includes('admin') || window.location.port === '5173';
+          let adminTarget = isAdminOrigin
+            ? '/admin/'
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+              ? 'http://localhost:5173/'
+              : urls.adminWebUrl;
+            
+          if (result && result.accessToken) {
+            const tokenParams = new URLSearchParams({
+               access_token: result.accessToken,
+               id_token: result.idToken || '',
+               refresh_token: result.refreshToken || '',
+               role: result.user?.role || '',
+               profile: (result.user as any)?.profile || ''
+            });
+            // Remove empty params
+            const keysForDel: string[] = [];
+            tokenParams.forEach((value, key) => {
+              if (!value) keysForDel.push(key);
+            });
+            keysForDel.forEach(key => tokenParams.delete(key));
+
+            const tokenString = tokenParams.toString();
+            adminTarget = adminTarget.includes('?') ? `${adminTarget}&${tokenString}` : `${adminTarget}?${tokenString}`;
+          }
+            
           window.location.assign(adminTarget);
         } else {
           navigate('/');

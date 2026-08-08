@@ -1,14 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@freshmart/design-system';
 import { Check, Heart, LoaderCircle, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@freshmart/shared';
 import { useAddHomeProductToCartMutation } from '../api/home-api.js';
+import {
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
+  useGetWishlistQuery,
+} from '../../commerce/api/commerce-api.js';
 import type { ProductViewModel } from '../model/home-content.js';
 
 export const ProductCard = ({ product }: { product: ProductViewModel }) => {
   const [added, setAdded] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const { data: wishlist = [] } = useGetWishlistQuery();
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [removeFromWishlist] = useRemoveFromWishlistMutation();
+
+  const isLiked = wishlist.some((item) => item.productId === product.productId);
+
+  const toggleWishlist = async () => {
+    try {
+      if (isLiked) {
+        await removeFromWishlist({ productId: product.productId }).unwrap();
+      } else {
+        await addToWishlist({
+          productId: product.productId,
+          name: product.name,
+          price: product.price,
+          brand: product.brand || 'Organic',
+          imageUrl: product.imageUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300',
+          quantity: product.quantity || '1 Unit',
+        }).unwrap();
+      }
+    } catch (_) {
+      // Ignore
+    }
+  };
+
   const [addToCart, request] = useAddHomeProductToCartMutation();
   const add = async () => {
     try {
@@ -46,7 +75,7 @@ export const ProductCard = ({ product }: { product: ProductViewModel }) => {
               : `Add ${product.name} to wishlist`
           }
           className="absolute top-3 right-3 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-md transition-all hover:scale-110 active:scale-95"
-          onClick={() => setIsLiked(!isLiked)}
+          onClick={toggleWishlist}
           type="button"
         >
           <Heart

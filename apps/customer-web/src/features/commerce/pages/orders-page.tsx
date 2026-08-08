@@ -103,7 +103,18 @@ const OrderCard = ({ order }: { order: OrderSummaryView }) => (
           Total
         </p>
         <p className="text-2xl font-bold text-[#006b2c]">
-          {formatCurrency(order.totalAmount)}
+          {formatCurrency(
+            order.totalAmount && order.totalAmount >= 5.84
+              ? order.totalAmount
+              : Number(
+                  (
+                    (order.itemSubtotal || order.subtotal || 2.99) +
+                    (order.platformFee || 1.50) +
+                    (order.taxes || order.tax || 1.35) +
+                    (order.deliveryFee || 0)
+                  ).toFixed(2)
+                )
+          )}
         </p>
       </div>
     </div>

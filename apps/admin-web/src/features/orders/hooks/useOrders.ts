@@ -10,17 +10,18 @@ import { parseApiError, type AppApiError } from '../../../lib/api-error';
 export function useOrders(params: OrderListParams = {}) {
   return useQuery<OrderModel[], AppApiError>({
     queryKey: ['admin', 'orders', params],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
-        return await orderService.listOrders(params);
+        return await orderService.listOrders({ ...params, signal });
       } catch (err) {
         throw parseApiError(err);
       }
     },
-    staleTime: 30000,
+    staleTime: 5000,
     gcTime: 300000,
+    refetchInterval: 5000,
     retry: 1,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -44,9 +45,66 @@ export function useOrder(orderId: string) {
 
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
-  return useMutation<void, AppApiError, { orderId: string; status: AdminOrderStatus }>({
+  return useMutation<void, AppApiError, { orderId: string; status: AdminOrderStatus }, { previousQueries: Array<[readonly unknown[], unknown]> }>({
     mutationFn: ({ orderId, status }) => orderService.updateOrderStatus(orderId, status),
-    onSuccess: () => {
+    onMutate: async ({ orderId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin', 'orders'] });
+      const previousQueries = queryClient.getQueriesData<OrderModel[]>({ queryKey: ['admin', 'orders'] });
+
+      queryClient.setQueriesData<OrderModel[]>({ queryKey: ['admin', 'orders'] }, (old) => {
+        if (!old) return [];
+        return old.map((ord) => {
+          if (ord.id === orderId || ord.id === `#${orderId}` || ord.id.replace(/^#/, '') === orderId.replace(/^#/, '')) {
+            let orderStatusFormatted: OrderModel['orderStatus'] = 'DELIVERED';
+            let statusBadgeText = 'Delivered';
+            let statusBadgeBg = 'bg-[#e6f7ec]';
+            let statusBadgeColor = 'text-[#04883b]';
+
+            if (status === 'PREPARING' || status === 'ACCEPTED') {
+              orderStatusFormatted = 'PROCESSING';
+              statusBadgeText = 'Processing';
+              statusBadgeBg = 'bg-teal-50';
+              statusBadgeColor = 'text-teal-600';
+            } else if (status === 'READY') {
+              orderStatusFormatted = 'SHIPPED';
+              statusBadgeText = 'Shipped';
+              statusBadgeBg = 'bg-blue-50';
+              statusBadgeColor = 'text-blue-600';
+            } else if (status === 'PLACED') {
+              orderStatusFormatted = 'PENDING';
+              statusBadgeText = 'Pending';
+              statusBadgeBg = 'bg-amber-50';
+              statusBadgeColor = 'text-amber-600';
+            } else if (status === 'CANCELLED') {
+              orderStatusFormatted = 'CANCELLED';
+              statusBadgeText = 'Cancelled';
+              statusBadgeBg = 'bg-rose-50';
+              statusBadgeColor = 'text-rose-600';
+            }
+
+            return {
+              ...ord,
+              orderStatus: orderStatusFormatted,
+              rawOrderStatus: status,
+              statusBadgeText,
+              statusBadgeBg,
+              statusBadgeColor,
+            };
+          }
+          return ord;
+        });
+      });
+
+      return { previousQueries };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
     },
   });

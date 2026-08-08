@@ -1,4 +1,5 @@
 import { freshmartSdk } from '../../../lib/sdk';
+import { Logger } from '@/shared/utils/logger';
 
 export interface ProductModel {
   id: string;
@@ -24,6 +25,7 @@ export interface ProductListParams {
   status?: string;
   cursor?: string;
   limit?: number;
+  signal?: AbortSignal;
 }
 
 export interface CreateProductInput {
@@ -50,7 +52,7 @@ export class ProductService {
       category: params.category === 'All Categories' ? undefined : params.category,
       cursor: params.cursor,
       limit: params.limit || 50,
-    });
+    }, { signal: params.signal });
     
     const data = (res?.data || (res as any)?.items || (Array.isArray(res) ? res : [])) as any[];
     
@@ -195,7 +197,7 @@ export class ProductService {
       });
       return s3ObjectUrl;
     } catch (err) {
-      console.warn('S3 HTTP PUT warning, returning S3 URL:', err);
+      Logger.warn('S3 HTTP PUT warning, returning S3 URL', { error: err, module: 'product.service' });
     }
 
     return s3ObjectUrl;
