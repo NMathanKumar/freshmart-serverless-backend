@@ -64,11 +64,31 @@ export const AdminSidebar = ({
         </div>
       </div>
       <nav className="space-y-1 xl:space-y-1.5" aria-label="Primary">
-        {nav.map(({ icon: Icon, label, path }) => (
-          <NavLink key={path} to={path} className={({ isActive }) => cn('admin-nav-link', isActive && 'active')}>
-            <Icon className="h-5 w-5 xl:h-5.5 xl:w-5.5" aria-hidden="true" />
-            <span className="truncate">{label}</span>
-          </NavLink>
+        {nav.map(({ children, icon: Icon, label, path }) => (
+          <div key={path} className="space-y-0.5">
+            <NavLink to={path} className={({ isActive }) => cn('admin-nav-link', isActive && 'active')}>
+              <Icon className="h-5 w-5 xl:h-5.5 xl:w-5.5" aria-hidden="true" />
+              <span className="truncate">{label}</span>
+            </NavLink>
+            {Array.isArray(children) && children.length > 0 && (
+              <div className="ml-7 pl-2 border-l border-emerald-100 space-y-1 my-1">
+                {children.map((child) => (
+                  <NavLink
+                    key={child.path}
+                    to={child.path}
+                    className={({ isActive }) =>
+                      cn(
+                        'block px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-[#04883b] hover:bg-[#e6f7ec] transition-colors',
+                        isActive && 'text-[#04883b] bg-[#e6f7ec] font-extrabold'
+                      )
+                    }
+                  >
+                    {child.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </nav>
     </div>

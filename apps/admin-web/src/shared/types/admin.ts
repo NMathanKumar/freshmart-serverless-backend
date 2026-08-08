@@ -8,6 +8,7 @@ export type NavItem = {
   label: string;
   path: string;
   icon: LucideIcon;
+  children?: Array<{ label: string; path: string }>;
 };
 
 /**

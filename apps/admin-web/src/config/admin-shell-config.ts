@@ -40,7 +40,15 @@ import type { NavItem, TopbarUser } from '../shared/types/admin.js';
 /** Full retail/operations-facing navigation. Default shell variant. */
 export const retailNav: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Products', path: '/products', icon: Store },
+  {
+    label: 'Products',
+    path: '/products',
+    icon: Store,
+    children: [
+      { label: 'All Products', path: '/products' },
+      { label: 'Add Product', path: '/products?action=new' },
+    ],
+  },
   { label: 'Categories', path: '/categories', icon: Grid2x2 },
   { label: 'Inventory', path: '/inventory', icon: Box },
   { label: 'Orders', path: '/orders', icon: ShoppingCart },
@@ -53,7 +61,15 @@ export const retailNav: NavItem[] = [
 /** Catalog management navigation (Products + Categories focus). */
 export const catalogNav: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Products', path: '/products', icon: Archive },
+  {
+    label: 'Products',
+    path: '/products',
+    icon: Archive,
+    children: [
+      { label: 'All Products', path: '/products' },
+      { label: 'Add Product', path: '/products?action=new' },
+    ],
+  },
   { label: 'Categories', path: '/categories', icon: Shapes },
   { label: 'Orders', path: '/orders', icon: ShoppingCart },
   { label: 'Analytics', path: '/analytics', icon: ChartNoAxesColumnIncreasing },

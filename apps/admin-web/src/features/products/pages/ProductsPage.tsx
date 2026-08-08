@@ -396,6 +396,48 @@ export const ProductsPage: React.FC = () => {
   return (
     <AdminShell searchPlaceholder="Search products..." user="alex" variant="operations" onSearch={setSearchTerm}>
     <div className="space-y-6 min-h-[calc(100vh-120px)] pb-12 px-5 lg:px-8">
+      {/* TOP PRODUCT NAVIGATION MENU TABS */}
+      <div className="bg-white p-3 rounded-2xl border border-[#e9f2e7] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => handleCloseForm()}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+              !showInPageForm
+                ? 'bg-[#04883b] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-[#e6f7ec] hover:text-[#04883b]'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>Show All Products</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenCreateForm()}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+              showInPageForm && !editingProduct
+                ? 'bg-[#04883b] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-[#e6f7ec] hover:text-[#04883b]'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Add Product</span>
+          </button>
+
+          {editingProduct && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold bg-amber-500 text-white shadow-sm">
+              <Edit3 className="w-4 h-4" />
+              <span>Editing: {editingProduct.name}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="text-xs font-bold text-slate-500 hidden sm:block">
+          Total Catalog Items: <span className="text-[#04883b] font-black">{displayProducts.length}</span>
+        </div>
+      </div>
+
       {/* SECTION 1: IN-PAGE PRODUCT FORM WITH AWS S3 UPLOAD & LIVE STORE CARD PREVIEW */}
       {showInPageForm ? (
         <div className="space-y-6 animate-fadeIn">
