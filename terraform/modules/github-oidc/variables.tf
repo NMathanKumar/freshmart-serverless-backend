@@ -26,8 +26,8 @@ variable "tags" {
   description = "Resource tags"
   type        = map(string)
   default = {
-    Project    = "FreshMart"
-    ManagedBy  = "Terraform"
-    Subsystem  = "CI-CD-OIDC"
+    Project   = "FreshMart"
+    ManagedBy = "Terraform"
+    Subsystem = "CI-CD-OIDC"
   }
 }

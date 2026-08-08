@@ -3,22 +3,22 @@ output "oidc_provider_arn" {
   value       = local.provider_arn
 }
 
+output "plan_role_arn" {
+  description = "IAM Role ARN for Read-Only PR Plan Execution"
+  value       = aws_iam_role.github_ci_plan.arn
+}
+
 output "dev_role_arn" {
-  description = "IAM Role ARN for Development Environment"
+  description = "IAM Role ARN for DEV Environment CI/CD Execution"
   value       = aws_iam_role.github_ci_dev.arn
 }
 
 output "qa_role_arn" {
-  description = "IAM Role ARN for QA Environment"
+  description = "IAM Role ARN for QA Environment CI/CD Execution"
   value       = aws_iam_role.github_ci_qa.arn
 }
 
-output "staging_role_arn" {
-  description = "IAM Role ARN for Staging Environment"
-  value       = aws_iam_role.github_ci_staging.arn
-}
-
 output "prod_role_arn" {
-  description = "IAM Role ARN for Production Environment"
+  description = "IAM Role ARN for PROD Environment CI/CD Execution"
   value       = aws_iam_role.github_ci_prod.arn
 }

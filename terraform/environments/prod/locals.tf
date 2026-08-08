@@ -394,8 +394,6 @@ locals {
       ]
       allow_s3_object_access = true
       s3_object_arns         = [module.s3.object_arn]
-      allow_ses_send_email   = true
-      ses_identity_arns      = [module.ses.identity_arn]
     }
 
     menu = {
@@ -702,8 +700,6 @@ locals {
         AWS_SQS_INVENTORY_DLQ_URL         = module.sqs.dlq_url["inventory_events"]
         AWS_SQS_ANALYTICS_QUEUE_URL       = module.sqs.queue_url["analytics"]
         AWS_SQS_ANALYTICS_DLQ_URL         = module.sqs.dlq_url["analytics"]
-        SES_FROM_EMAIL                    = module.ses.identity_name
-        SES_CONFIGURATION_SET             = module.ses.configuration_set_name
       })
     })
 

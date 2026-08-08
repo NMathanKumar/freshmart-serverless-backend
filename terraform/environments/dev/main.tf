@@ -81,13 +81,13 @@ module "dynamodb" {
 module "apigateway" {
   source = "../../modules/apigateway"
 
-  project_name           = var.project_name
-  environment            = var.environment
-  aws_region             = var.aws_region
-  api_name               = local.api_name
-  description            = "FreshMart HTTP API for ${var.environment}."
-  lambdas                = local.api_gateway_lambdas
-  routes                 = local.api_gateway_routes
+  project_name = var.project_name
+  environment  = var.environment
+  aws_region   = var.aws_region
+  api_name     = local.api_name
+  description  = "FreshMart HTTP API for ${var.environment}."
+  lambdas      = local.api_gateway_lambdas
+  routes       = local.api_gateway_routes
   cors_allow_origins = [
     "https://${module.unified_web.cloudfront_domain_name}",
     "https://${module.customer_web.cloudfront_domain_name}",
@@ -199,7 +199,7 @@ module "cloudwatch" {
     warning  = module.sns.topic_arns["customer_events"]
     info     = module.sns.topic_arns["customer_events"]
   }
-  tags                  = local.common_tags
+  tags = local.common_tags
 
   sqs_queues = {
     for name, q in module.sqs.queue_name : name => { queue_name = q }

@@ -85,11 +85,14 @@ output "eventbridge" {
 }
 
 output "cloudwatch" {
-  description = "Provisioned CloudWatch details."
+  description = "CloudWatch resources."
   value = {
-    dashboard_name  = module.cloudwatch.dashboard_name
-    alarm_arns      = module.cloudwatch.alarm_arns
-    log_group_names = module.cloudwatch.log_group_names
+    operations_dashboard = module.cloudwatch.operations_dashboard_name
+    api_dashboard        = module.cloudwatch.api_dashboard_name
+    lambda_dashboard     = module.cloudwatch.lambda_dashboard_name
+    database_dashboard   = module.cloudwatch.database_dashboard_name
+    messaging_dashboard  = module.cloudwatch.messaging_dashboard_name
+    log_group_names      = module.cloudwatch.log_group_names
   }
 }
 
