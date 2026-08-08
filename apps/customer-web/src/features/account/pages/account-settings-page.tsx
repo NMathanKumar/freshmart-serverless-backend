@@ -121,6 +121,16 @@ const AccountSettingsContent = () => {
       }
 
       setFormData((prev) => ({ ...prev, avatarUrl: finalAvatarUrl }));
+      try {
+        localStorage.setItem('freshmart_user_avatar', finalAvatarUrl);
+      } catch (_) {}
+
+      try {
+        await updateProfile({
+          ...profile,
+          avatarUrl: finalAvatarUrl,
+        }).unwrap();
+      } catch (_) {}
     } catch (_) {
       // Error reading file
     } finally {
@@ -130,6 +140,11 @@ const AccountSettingsContent = () => {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.avatarUrl) {
+      try {
+        localStorage.setItem('freshmart_user_avatar', formData.avatarUrl);
+      } catch (_) {}
+    }
     try {
       await updateProfile({
         ...profile,
@@ -165,22 +180,20 @@ const AccountSettingsContent = () => {
                 }}
                 src={profile.avatarUrl || DEFAULT_AVATAR}
               />
-              <button
+              <label
                 className="absolute right-0 bottom-0 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#006b2c] text-white shadow-xs transition-all hover:bg-[#005422]"
-                onClick={() => {
-                  setFormData({
-                    fullName: profile.fullName,
-                    email: profile.email,
-                    phone: profile.phone,
-                    avatarUrl: profile.avatarUrl,
-                  });
-                  setIsEditing(true);
-                }}
-                title="Edit photo & details"
-                type="button"
+                htmlFor="hero-avatar-file-input"
+                title="Change profile photo"
               >
                 <Pencil className="h-3 w-3" />
-              </button>
+                <input
+                  accept="image/*"
+                  className="hidden"
+                  id="hero-avatar-file-input"
+                  onChange={(e) => void handleAvatarFileSelect(e)}
+                  type="file"
+                />
+              </label>
             </div>
 
             {/* Name & Badges */}
