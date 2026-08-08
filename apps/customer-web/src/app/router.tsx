@@ -1,4 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
+
+const RedirectToAdmin = ({ path }: { path: string }) => {
+  useEffect(() => {
+    window.location.assign(path);
+  }, [path]);
+  return null;
+};
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Skeleton, AppErrorBoundary } from '@freshmart/design-system';
 import * as shared from '@freshmart/shared';
@@ -192,8 +199,14 @@ export const AppRouter = () => (
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
-          <Route path={authPaths.verifyEmail} element={<VerifyEmailPage />} />
+          <Route path="/analytics" element={<RedirectToAdmin path="/admin/analytics" />} />
+          <Route path="/admin/analytics" element={<RedirectToAdmin path="/admin/analytics" />} />
+          <Route path="/dashboard" element={<RedirectToAdmin path="/admin/dashboard" />} />
+          <Route path="/admin/dashboard" element={<RedirectToAdmin path="/admin/dashboard" />} />
+          <Route path="/admin/products" element={<RedirectToAdmin path="/admin/products" />} />
+          <Route path="/admin/orders" element={<RedirectToAdmin path="/admin/orders" />} />
+          <Route path="/admin/inventory" element={<RedirectToAdmin path="/admin/inventory" />} />
+          <Route path="/admin/login" element={<RedirectToAdmin path="/admin/login" />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppErrorBoundary>
