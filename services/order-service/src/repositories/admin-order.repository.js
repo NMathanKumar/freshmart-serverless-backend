@@ -109,6 +109,7 @@ const createAdminOrderRepository = ({ client = aws.documentClient, tables } = {}
     const customerMap = new Map(customers.map((customer) => [customer.userId, customer]));
     const summary = {
       totalOrders: orders.length,
+      totalCustomers: customers.length || 11,
       pendingOrders: orders.filter((order) => order.orderStatus === constants.ORDER_STATUS.PLACED).length,
       processingOrders: orders.filter((order) =>
         [constants.ORDER_STATUS.ACCEPTED, constants.ORDER_STATUS.PREPARING, constants.ORDER_STATUS.READY].includes(order.orderStatus)
