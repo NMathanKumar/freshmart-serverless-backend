@@ -60,6 +60,11 @@ export const accountApi = authApi.injectEndpoints({
               localStorage.setItem('freshmart_user_avatar', profile.avatarUrl);
             } catch (_) {}
           }
+          if (profile.phone && profile.phone !== 'Not provided') {
+            try {
+              localStorage.setItem('freshmart_user_phone', profile.phone);
+            } catch (_) {}
+          }
           const isRemoteHttpAvatar = typeof profile.avatarUrl === 'string' &&
             profile.avatarUrl.startsWith('http') &&
             profile.avatarUrl.length < 500 &&
@@ -109,12 +114,8 @@ export const accountApi = authApi.injectEndpoints({
           });
           const payload = (res as any)?.data || res;
           return { data: payload };
-        } catch (_) {
-          const cleanName = (fileName || 'avatar.jpg').replace(/[^a-zA-Z0-9.-]/g, '_');
-          const bucket = 'freshmart-dev-assets-769044546162';
-          const region = 'ap-southeast-1';
-          const avatarUrl = `https://${bucket}.s3.${region}.amazonaws.com/avatars/${Date.now()}_${cleanName}`;
-          return { data: { uploadUrl: avatarUrl, avatarUrl } };
+        } catch (error) {
+          return { error: toApiError(error) };
         }
       }
     }),

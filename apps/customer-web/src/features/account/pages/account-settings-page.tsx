@@ -58,11 +58,16 @@ const AccountSettingsContent = () => {
   const { unreadCount } = useNotifications();
 
   const sessionUser = getCurrentUser() || {};
+  let cachedPhone = '';
+  try {
+    cachedPhone = localStorage.getItem('freshmart_user_phone') || '';
+  } catch (_) {}
+
   const fallbackProfile = {
     ...SAMPLE_PROFILE,
     fullName: sessionUser.fullName || sessionUser.name || (sessionUser.email ? sessionUser.email.split('@')[0] : SAMPLE_PROFILE.fullName),
     email: sessionUser.email || SAMPLE_PROFILE.email,
-    phone: sessionUser.phone || sessionUser.phoneNumber || 'Not provided',
+    phone: cachedPhone || sessionUser.phone || sessionUser.phoneNumber || 'Not provided',
   };
 
   const profile = accountData?.profile
@@ -87,28 +92,37 @@ const AccountSettingsContent = () => {
 
     setIsUploadingPhoto(true);
     try {
-      const res = await uploadAvatarUrl({
-        fileName: file.name,
-        contentType: file.type || 'image/jpeg',
-      }).unwrap();
-
-      const { uploadUrl, avatarUrl } = res;
-      if (uploadUrl && uploadUrl !== avatarUrl) {
-        await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type || 'image/jpeg' },
-          body: file,
-        });
-      }
-      setFormData((prev) => ({ ...prev, avatarUrl }));
-    } catch (_) {
       const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setFormData((prev) => ({ ...prev, avatarUrl: reader.result as string }));
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const base64Data = await base64Promise;
+      let finalAvatarUrl = base64Data;
+
+      try {
+        const res = await uploadAvatarUrl({
+          fileName: file.name,
+          contentType: file.type || 'image/jpeg',
+        }).unwrap();
+
+        const { uploadUrl, avatarUrl } = res;
+        if (uploadUrl && (uploadUrl.includes('X-Amz-Algorithm') || uploadUrl.includes('Signature') || uploadUrl.includes('AWSAccessKeyId'))) {
+          await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type || 'image/jpeg' },
+            body: file,
+          });
+          finalAvatarUrl = avatarUrl;
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (_) {
+        // Presigned upload URL unmapped or failed; use base64Data
+      }
+
+      setFormData((prev) => ({ ...prev, avatarUrl: finalAvatarUrl }));
+    } catch (_) {
+      // Error reading file
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -130,6 +144,8 @@ const AccountSettingsContent = () => {
     setIsEditing(false);
   };
 
+  const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+
   return (
     <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
       <HomeHeader variant="cart" />
@@ -143,7 +159,11 @@ const AccountSettingsContent = () => {
               <img
                 alt={profile.fullName}
                 className="h-20 w-20 rounded-full border-2 border-white object-cover p-0.5 shadow-xs"
-                src={profile.avatarUrl}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = DEFAULT_AVATAR;
+                }}
+                src={profile.avatarUrl || DEFAULT_AVATAR}
               />
               <button
                 className="absolute right-0 bottom-0 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#006b2c] text-white shadow-xs transition-all hover:bg-[#005422]"
@@ -473,7 +493,11 @@ const AccountSettingsContent = () => {
                   <img
                     alt={formData.fullName}
                     className="h-20 w-20 rounded-full border-2 border-[#006b2c] object-cover shadow-xs"
-                    src={formData.avatarUrl || profile.avatarUrl}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = DEFAULT_AVATAR;
+                    }}
+                    src={formData.avatarUrl || profile.avatarUrl || DEFAULT_AVATAR}
                   />
                   <label
                     className="absolute right-0 bottom-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#006b2c] text-white shadow-xs transition-all hover:bg-[#005422]"

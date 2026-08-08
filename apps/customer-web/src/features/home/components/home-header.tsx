@@ -317,6 +317,10 @@ export const HomeHeader = ({
                 <img
                   alt="Profile"
                   className="h-6 w-6 rounded-full border border-[#006b2c]/30 object-cover shadow-2xs"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+                  }}
                   src={headerAvatarUrl}
                 />
               ) : (

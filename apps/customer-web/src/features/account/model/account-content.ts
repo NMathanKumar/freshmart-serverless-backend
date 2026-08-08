@@ -95,13 +95,15 @@ export const mergeProfile = (remote: unknown): AccountProfile => {
   const fallbackName = safeSessionFallback || emailFallbackName;
   const fullName = generatedFullName || rawName || fallbackName;
 
-  const rawPhone = text(user, ['phone', 'phoneNumber', 'phone_number'], sessionUser.phone || sessionUser.phoneNumber || '');
-  const phone = rawPhone || 'Not provided';
-
+  let cachedPhone = '';
   let cachedAvatar = '';
   try {
+    cachedPhone = localStorage.getItem('freshmart_user_phone') || '';
     cachedAvatar = localStorage.getItem('freshmart_user_avatar') || '';
   } catch (_) {}
+
+  const rawPhone = text(user, ['phone', 'phoneNumber', 'phone_number'], cachedPhone || sessionUser.phone || sessionUser.phoneNumber || '');
+  const phone = rawPhone || 'Not provided';
 
   return {
     avatarUrl: text(user, ['avatarUrl', 'avatar'], cachedAvatar || accountProfile.avatarUrl),
