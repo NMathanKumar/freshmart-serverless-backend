@@ -13,6 +13,7 @@ const controller = require('../controllers/product.controller');
 
 const router = express.Router();
 
+router.post('/upload-url', controller.getUploadUrl);
 router.get('/search', validate(searchQuerySchema, 'query'), controller.searchProducts);
 router.get('/', validate(listQuerySchema, 'query'), controller.listProducts);
 router.get('/:id', validate(idParamSchema, 'params'), controller.getProductById);
@@ -41,7 +42,6 @@ router.patch(
   validate(availabilitySchema),
   controller.setAvailability
 );
-router.post('/upload-url', controller.getUploadUrl);
 router.delete('/:id', authenticate, authorize('ADMIN'), validate(idParamSchema, 'params'), controller.deleteProduct);
 
 module.exports = router;
