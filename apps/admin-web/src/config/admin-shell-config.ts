@@ -83,7 +83,6 @@ export const operationsNav: NavItem[] = [
   { label: 'Inventory', path: '/inventory', icon: Box },
   { label: 'Users', path: '/customers', icon: Users },
   { label: 'Analytics', path: '/analytics', icon: SquareChartGantt },
-  { label: 'Roles', path: '/roles', icon: ShieldCheck },
   { label: 'Settings', path: '/settings', icon: UserCog }
 ];
 
