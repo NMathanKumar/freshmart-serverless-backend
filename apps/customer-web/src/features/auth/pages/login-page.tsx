@@ -57,32 +57,55 @@ const LoginPage = () => {
         } catch (e) {}
       }
 
+      const userProfile = (result?.user as any)?.profile || '';
       const isAdmin =
-        email === 'mathankumar@gmail.com' ||
         userRole === 'ADMIN' ||
         userRole === 'SUPER ADMIN' ||
-        cognitoGroups.some(g => g.toUpperCase() === 'ADMIN');
+        userProfile === 'admin' ||
+        cognitoGroups.some(g => String(g).toUpperCase() === 'ADMIN');
+
+      if (isAdmin && result?.accessToken) {
+        import('@freshmart/shared').then(({ saveSharedSession }) => {
+          let userClaims: any = {};
+          if (result.idToken) {
+            try {
+              userClaims = JSON.parse(atob(result.idToken.split('.')[1]));
+            } catch (_) {}
+          }
+          saveSharedSession({
+            accessToken: result.accessToken,
+            idToken: result.idToken,
+            refreshToken: result.refreshToken,
+            user: {
+              userId: result.user?.userId || userClaims.sub || '',
+              email: result.user?.email || userClaims.email || email,
+              name: result.user?.name || userClaims.name || userClaims.given_name || 'Admin',
+              role: userRole || 'ADMIN',
+              groups: cognitoGroups.length > 0 ? cognitoGroups : ['ADMIN'],
+              profile: 'admin',
+            },
+          });
+        });
+      }
 
       setTimeout(() => {
         const urls = getEnvironmentUrls();
         if (isAdmin) {
-          // In local development, Admin Web runs on a separate Vite server (port 5173) with base path /
-          const isAdminOrigin = window.location.hostname.includes('admin') || window.location.port === '5173';
-          let adminTarget = isAdminOrigin
-            ? '/admin/'
-            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-              ? 'http://localhost:5173/'
-              : urls.adminWebUrl;
+          const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          let adminTarget = isLocalhost
+            ? 'http://localhost:5173/admin/dashboard'
+            : window.location.origin.includes('/admin')
+              ? `${window.location.origin}/admin/dashboard`
+              : urls.adminWebUrl.replace(/\/$/, '') + '/admin/dashboard';
             
           if (result && result.accessToken) {
             const tokenParams = new URLSearchParams({
                access_token: result.accessToken,
                id_token: result.idToken || '',
                refresh_token: result.refreshToken || '',
-               role: result.user?.role || '',
-               profile: (result.user as any)?.profile || ''
+               role: result.user?.role || 'ADMIN',
+               profile: 'admin'
             });
-            // Remove empty params
             const keysForDel: string[] = [];
             tokenParams.forEach((value, key) => {
               if (!value) keysForDel.push(key);
@@ -97,7 +120,7 @@ const LoginPage = () => {
         } else {
           navigate('/');
         }
-      }, 500);
+      }, 300);
     } catch {
       // RTK Query exposes the API error through loginState for the form alert.
     }
