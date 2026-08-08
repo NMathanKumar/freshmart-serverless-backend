@@ -1,0 +1,47 @@
+name: 'Package Lambda Microservices'
+description: 'Compiles project code and packages 25+ Lambda microservices into deployable ZIP archives with SHA-256 digest manifests'
+
+outputs:
+  manifest-file:
+    description: 'Path to generated lambda artifacts manifest'
+    value: 'lambda-artifacts-manifest.json'
+  status:
+    description: 'Packaging status'
+    value: ${{ steps.digest.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build Monorepo Workspaces
+      id: build
+      shell: bash
+      run: npm run build
+
+    - name: Package Lambda ZIP Archives
+      id: package
+      shell: bash
+      run: npm run package
+
+    - name: Generate SHA-256 Digest Manifest
+      id: digest
+      shell: bash
+      run: |
+        node -e '
+        const fs = require("fs");
+        const crypto = require("crypto");
+        const path = require("path");
+        const servicesDir = path.join(process.cwd(), "services");
+        const manifest = {};
+        if (fs.existsSync(servicesDir)) {
+          fs.readdirSync(servicesDir).forEach(dir => {
+            const zipPath = path.join(servicesDir, dir, "lambda.zip");
+            if (fs.existsSync(zipPath)) {
+              const buffer = fs.readFileSync(zipPath);
+              const hash = crypto.createHash("sha256").update(buffer).digest("hex");
+              manifest[dir] = hash;
+            }
+          });
+        }
+        fs.writeFileSync("lambda-artifacts-manifest.json", JSON.stringify(manifest, null, 2));
+        console.log("Generated SHA-256 Lambda Artifact Manifest:", manifest);
+        '

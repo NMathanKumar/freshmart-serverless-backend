@@ -1,0 +1,29 @@
+# FreshMart Enterprise Monorepo Code Ownership Specification
+
+# Default Global Owners
+*       @NMathanKumar
+
+# Core Infrastructure & CI/CD Workflows
+/.github/workflows/                 @NMathanKumar
+/terraform/                         @NMathanKumar
+/scripts/                           @NMathanKumar
+
+# Monorepo Shared Packages
+/packages/api-sdk/                  @NMathanKumar
+/packages/design-system/            @NMathanKumar
+/packages/platform-core/            @NMathanKumar
+/packages/shared/                   @NMathanKumar
+
+# Frontend Applications
+/apps/customer-web/                 @NMathanKumar
+/apps/admin-web/                    @NMathanKumar
+
+# Backend Lambda Microservices
+/services/                          @NMathanKumar
+/services/auth-service/             @NMathanKumar
+/services/order-service/            @NMathanKumar
+/services/payment-service/          @NMathanKumar
+/services/inventory-service/        @NMathanKumar
+
+# Documentation & Architecture Decisions
+/docs/                              @NMathanKumar

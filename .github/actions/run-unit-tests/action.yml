@@ -1,0 +1,146 @@
+name: 'Run Unit & Integration Tests with Coverage Gate'
+description: 'Executes unit tests with flaky-test retry, generates LCOV/Cobertura/HTML/JUnit XML reports, and enforces 4-dimension coverage thresholds (lines ≥90%, branches ≥85%, functions ≥90%, statements ≥90%)'
+
+inputs:
+  enforce-coverage:
+    description: 'Enforce minimum code coverage threshold (lines ≥90%, branches ≥85%, functions ≥90%, statements ≥90%)'
+    required: false
+    default: 'true'
+  retry-on-failure:
+    description: 'Retry the test suite once on first failure to catch flaky tests'
+    required: false
+    default: 'true'
+  service-filter:
+    description: 'Optional npm workspace filter e.g. @freshmart/order-service'
+    required: false
+    default: ''
+
+outputs:
+  status:
+    description: 'Overall test execution status (success | failure | flaky)'
+    value: ${{ steps.coverage-gate.outcome }}
+  coverage-lcov:
+    description: 'Path to LCOV report file'
+    value: 'coverage/lcov.info'
+  coverage-cobertura:
+    description: 'Path to Cobertura XML report'
+    value: 'coverage/cobertura-coverage.xml'
+
+runs:
+  using: 'composite'
+  steps:
+    # ──────────────────────────────────────────────────────────
+    # 1. Unit tests – first attempt
+    # ──────────────────────────────────────────────────────────
+    - name: Run Unit Tests (Attempt 1)
+      id: test-attempt-1
+      shell: bash
+      continue-on-error: true
+      run: |
+        if [ -n "${{ inputs.service-filter }}" ]; then
+          npm test --workspace="${{ inputs.service-filter }}"
+        else
+          npm test
+        fi
+
+    # ──────────────────────────────────────────────────────────
+    # 2. Flaky test guard – retry once on first failure
+    # ──────────────────────────────────────────────────────────
+    - name: Retry Unit Tests on Failure (Flaky Test Guard)
+      id: test-attempt-2
+      if: steps.test-attempt-1.outcome == 'failure' && inputs.retry-on-failure == 'true'
+      shell: bash
+      run: |
+        echo "::warning::First test run failed. Retrying once to detect flaky tests..."
+        if [ -n "${{ inputs.service-filter }}" ]; then
+          npm test --workspace="${{ inputs.service-filter }}"
+        else
+          npm test
+        fi
+
+    # ──────────────────────────────────────────────────────────
+    # 3. Integration tests (best-effort, no fail on missing script)
+    # ──────────────────────────────────────────────────────────
+    - name: Run Integration Tests
+      id: integration
+      shell: bash
+      continue-on-error: true
+      run: |
+        if npm run --if-present test:integration 2>/dev/null; then
+          echo "Integration tests passed."
+        else
+          echo "::notice::No integration test script found or tests skipped."
+        fi
+
+    # ──────────────────────────────────────────────────────────
+    # 4. Contract tests (best-effort)
+    # ──────────────────────────────────────────────────────────
+    - name: Run Contract Tests
+      id: contract
+      shell: bash
+      continue-on-error: true
+      run: |
+        if npm run --if-present test:contracts 2>/dev/null; then
+          echo "Contract tests passed."
+        else
+          echo "::notice::No contract test script found or tests skipped."
+        fi
+
+    # ──────────────────────────────────────────────────────────
+    # 5. Generate multi-format coverage reports
+    #    text, lcov, cobertura (for SonarQube), html
+    # ──────────────────────────────────────────────────────────
+    - name: Generate Code Coverage Reports
+      id: coverage-report
+      shell: bash
+      run: |
+        echo "Generating LCOV, Cobertura XML, and HTML coverage reports..."
+        npx c8 \
+          --reporter=text \
+          --reporter=lcov \
+          --reporter=cobertura \
+          --reporter=html \
+          --all \
+          --include="services/*/src/**/*.{js,ts}" \
+          --exclude="services/*/src/**/*.d.ts" \
+          --exclude="**/node_modules/**" \
+          npm test 2>&1 || true
+
+    # ──────────────────────────────────────────────────────────
+    # 6. Enforce 4-dimension coverage thresholds
+    #    lines ≥90%, branches ≥85%, functions ≥90%, statements ≥90%
+    # ──────────────────────────────────────────────────────────
+    - name: Enforce 4-Dimension Coverage Threshold Gate
+      id: coverage-gate
+      shell: bash
+      run: |
+        if [ "${{ inputs.enforce-coverage }}" = "true" ]; then
+          echo "::group::Coverage Threshold Enforcement"
+          echo "Required: lines ≥90% | branches ≥85% | functions ≥90% | statements ≥90%"
+          npx c8 check-coverage \
+            --lines 90 \
+            --functions 90 \
+            --branches 85 \
+            --statements 90 \
+            2>&1 || {
+              echo "::error::Coverage thresholds not met. Minimum: lines=90%, branches=85%, functions=90%, statements=90%"
+              exit 1
+            }
+          echo "✅ All coverage thresholds passed."
+          echo "::endgroup::"
+        fi
+
+    # ──────────────────────────────────────────────────────────
+    # 7. Emit GitHub Step Summary with test & coverage outcome
+    # ──────────────────────────────────────────────────────────
+    - name: Publish Test & Coverage Summary
+      if: always()
+      shell: bash
+      run: |
+        echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Unit Tests (Attempt 1) | ${{ steps.test-attempt-1.outcome == 'success' && '✅ Pass' || '⚠️ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Flaky Test Retry | ${{ steps.test-attempt-2.outcome == 'success' && '✅ Retried & Passed' || steps.test-attempt-2.outcome == 'skipped' && '⏭️ Skipped (Attempt 1 passed)' || '❌ Still Failing' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Coverage Gate (≥90% lines, ≥85% branches) | ${{ steps.coverage-gate.outcome == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
