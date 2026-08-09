@@ -40,14 +40,19 @@ export interface MovementListParams {
 
 export class InventoryService {
   async listInventory(params: InventoryListParams = {}): Promise<InventoryModel[]> {
-    // 1. Fetch remote inventory data
-    const response = await freshmartSdk.inventory.listInventory(
-      params.page, 
-      params.limit, 
-      params.warehouse,
-      { signal: params.signal }
-    );
-    const rawItems = response.data || [];
+    let rawItems: any[] = [];
+    try {
+      // 1. Fetch remote inventory data
+      const response = await freshmartSdk.inventory.listInventory(
+        params.page, 
+        params.limit, 
+        params.warehouse,
+        { signal: params.signal }
+      );
+      rawItems = response?.data || response?.items || (Array.isArray(response) ? response : []);
+    } catch (err) {
+      Logger.warn('Failed to fetch remote inventory data', { error: err });
+    }
 
     // 2. We need product metadata (name, sku, category) which is stored in the catalog API
     // and warehouse metadata
