@@ -20,9 +20,8 @@ const RegisterPage = () => {
 
   const submit = handleSubmit(async (values) => {
     try {
-      const result = await createAccount(values).unwrap();
-      const accessToken = typeof result.accessToken === 'string' ? result.accessToken : undefined;
-      navigate(authPaths.verifyEmail, { state: { email: values.email, accessToken } });
+      await createAccount(values).unwrap();
+      window.location.assign('/');
     } catch {
       // RTK Query exposes the API error through request for the form alert.
     }

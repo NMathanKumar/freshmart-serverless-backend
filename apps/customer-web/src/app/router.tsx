@@ -19,6 +19,7 @@ const OrdersPage = lazy(() => import('../features/commerce/pages/orders-page.js'
 const ProductDetailsPage = lazy(() => import('../features/commerce/pages/product-details-page.js'));
 const SearchResultsPage = lazy(() => import('../features/commerce/pages/search-results-page.js'));
 const WishlistPage = lazy(() => import('../features/commerce/pages/wishlist-page.js'));
+const NotificationsPage = lazy(() => import('../features/account/pages/notifications-page.js'));
 const PrivacySecurityPage = lazy(() => import('../features/account/pages/privacy-security-page.js'));
 const SystemStatesPage = lazy(() => import('../features/system/pages/system-states-page.js'));
 const NotFoundPage = lazy(() => import('../features/system/pages/system-states-page.js').then((module) => ({ default: module.NotFoundPage })));
@@ -56,11 +57,12 @@ export const AppRouter = () => (
         <Route path={customerRoutePaths.settings} element={<RequireAuth><AccountSettingsPage /></RequireAuth>} />
         <Route path="/addresses" element={<RequireAuth><AddressManagementPage /></RequireAuth>} />
         <Route path="/checkout/confirmation" element={<RequireAuth><OrderConfirmationPage /></RequireAuth>} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/privacy-security" element={<RequireAuth><PrivacySecurityPage /></RequireAuth>} />
         <Route path="/system-states" element={<SystemStatesPage />} />
-        <Route path={authPaths.login} element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/sign-in" element={<LoginPage />} />
+        <Route path={authPaths.login} element={<LoginPage />} />
         <Route path={authPaths.register} element={<RegisterPage />} />
         <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
         <Route path={authPaths.verifyEmail} element={<VerifyEmailPage />} />

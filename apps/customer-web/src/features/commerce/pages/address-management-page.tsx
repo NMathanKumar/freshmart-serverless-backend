@@ -1,13 +1,13 @@
 import { Suspense, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input } from '@freshmart/design-system';
-import { CheckCircle2, Home, LoaderCircle, MapPin, Navigation, Phone, Plus, Trash2, Briefcase, Pencil } from 'lucide-react';
+import { CheckCircle2, Home, MapPin, Navigation, Phone, Plus, Trash2, Briefcase, Pencil, Check, ArrowRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { useAddAddressMutation, useGetAddressesQuery, type AddressInput } from '../api/commerce-api.js';
-import { CommerceShell } from '../components/commerce-layout.js';
-import { CommerceState, ListSkeleton } from '../components/commerce-state.js';
-import type { AddressView } from '../model/commerce-content.js';
+import { useAddAddressMutation, useDeleteAddressMutation, useGetAddressesQuery, type AddressInput } from '../api/commerce-api.js';
+import { HomeHeader } from '../../home/components/home-header.js';
+import { HomeFooter } from '../../home/components/home-footer.js';
 
 const schema = z.object({
   label: z.enum(['Home', 'Work', 'Other']),
@@ -25,95 +25,300 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const AddressManagementContent = () => {
-  const { data = [], isError, isLoading, refetch } = useGetAddressesQuery();
+  const navigate = useNavigate();
+  const { data: addresses = [], isLoading } = useGetAddressesQuery();
+  
   const [type, setType] = useState<FormValues['label']>('Home');
-  const [localAddresses, setLocalAddresses] = useState<AddressView[] | null>(null);
+  const [selectedId, setSelectedId] = useState<string>('');
   const [addAddress, addState] = useAddAddressMutation();
-  const { formState: { errors, isSubmitSuccessful }, handleSubmit, register, reset, setValue } = useForm<FormValues>({
+  const [deleteAddress] = useDeleteAddressMutation();
+
+  const { formState: { errors, isSubmitSuccessful }, handleSubmit, register, reset, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { city: 'San Francisco', isDefault: false, label: 'Home', state: 'California' }
   });
 
-  const displayAddresses = localAddresses ?? data;
+  const isDefaultValue = watch('isDefault');
 
   const save = async (values: FormValues) => {
-    await addAddress(values as AddressInput).unwrap();
-    setLocalAddresses(null);
+    try {
+      const res = await addAddress(values as AddressInput).unwrap();
+      const newId = String((res as Record<string, unknown>).addressId || (res as Record<string, unknown>).id || '');
+      if (newId) setSelectedId(newId);
+    } catch (_) {
+      // Error handling by RTK Query addState
+    }
     reset({ city: 'San Francisco', isDefault: false, label: type, state: 'California' });
   };
 
-  const handleUseCurrentLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setValue('line1', `GPS: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
-          setValue('landmark', 'Current Location');
-        },
-        (err) => {
-          console.warn('Geolocation failed:', err.message);
-        }
-      );
+  const handleDelete = async (addressId: string) => {
+    try {
+      await deleteAddress({ addressId }).unwrap();
+    } catch (_) {
+      // Error handling by RTK Query
     }
-  };
-
-  const handleEdit = (address: AddressView) => {
-    setType(address.label);
-    setValue('label', address.label);
-    setValue('name', address.name);
-    setValue('phone', address.phone);
-    setValue('line1', address.lines[0] ?? '');
-    setValue('line2', address.lines[1] ?? '');
-    setValue('landmark', address.lines[2] ?? '');
-    setValue('city', address.city);
-    setValue('state', address.state);
-    setValue('postalCode', address.postalCode);
-    setValue('isDefault', Boolean(address.isDefault));
-  };
-
-  const handleDelete = (addressId: string) => {
-    setLocalAddresses(displayAddresses.filter((a) => a.addressId !== addressId));
+    if (selectedId === addressId) setSelectedId('');
   };
 
   return (
-    <CommerceShell active="account" title="Addresses">
-      <main className="mx-auto max-w-[1440px] px-4 pb-12 pt-28 md:px-10">
-        <div className="mb-8"><h1 className="mb-2 text-3xl font-bold md:text-4xl">My Addresses</h1><p className="text-[#3e4a3d]">Manage your delivery locations for faster checkout.</p></div>
-        <section className="mb-16">
-          <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold"><MapPin className="h-5 w-5 text-[#006b2c]" />Saved Addresses</h2>
-          {isLoading && <ListSkeleton />}
-          {isError && <CommerceState description="We could not load your addresses. Please retry." onAction={() => void refetch()} title="Addresses unavailable" />}
-          {!isLoading && !isError && displayAddresses.length === 0 && <CommerceState description="Add your first delivery address to speed up checkout." icon="empty" title="No saved addresses" />}
-          {!isLoading && !isError && displayAddresses.length > 0 && <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">{displayAddresses.map((address) => <AddressCard address={address} key={address.addressId} onDelete={handleDelete} onEdit={handleEdit} />)}</div>}
-        </section>
-        <section className="mx-auto max-w-3xl">
-          <form className="commerce-card rounded-2xl p-6 md:p-8" onSubmit={(event) => void handleSubmit(save)(event)}>
-            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-              <div><h2 className="flex items-center gap-2 text-xl font-semibold"><Plus className="h-5 w-5 text-[#006b2c]" />Add New Address</h2><p className="mt-1 text-sm text-[#3e4a3d]">Fill in the details below to save a new location.</p></div>
-              <Button className="gap-2 rounded-xl bg-[#d8f4ce] text-[#006b2c] shadow-none hover:bg-[#c4efad]" onClick={handleUseCurrentLocation} type="button"><Navigation className="h-4 w-4" />Use Current Location</Button>
+    <div className="min-h-screen bg-[#f4fcf0] text-[#171d16] font-sans">
+      <HomeHeader variant="cart" />
+
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pb-16 pt-24 space-y-8">
+
+        {/* Page Title & Subtitle */}
+        <div className="space-y-1">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171d16]">My Addresses</h1>
+          <p className="text-sm font-semibold text-[#8b9888]">
+            Manage your delivery locations for faster checkout.
+          </p>
+        </div>
+
+        {/* Saved Addresses Section */}
+        <div className="space-y-4">
+          <h2 className="flex items-center gap-2 text-base font-extrabold text-[#171d16]">
+            <MapPin className="h-5 w-5 text-[#006b2c]" />
+            <span>Saved Addresses</span>
+          </h2>
+
+          {addresses.length === 0 ? (
+            <div className="rounded-[24px] border border-[#e2ebdE] bg-white p-8 text-center space-y-3 shadow-xs">
+              <MapPin className="mx-auto h-10 w-10 text-[#8b9888]" />
+              <h3 className="text-base font-extrabold text-[#171d16]">No saved addresses found</h3>
+              <p className="text-xs font-semibold text-[#8b9888] max-w-md mx-auto">
+                You have not added any delivery locations yet. Fill out the form below to add your first address.
+              </p>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2"><Field error={errors.name?.message} label="Full Name"><Input className="h-14 rounded-xl bg-[#f4fcf0]" placeholder="e.g. John Doe" {...register('name')} /></Field><Field error={errors.phone?.message} label="Phone Number"><Input className="h-14 rounded-xl bg-[#f4fcf0]" placeholder="e.g. +1 555-0000" type="tel" {...register('phone')} /></Field></div>
-            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3"><Field error={errors.line1?.message} label="House/Flat No"><Input className="h-14 rounded-xl bg-[#f4fcf0]" placeholder="e.g. 4B" {...register('line1')} /></Field><Field error={errors.line2?.message} label="Street/Area"><Input className="h-14 rounded-xl bg-[#f4fcf0] md:col-span-2" placeholder="e.g. Maple Avenue, Green District" {...register('line2')} /></Field></div>
-            <div className="mt-6"><Field error={errors.landmark?.message} label="Landmark (Optional)"><Input className="h-14 rounded-xl bg-[#f4fcf0]" placeholder="e.g. Next to Central Bank" {...register('landmark')} /></Field></div>
-            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3"><Field error={errors.city?.message} label="City"><Input className="h-14 rounded-xl bg-[#f4fcf0]" {...register('city')} /></Field><Field error={errors.state?.message} label="State"><Input className="h-14 rounded-xl bg-[#f4fcf0]" {...register('state')} /></Field><Field error={errors.postalCode?.message} label="PIN Code"><Input className="h-14 rounded-xl bg-[#f4fcf0]" {...register('postalCode')} /></Field></div>
-            <div className="mt-6"><label className="mb-4 block text-sm font-semibold text-[#3e4a3d]">Save address as</label><div className="flex flex-wrap gap-3">{(['Home', 'Work', 'Other'] as const).map((label) => <button className={`commerce-focus flex items-center gap-2 rounded-full border-2 px-6 py-3 font-semibold ${type === label ? 'border-[#006b2c] bg-[#006b2c] text-white' : 'border-[#bdcaba] text-[#3e4a3d] hover:border-[#006b2c]'}`} key={label} onClick={() => { setType(label); setValue('label', label); }} type="button">{label === 'Home' ? <Home className="h-4 w-4" /> : label === 'Work' ? <Briefcase className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}{label}</button>)}</div></div>
-            <label className="mt-6 flex items-center justify-between rounded-xl bg-[#f4fcf0] px-5 py-4"><span className="flex items-center gap-3 font-semibold"><CheckCircle2 className="h-5 w-5 text-[#006b2c]" />Set as default address</span><input className="h-5 w-5 accent-[#006b2c]" type="checkbox" {...register('isDefault')} /></label>
-            <div className="mt-8 flex flex-col gap-4 md:flex-row"><Button className="flex-1 rounded-xl py-4 text-lg" disabled={addState.isLoading} type="submit">{addState.isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : null}Save Address</Button><Button className="rounded-xl border border-[#bdcaba] bg-transparent py-4 text-[#3e4a3d] shadow-none hover:bg-[#eff6ea] md:w-1/3" type="button" variant="secondary" onClick={() => reset()}>Cancel</Button></div>
-            {addState.isError && <p className="mt-4 text-sm font-semibold text-[#93000a]" role="alert">Unable to save this address. Please retry.</p>}
-            {isSubmitSuccessful && !addState.isError && <p className="mt-4 text-sm font-semibold text-[#006b2c]" role="status">Address saved successfully.</p>}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {addresses.map((addr) => {
+                const isSelected = selectedId === addr.addressId || addr.isDefault;
+                const Icon = addr.label === 'Home' ? Home : addr.label === 'Work' ? Briefcase : MapPin;
+                return (
+                  <div
+                    key={addr.addressId}
+                    className={`rounded-[24px] bg-white p-5 shadow-xs transition-all flex flex-col justify-between space-y-4 ${
+                      isSelected ? 'border-2 border-[#006b2c]' : 'border border-[#e2ebdE]'
+                    }`}
+                    onClick={() => setSelectedId(addr.addressId)}
+                  >
+                    <div className="space-y-3">
+                      {/* Card Header Tag & Checkmark */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4 text-[#006b2c]" />
+                          <span className="text-sm font-black text-[#171d16]">{addr.label}</span>
+                          {addr.isDefault && (
+                            <span className="rounded-full bg-[#d8f4ce] px-2.5 py-0.5 text-[10px] font-black text-[#2b4c1d]">
+                              DEFAULT
+                            </span>
+                          )}
+                        </div>
+
+                        <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
+                          isSelected ? 'border-[#006b2c] bg-[#006b2c] text-white' : 'border-[#bdcaba]'
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      </div>
+
+                      {/* Address Body */}
+                      <div>
+                        <h3 className="text-sm font-extrabold text-[#171d16]">{addr.name}</h3>
+                        <p className="text-xs font-semibold text-[#8b9888] leading-relaxed mt-1">
+                          {addr.lines.map((line) => (
+                            <span key={line} className="block">{line}</span>
+                          ))}
+                          <span className="block">{addr.city}, {addr.state} {addr.postalCode}</span>
+                        </p>
+                        <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-[#171d16]">
+                          <Phone className="h-3.5 w-3.5 text-[#006b2c]" />
+                          <span>{addr.phone}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions Footer */}
+                    <div className="flex items-center justify-around border-t border-[#e2ebdE] pt-3 text-xs font-extrabold">
+                      <button className="flex items-center gap-1 text-[#006b2c] hover:underline cursor-pointer" type="button">
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        className="flex items-center gap-1 text-rose-600 hover:underline cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDelete(addr.addressId);
+                        }}
+                        type="button"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Deliver to Selected Address CTA */}
+          <div className="flex justify-end pt-2">
+            <button
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#006b2c] px-8 text-xs font-extrabold text-white shadow-md hover:bg-[#005422] transition-all active:scale-98 cursor-pointer"
+              onClick={() => navigate('/checkout')}
+              type="button"
+            >
+              <span>Deliver to Selected Address</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Add New Address Form Section */}
+        <div className="mx-auto max-w-3xl rounded-[28px] border border-[#e2ebdE] bg-white p-6 sm:p-8 shadow-xs space-y-6">
+          <form onSubmit={(e) => void handleSubmit(save)(e)}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-black text-[#171d16]">
+                  <Plus className="h-5 w-5 text-[#006b2c]" />
+                  <span>Add New Address</span>
+                </h2>
+                <p className="text-xs font-semibold text-[#8b9888] mt-0.5">
+                  Fill in the details below to save a new location.
+                </p>
+              </div>
+
+              <button
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#eff6ea] px-4 py-2 text-xs font-extrabold text-[#006c4a] hover:bg-[#d8f4ce] transition-all shadow-xs shrink-0"
+                type="button"
+              >
+                <Navigation className="h-3.5 w-3.5" />
+                <span>Use Current Location</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field error={errors.name?.message} label="Full Name">
+                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="e.g. John Doe" {...register('name')} />
+                </Field>
+                <Field error={errors.phone?.message} label="Phone Number">
+                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="e.g. +1 555-0000" type="tel" {...register('phone')} />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field error={errors.line1?.message} label="House/Flat No">
+                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="e.g. 4B" {...register('line1')} />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field error={errors.line2?.message} label="Street/Area">
+                    <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="e.g. Maple Avenue, Green District" {...register('line2')} />
+                  </Field>
+                </div>
+              </div>
+
+              <Field error={errors.landmark?.message} label="Landmark (Optional)">
+                <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="e.g. Next to Central Bank" {...register('landmark')} />
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field error={errors.city?.message} label="City">
+                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="San Francisco" {...register('city')} />
+                </Field>
+                <Field error={errors.state?.message} label="State">
+                  <select
+                    className="h-11 rounded-xl bg-[#f8fbf5] border border-[#bdcaba]/60 px-4 text-xs font-bold text-[#171d16] w-full focus:ring-2 focus:ring-[#006b2c] focus:bg-white cursor-pointer"
+                    {...register('state')}
+                  >
+                    <option value="California">California</option>
+                    <option value="New York">New York</option>
+                    <option value="Texas">Texas</option>
+                    <option value="Florida">Florida</option>
+                    <option value="Illinois">Illinois</option>
+                    <option value="Washington">Washington</option>
+                  </select>
+                </Field>
+                <Field error={errors.postalCode?.message} label="PIN Code">
+                  <Input className="h-11 rounded-xl bg-[#f8fbf5] border-[#bdcaba]/60 px-4 text-xs font-bold" placeholder="94105" {...register('postalCode')} />
+                </Field>
+              </div>
+
+              {/* Save Address As */}
+              <div>
+                <label className="block text-xs font-extrabold text-[#3e4a3d] mb-2">Save address as</label>
+                <div className="flex flex-wrap gap-3">
+                  {(['Home', 'Work', 'Other'] as const).map((label) => (
+                    <button
+                      key={label}
+                      className={`flex items-center gap-2 rounded-full border-2 px-5 py-2 text-xs font-extrabold transition-all cursor-pointer ${
+                        type === label
+                          ? 'border-[#006b2c] bg-[#006b2c] text-white shadow-xs'
+                          : 'border-[#bdcaba]/60 bg-white text-[#3e4a3d] hover:border-[#006b2c]'
+                      }`}
+                      onClick={() => { setType(label); setValue('label', label); }}
+                      type="button"
+                    >
+                      {label === 'Home' ? <Home className="h-3.5 w-3.5" /> : label === 'Work' ? <Briefcase className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Default Address Checkbox Switch */}
+              <div className="flex items-center justify-between rounded-2xl bg-[#eff6ea] p-4 border border-[#bdcaba]/30 cursor-pointer" onClick={() => setValue('isDefault', !isDefaultValue)}>
+                <span className="flex items-center gap-2 text-xs font-extrabold text-[#171d16]">
+                  <CheckCircle2 className={`h-4 w-4 transition-colors ${isDefaultValue ? 'text-[#006b2c]' : 'text-[#8b9888]'}`} />
+                  <span>Set as default address</span>
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <input className="sr-only peer" type="checkbox" {...register('isDefault')} />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006b2c]" />
+                </label>
+              </div>
+
+              {/* Submit / Cancel Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-3">
+                <button
+                  className="flex-1 h-12 rounded-2xl bg-[#006b2c] text-sm font-extrabold text-white hover:bg-[#005422] transition-all shadow-md active:scale-98 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                  disabled={addState.isLoading}
+                  type="submit"
+                >
+                  <span>{addState.isLoading ? 'Saving Address...' : 'Save Address'}</span>
+                  <Check className="h-4 w-4 stroke-[3]" />
+                </button>
+                <button
+                  className="sm:w-1/3 h-12 rounded-2xl border-2 border-[#bdcaba]/60 bg-white text-xs font-black text-[#3e4a3d] hover:bg-[#f8fbf5] hover:border-[#006b2c] transition-all cursor-pointer"
+                  onClick={() => reset()}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {addState.isError && <p className="text-xs font-bold text-rose-600">Unable to save address. Please retry.</p>}
+              {isSubmitSuccessful && !addState.isError && <p className="text-xs font-bold text-[#006c4a]">Address saved successfully.</p>}
+            </div>
           </form>
-        </section>
+        </div>
+
       </main>
-    </CommerceShell>
+
+      <HomeFooter />
+    </div>
   );
 };
 
-const AddressCard = ({ address, onDelete, onEdit }: { address: AddressView; onDelete: (id: string) => void; onEdit: (address: AddressView) => void }) => {
-  const Icon = address.label === 'Home' ? Home : address.label === 'Work' ? Briefcase : MapPin;
-  return <article className={`commerce-card p-6 ${address.isDefault ? 'border-2 border-[#006b2c]' : ''}`}><div className="mb-4 flex items-start justify-between"><div className="flex items-center gap-2"><Icon className="h-5 w-5 text-[#006b2c]" /><span className="font-semibold">{address.label}</span>{address.isDefault && <span className="rounded-full bg-[#d8f4ce] px-3 py-1 text-[10px] font-bold text-[#006b2c]">DEFAULT</span>}</div><input aria-label={`Select ${address.label} address`} className="h-5 w-5 accent-[#006b2c]" defaultChecked={address.isDefault} name="delivery_select" type="radio" /></div><div className="mb-6"><h3 className="mb-1 text-xl font-semibold">{address.name}</h3><p className="leading-7 text-[#3e4a3d]">{address.lines.map((line) => <span key={line}>{line}<br /></span>)}{address.city}, {address.state} {address.postalCode}</p><p className="mt-4 flex items-center gap-2 font-semibold"><Phone className="h-4 w-4" />{address.phone}</p></div><div className="flex gap-4 border-t border-[#bdcaba]/50 pt-4"><button className="commerce-focus flex flex-1 items-center justify-center gap-2 rounded-lg py-2 font-semibold text-[#006b2c] hover:bg-[#eff6ea]" onClick={() => onEdit(address)} type="button"><Pencil className="h-4 w-4" />Edit</button><button className="commerce-focus flex flex-1 items-center justify-center gap-2 rounded-lg py-2 font-semibold text-[#93000a] hover:bg-[#fff0f1]" onClick={() => onDelete(address.addressId)} type="button"><Trash2 className="h-4 w-4" />Delete</button></div></article>;
-};
-
-const Field = ({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) => <label className="block space-y-2"><span className="ml-1 block text-sm font-semibold text-[#3e4a3d]">{label}</span>{children}{error && <span className="block text-xs font-semibold text-[#93000a]">{error}</span>}</label>;
+const Field = ({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) => (
+  <label className="block space-y-1">
+    <span className="block text-xs font-extrabold text-[#3e4a3d]">{label}</span>
+    {children}
+    {error && <span className="block text-[11px] font-bold text-rose-600">{error}</span>}
+  </label>
+);
 
 export default function AddressManagementPage() {
-  return <Suspense fallback={<ListSkeleton />}><AddressManagementContent /></Suspense>;
+  return <Suspense fallback={<div className="min-h-screen bg-[#f4fcf0]" />}><AddressManagementContent /></Suspense>;
 }

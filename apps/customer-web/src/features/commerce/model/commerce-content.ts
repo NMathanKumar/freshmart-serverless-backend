@@ -197,39 +197,7 @@ export const cartLines: CartLine[] = [
   }
 ];
 
-export const savedAddresses: AddressView[] = [
-  {
-    addressId: 'home',
-    label: 'Home',
-    name: 'Jane Doe',
-    phone: '+1 555-0123',
-    lines: ['Apt 4B, Emerald Heights', '7th Cross, Green Park Extension', 'Near Central Metro Station'],
-    city: 'San Francisco',
-    state: 'CA',
-    postalCode: '94105',
-    isDefault: true
-  },
-  {
-    addressId: 'work',
-    label: 'Work',
-    name: 'Jane Doe',
-    phone: '+1 555-9876',
-    lines: ['Level 12, Tech Tower Alpha', '45 Silicon Way, North Tech District', 'Main Entrance Lobby'],
-    city: 'San Francisco',
-    state: 'CA',
-    postalCode: '94102'
-  },
-  {
-    addressId: 'other',
-    label: 'Other',
-    name: "Robert Doe (Parent's Home)",
-    phone: '+1 555-4422',
-    lines: ['House 12-A, Rose Villas', 'Maple Avenue, South Bay Area', 'Near Sunset High School'],
-    city: 'Oakland',
-    state: 'CA',
-    postalCode: '94601'
-  }
-];
+export const savedAddresses: AddressView[] = [];
 
 export const productDetail = {
   product: {
@@ -275,6 +243,70 @@ const text = (record: Record<string, unknown>, keys: string[], fallback = '') =>
 const numberValue = (record: Record<string, unknown>, keys: string[], fallback = 0) =>
   keys.map((key) => record[key]).find((value): value is number => typeof value === 'number' && Number.isFinite(value)) ?? fallback;
 
+const CART_STORAGE_KEY = 'freshmart_active_cart_v1';
+
+export const getStoredCart = (): CartLine[] => {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed as CartLine[];
+      }
+    }
+  } catch (_) {
+    // Fallback if localStorage is unavailable
+  }
+  return [];
+};
+
+export const saveStoredCart = (items: CartLine[]): void => {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch (_) {
+    // Storage quota fallback
+  }
+};
+
+export const addOrUpdateStoredCartItem = (newItem: Record<string, unknown>): CartLine[] => {
+  const current = getStoredCart();
+  const productId = String(newItem.productId || newItem.id || `prod-${Date.now()}`);
+  const existingIdx = current.findIndex((item) => item.productId === productId);
+
+  let updated: CartLine[];
+  if (existingIdx >= 0) {
+    const target = current[existingIdx];
+    const newQty = typeof newItem.quantity === 'number' ? newItem.quantity : (target.quantityInCart + 1);
+    const newImg = typeof newItem.imageUrl === 'string' && newItem.imageUrl.length > 0 ? newItem.imageUrl : target.imageUrl;
+    updated = current.map((item, idx) =>
+      idx === existingIdx ? { ...item, quantityInCart: newQty, imageUrl: newImg } : item
+    );
+  } else {
+    const fullItem: CartLine = {
+      productId,
+      name: String(newItem.name || newItem.productName || 'FreshMart Organic Product'),
+      brand: String(newItem.brand || 'FreshMart'),
+      quantity: String(newItem.quantity || '1 Unit'),
+      price: Number(newItem.price ?? 4.99),
+      originalPrice: typeof newItem.originalPrice === 'number' ? newItem.originalPrice : undefined,
+      imageUrl: typeof newItem.imageUrl === 'string' && newItem.imageUrl.length > 0 ? newItem.imageUrl : 'https://lh3.googleusercontent.com/aida-public/b01cfbf2eb5d4e1fa429ed3ee7964b91/product-placeholder.png',
+      quantityInCart: typeof newItem.quantity === 'number' ? newItem.quantity : 1,
+      stockLabel: 'In stock - Delivery in 15 mins'
+    };
+    updated = [...current, fullItem];
+  }
+
+  saveStoredCart(updated);
+  return updated;
+};
+
+export const removeStoredCartItem = (productId: string): CartLine[] => {
+  const current = getStoredCart();
+  const updated = current.filter((item) => item.productId !== productId);
+  saveStoredCart(updated);
+  return updated;
+};
+
 export const mergeProducts = (remote: unknown, fallback: CommerceProduct[]): CommerceProduct[] => {
   const items = Array.isArray(remote)
     ? remote
@@ -303,25 +335,28 @@ export const mergeProducts = (remote: unknown, fallback: CommerceProduct[]): Com
 
 export const mergeCart = (remote: unknown): CartLine[] => {
   const data = isRecord(remote) && isRecord(remote.cart) ? remote.cart : remote;
-  const items = isRecord(data) && Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
-  if (items.length === 0) return [];
+  const items = isRecord(data) && Array.isArray(data.items) ? data.items : [];
+  if (items.length === 0) return getStoredCart();
 
-  return mergeProducts(items, searchProducts).map((product, index) => ({
+  const merged = mergeProducts(items, getStoredCart()).map((product, index) => ({
     ...product,
     quantityInCart: isRecord(items[index]) ? numberValue(items[index], ['quantity', 'quantityInCart'], 1) : 1
   }));
+
+  saveStoredCart(merged);
+  return merged;
 };
 
 export const mergeAddresses = (remote: unknown): AddressView[] => {
   const profile = isRecord(remote) && isRecord(remote.user) ? remote.user : remote;
-  const addresses = isRecord(profile) && Array.isArray(profile.addresses) ? profile.addresses : (Array.isArray(profile) ? profile : []);
+  const addresses = isRecord(profile) && Array.isArray(profile.addresses) ? profile.addresses : [];
   if (addresses.length === 0) return [];
 
   return addresses.filter(isRecord).map((address, index) => {
     return {
-      addressId: text(address, ['addressId', 'id'], `addr-${index + 1}`),
-      label: (text(address, ['label', 'type'], 'Home') as AddressView['label']) || 'Home',
-      name: text(address, ['name', 'recipientName'], 'Customer'),
+      addressId: text(address, ['addressId', 'id'], `addr-${index}`),
+      label: (text(address, ['label', 'type'], 'Home') as AddressView['label']),
+      name: text(address, ['name', 'recipientName'], 'Valued Customer'),
       phone: text(address, ['phone', 'phoneNumber'], ''),
       lines: [text(address, ['line1'], ''), text(address, ['line2'], ''), text(address, ['landmark'], '')].filter(Boolean),
       city: text(address, ['city'], ''),

@@ -1,6 +1,6 @@
 import { ApiClient, ApiError } from '@freshmart/api-sdk';
 import { authApi } from '../../auth/api/auth-api.js';
-import { getEnvironmentUrls, sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
+import { sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
 import {
   activeDevices,
   connectedAccounts,

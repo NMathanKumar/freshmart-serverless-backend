@@ -164,37 +164,71 @@ export const homeApi = authApi.injectEndpoints({
         } catch (error) {
           return { error: toApiError(error) };
         }
-      }
+      },
+      providesTags: ['CustomerHome', 'Cart']
     }),
-    addHomeProductToCart: builder.mutation<Record<string, unknown>, { productId: string }>({
-      queryFn: async ({ productId }) => {
-        try {
-          const product = unwrap(await sdk.catalog.getProduct(productId)) as { data?: Record<string, unknown> } | Record<string, unknown>;
-          const detail = typeof product === 'object' && product !== null && 'data' in product
-            ? product.data as Record<string, unknown>
-            : product as Record<string, unknown>;
+    addHomeProductToCart: builder.mutation<Record<string, unknown>, { productId: string; name?: string; price?: number; brand?: string; imageUrl?: string | null }>({
+      queryFn: async ({ productId, name: inputName, price: inputPrice, brand: inputBrand, imageUrl: inputImageUrl }) => {
+        let price = inputPrice ?? 2.99;
+        let productName = inputName ?? 'FreshMart Item';
+        let imageUrl: string | undefined = typeof inputImageUrl === 'string' ? inputImageUrl : undefined;
+        let brand = inputBrand ?? 'FreshMart';
 
-          return {
-            data: await sdk.cart.saveCart({
-              productId,
-              quantity: 1,
-              price: Number(detail.price ?? 0),
-              productName: String(detail.productName ?? detail.name ?? productId),
-              imageUrl: typeof detail.imageUrl === 'string'
-                ? detail.imageUrl
-                : Array.isArray(detail.images) && typeof detail.images[0] === 'string'
-                  ? detail.images[0]
-                  : undefined,
-              available: Boolean(detail.available ?? true)
-            })
-          };
-        } catch (error) {
-          return { error: toApiError(error) };
+        if (!inputImageUrl || !inputName) {
+          try {
+            const raw = unwrap(await sdk.catalog.getProduct(productId));
+            const detail = typeof raw === 'object' && raw !== null && 'data' in raw
+              ? ((raw as { data: unknown }).data as Record<string, unknown>)
+              : (raw as unknown as Record<string, unknown>);
+            price = Number(detail.price ?? price);
+            productName = String(detail.productName ?? detail.name ?? productName);
+            imageUrl = typeof detail.imageUrl === 'string'
+              ? detail.imageUrl
+              : Array.isArray(detail.images) && typeof detail.images[0] === 'string'
+                ? detail.images[0]
+                : imageUrl;
+            brand = String(detail.brand ?? brand);
+          } catch (_) {
+            const match = defaultProducts.find((p) => p.productId === productId);
+            if (match) {
+              price = match.price;
+              productName = match.name;
+              imageUrl = match.images[0];
+              brand = match.brand;
+            }
+          }
         }
-      }
+
+        // Add to local persistent cart storage with full image details
+        const { addOrUpdateStoredCartItem } = await import('../../commerce/model/commerce-content.js');
+        const updatedLocalCart = addOrUpdateStoredCartItem({
+          productId,
+          productName,
+          name: productName,
+          price,
+          brand,
+          imageUrl
+        });
+
+        try {
+          await sdk.cart.saveCart({
+            productId,
+            quantity: 1,
+            price,
+            productName,
+            imageUrl,
+            available: true
+          });
+        } catch (_) {
+          // Ignore remote unauthenticated errors; local cart is saved
+        }
+
+        return { data: { productId, quantity: 1, items: updatedLocalCart, success: true } };
+      },
+      invalidatesTags: ['CustomerHome' as never, 'Cart' as never, 'CommerceCart' as never]
     })
   }),
-  overrideExisting: false
+  overrideExisting: true
 });
 
 export const { useAddHomeProductToCartMutation, useGetCustomerHomeQuery } = homeApi;
