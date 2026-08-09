@@ -22,9 +22,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.10.5
       - name: Configure AWS credentials via GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -37,10 +34,22 @@ jobs:
         run: npm run build
       - name: Package Lambdas
         run: npm run package
-      - name: Terraform Init
-        run: terraform -chdir=terraform/environments/dev init
-      - name: Terraform Apply
-        run: terraform -chdir=terraform/environments/dev apply -auto-approve
+      - name: Deploy Lambdas
+        run: |
+          for svc in auth product menu inventory cart order payment admin user notification analytics; do
+            zip_path="services/${svc}-service/lambda.zip"
+            fn_name="freshmart-dev-${svc}-service"
+            if [ -f "$zip_path" ]; then
+              echo "Deploying $fn_name..."
+              aws lambda update-function-code \
+                --function-name "$fn_name" \
+                --zip-file "fileb://$zip_path" \
+                --region ap-southeast-1 \
+                --no-cli-pager 2>&1 | grep -E '"FunctionName"|"CodeSize"|"LastModified"|Error' || true
+            else
+              echo "WARNING: $zip_path not found, skipping $fn_name"
+            fi
+          done
       - name: Deploy Frontend
         run: npm run deploy:web
       - name: Verify Web
