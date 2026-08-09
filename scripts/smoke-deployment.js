@@ -30,44 +30,50 @@ const run = async () => {
   success = (await testEndpoint(adminUrl)) && success;
 
   // 2. Test Cognito auth login via SDK
-  console.log('Testing Cognito Authentication flow...');
+  const email = process.env.SMOKE_ADMIN_EMAIL;
+  const password = process.env.SMOKE_ADMIN_PASSWORD;
+
   let token = null;
-  try {
-    const sdk = createFreshMartSdk({
-      authBaseUrl: apiBaseUrl,
-      customerBaseUrl: apiBaseUrl,
-      commerceBaseUrl: apiBaseUrl,
-      sessionAccessor: {
-        getAccessToken: () => null,
-        onUnauthorized: () => {}
+  if (email && password) {
+    console.log('Testing Cognito Authentication flow...');
+    try {
+      const sdk = createFreshMartSdk({
+        authBaseUrl: apiBaseUrl,
+        customerBaseUrl: apiBaseUrl,
+        commerceBaseUrl: apiBaseUrl,
+        sessionAccessor: {
+          getAccessToken: () => null,
+          onUnauthorized: () => {}
+        }
+      });
+
+      const response = await sdk.auth.login({ email, password });
+
+      const session = response.data || response;
+      if (session?.accessToken && session?.user) {
+        console.log(`Cognito authentication succeeded! Welcome ${session.user.fullName || 'Admin'}`);
+        token = session.accessToken;
+      } else {
+        throw new Error('Response did not contain accessToken or user payload');
       }
-    });
-
-    const response = await sdk.auth.login({
-      email: 'mathankumar@gmail.com',
-      password: 'P@ssword'
-    });
-
-    const session = response.data || response;
-    if (session?.accessToken && session?.user) {
-      console.log(`Cognito authentication succeeded! Welcome ${session.user.fullName || 'Admin'}`);
-      token = session.accessToken;
-    } else {
-      throw new Error('Response did not contain accessToken or user payload');
+    } catch (error) {
+      console.error('Cognito login verification failed:', error.message);
+      success = false;
     }
-  } catch (error) {
-    console.error('Cognito login verification failed:', error.message);
-    success = false;
+  } else {
+    console.warn('Skipping Cognito login verification: SMOKE_ADMIN_EMAIL or SMOKE_ADMIN_PASSWORD not set.');
   }
 
-  // 3. Verify API gateway connectivity with token
+  // 3. Verify API gateway connectivity
+  // Public endpoint
+  success = (await testEndpoint(`${apiBaseUrl}/v1/products`, 200)) && success;
+
+  // Authenticated endpoints
   if (token) {
     const headers = { Authorization: `Bearer ${token}` };
     success = (await testEndpoint(`${apiBaseUrl}/v1/menu`, 200, headers)) && success;
-    success = (await testEndpoint(`${apiBaseUrl}/v1/products`, 200, headers)) && success;
   } else {
-    console.error('Skipping authenticated API endpoints checks due to login failure.');
-    success = false;
+    console.warn('Skipping authenticated API endpoints checks.');
   }
 
   if (success) {
