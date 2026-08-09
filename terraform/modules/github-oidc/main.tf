@@ -162,6 +162,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "ses:GetCustomVerificationEmailTemplate",
       "logs:DescribeLogGroups",
       "logs:DescribeMetricFilters",
+      "logs:DescribeQueryDefinitions",
       "logs:ListTagsLogGroup",
       "logs:ListTagsForResource",
       "xray:GetSamplingRules",
