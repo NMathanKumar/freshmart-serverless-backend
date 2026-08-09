@@ -156,6 +156,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "iam:ListAttachedRolePolicies",
       "iam:ListRolePolicies",
       "secretsmanager:DescribeSecret",
+      "secretsmanager:GetResourcePolicy",
       "ssm:DescribeParameters",
       "ssm:GetParameter",
       "ses:GetIdentityVerificationAttributes",
@@ -183,7 +184,8 @@ data "aws_iam_policy_document" "plan_permissions" {
       "cloudfront:ListTagsForResource",
       "iam:ListRoleTags",
       "iam:ListPolicyTags",
-      "synthetics:ListTagsForResource"
+      "synthetics:ListTagsForResource",
+      "budgets:ViewBudget"
     ]
     resources = ["*"]
   }

@@ -169,9 +169,9 @@ module "cloudwatch" {
   dynamodb_tables       = local.cloudwatch_dynamodb_tables
   log_retention_in_days = 30
   alarm_sns_topics = {
-    critical = module.sns.topic_arns["customer_events"]
-    warning  = module.sns.topic_arns["customer_events"]
-    info     = module.sns.topic_arns["customer_events"]
+    critical = module.sns.topic_arns["notification"]
+    warning  = module.sns.topic_arns["notification"]
+    info     = module.sns.topic_arns["notification"]
   }
   tags = local.common_tags
 }
