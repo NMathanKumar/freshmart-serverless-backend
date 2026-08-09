@@ -5,7 +5,7 @@ locals {
       runtime        = "syn-nodejs-5.2"
       handler        = "api-health.handler"
       script_file    = "api-health.js"
-      schedule       = "rate(1 minute)"
+      schedule       = "rate(5 minutes)"
       timeout_sec    = 60
       active_tracing = false
     }

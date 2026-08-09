@@ -172,9 +172,9 @@ export const homeApi = authApi.injectEndpoints({
               ],
               categories,
               featuredProducts,
-              trendingProducts: featuredProducts.slice(0, 4),
+              trendingProducts: featuredProducts,
               offers: [],
-              recommendedProducts: featuredProducts.slice(0, 4),
+              recommendedProducts: featuredProducts,
               recentlyViewed: [],
               cartSummary: {
                 itemCount: Array.isArray((cartResponse as { data?: { items?: unknown[] } })?.data?.items)

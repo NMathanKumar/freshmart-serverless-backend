@@ -21,7 +21,7 @@ const HomePage = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [activeBanner, setActiveBanner] = useState<SlideData | null>(null);
 
-  const query = useGetCustomerHomeQuery();
+  const query = useGetCustomerHomeQuery(undefined, { pollingInterval: 10000 });
   const hasError = query.isError && !query.data;
   const retry = () => void query.refetch();
   const categories = query.data
@@ -127,10 +127,10 @@ const HomePage = () => {
               className="text-2xl leading-10 font-bold tracking-[-0.01em] md:text-[32px]"
               id="trending-heading"
             >
-              {selectedCategoryObj ? `${selectedCategoryObj.name} Products` : 'Trending Now'}
+              {selectedCategoryObj ? `${selectedCategoryObj.name} Products` : 'All Products'}
             </h2>
             <p className="text-base text-[#3e4a3d]">
-              {selectedCategoryObj ? `Showing top picks in ${selectedCategoryObj.name}` : 'Most popular picks this week'}
+              {selectedCategoryObj ? `Showing top picks in ${selectedCategoryObj.name}` : 'Explore our complete fresh organic collection'}
             </p>
           </div>
           <ProductCarousel

@@ -10,11 +10,14 @@
  * @param {object} extraDimensions - Additional dimensions (optional)
  */
 function emitBusinessMetric(name, value, unit = "Count", extraDimensions = {}) {
+  // Strip high-cardinality dimensions to prevent AWS CloudWatch billing alerts
+  const { Category, userId, orderId, requestId, email, url, ...safeDimensions } = extraDimensions;
+  
   const dimensions = {
     Service: process.env.SERVICE_NAME || "unknown",
     Environment: process.env.NODE_ENV || "development",
-    EventType: extraDimensions.EventType || "general",
-    ...extraDimensions,
+    EventType: safeDimensions.EventType || "general",
+    ...safeDimensions,
     MetricVersion: "1"
   };
 
@@ -48,9 +51,11 @@ function emitBusinessMetrics(metricsArray) {
     MetricVersion: "1"
   };
   const entries = metricsArray.map(m => {
+    // Strip high-cardinality dimensions to prevent AWS CloudWatch billing alerts
+    const { Category, userId, orderId, requestId, email, url, ...safeDimensions } = m.extraDimensions || {};
     const dims = {
-      EventType: m.extraDimensions?.EventType || "general",
-      ...m.extraDimensions
+      EventType: safeDimensions.EventType || "general",
+      ...safeDimensions
     };
     return {
       name: m.name,
