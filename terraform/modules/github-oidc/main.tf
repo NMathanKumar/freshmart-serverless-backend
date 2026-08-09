@@ -110,6 +110,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "sqs:GetQueueAttributes",
       "sqs:GetQueueUrl",
       "sqs:ListQueues",
+      "sqs:ListQueueTags",
       "dynamodb:DescribeTable",
       "dynamodb:ListTables",
       "dynamodb:DescribeContinuousBackups",
