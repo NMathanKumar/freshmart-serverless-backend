@@ -9,6 +9,23 @@ const RedirectToAdmin = ({ path }: { path: string }) => {
   }, [path]);
   return null;
 };
+
+// Handles /admin/auth/callback from Cognito - passes OAuth code to admin app
+const AdminAuthCallbackHandler = () => {
+  useEffect(() => {
+    // Preserve the full URL including OAuth code query params and redirect to admin
+    const search = window.location.search;
+    window.location.replace(`${window.location.origin}/admin/auth/callback${search}`);
+  }, []);
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4fcf0' }}>
+      <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div style={{ width: 48, height: 48, border: '3px solid #16a34a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+        <p style={{ color: '#374151', fontWeight: 600 }}>Completing sign in...</p>
+      </div>
+    </div>
+  );
+};
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Skeleton, AppErrorBoundary } from '@freshmart/design-system';
 import * as shared from '@freshmart/shared';
@@ -208,6 +225,9 @@ export const AppRouter = () => (
           <Route path="/users" element={<RedirectToAdmin path="/admin/users" />} />
           <Route path="/analytics" element={<RedirectToAdmin path="/admin/analytics" />} />
           <Route path="/dashboard" element={<RedirectToAdmin path="/admin/dashboard" />} />
+          {/* Must be before /admin/* wildcard to preserve OAuth code */}
+          <Route path="/admin/auth/callback" element={<AdminAuthCallbackHandler />} />
+          <Route path="/admin/sign-in" element={<RedirectToAdmin path="/admin/login" />} />
           <Route path="/admin/*" element={<RedirectToAdmin path="/admin/dashboard" />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
