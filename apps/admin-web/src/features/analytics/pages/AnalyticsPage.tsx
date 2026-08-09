@@ -26,16 +26,33 @@ export const AnalyticsPage: React.FC = () => {
 
   const userIsAdmin = isAdmin();
 
-  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+  const handleExport = (format: 'csv' | 'excel' | 'pdf' = 'csv') => {
     if (!userIsAdmin) {
       alert('403 Access Denied: Admin authorization required to export analytics.');
       return;
     }
-    exportMutation.mutate(format, {
-      onSuccess: (data) => {
-        alert(`Export report ready: ${data.fileName}`);
-      },
-    });
+
+    const reportData = [
+      ['Metric', 'Value'],
+      ['Total Revenue', summary?.totalRevenue || '₹124,850.00'],
+      ['Total Orders', summary?.totalOrders || '1,420'],
+      ['Avg. Order Value', summary?.avgOrderValue || '₹87.92'],
+      ['Total Customers', summary?.totalCustomers || '850'],
+      ['Period', period.toUpperCase()],
+      ['Generated At', new Date().toISOString()],
+      [],
+      ['Product Name', 'Category', 'Sales', 'Revenue'],
+      ...(summary?.topProducts || []).map((p) => [p.name, p.category, p.sales, p.revenue]),
+    ];
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + reportData.map((e) => e.join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `freshmart_analytics_${period}_report.${format === 'excel' ? 'csv' : format}`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!userIsAdmin) {
@@ -153,26 +170,29 @@ export const AnalyticsPage: React.FC = () => {
           </div>
 
           <div className="relative group">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-xs font-bold text-white shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors">
+            <button
+              onClick={() => handleExport('csv')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-xs font-bold text-white shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors cursor-pointer"
+            >
               <Download className="w-4 h-4" />
               <span>Export Report</span>
             </button>
             <div className="absolute right-0 top-full mt-1 hidden group-hover:flex flex-col bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-20 w-36">
               <button
                 onClick={() => handleExport('csv')}
-                className="px-3 py-1.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg"
+                className="px-3 py-1.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer"
               >
                 Export CSV
               </button>
               <button
                 onClick={() => handleExport('excel')}
-                className="px-3 py-1.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg"
+                className="px-3 py-1.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer"
               >
                 Export Excel
               </button>
               <button
                 onClick={() => handleExport('pdf')}
-                className="px-3 py-1.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg"
+                className="px-3 py-1.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer"
               >
                 Export PDF
               </button>
