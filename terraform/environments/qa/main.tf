@@ -160,16 +160,16 @@ module "admin_web" {
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  aws_region            = var.aws_region
-  lambda_functions      = local.cloudwatch_lambda_functions
-  api_id                = local.cloudwatch_api_id
-  api_stage_name        = local.cloudwatch_api_stage_name
-  dynamodb_tables       = local.cloudwatch_dynamodb_tables
-  alarm_actions         = [module.sns.topic_arns["notification"]]
-  ok_actions            = [module.sns.topic_arns["notification"]]
-  tags                  = local.common_tags
+  project_name     = var.project_name
+  environment      = var.environment
+  aws_region       = var.aws_region
+  lambda_functions = local.cloudwatch_lambda_functions
+  api_id           = local.cloudwatch_api_id
+  api_stage_name   = local.cloudwatch_api_stage_name
+  dynamodb_tables  = local.cloudwatch_dynamodb_tables
+  alarm_actions    = [module.sns.topic_arns["notification"]]
+  ok_actions       = [module.sns.topic_arns["notification"]]
+  tags             = local.common_tags
 }
 
 module "eventbridge" {
