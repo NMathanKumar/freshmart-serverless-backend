@@ -593,9 +593,9 @@ export interface AdminListParams {
   sortOrder?: 'asc' | 'desc';
 }
 
-export type AdminCategoryListResponse = { items: AdminCategory[] };
-export type AdminReviewListResponse = { items: AdminReview[] };
-export type AdminCouponListResponse = { items: AdminCoupon[] };
+export type AdminCategoryListResponse = { items: AdminCategory[]; data?: AdminCategory[] };
+export type AdminReviewListResponse = { items: AdminReview[]; data?: AdminReview[] };
+export type AdminCouponListResponse = { items: AdminCoupon[]; data?: AdminCoupon[] };
 export type AdminPurchaseOrderListResponse = ApiEnvelope<AdminPurchaseOrder[]> & { meta: Record<string, unknown> };
 export type AdminDeliveryListResponse = ApiEnvelope<AdminDelivery[]> & { meta: Record<string, unknown> };
 export type AdminWarehouseListResponse = ApiEnvelope<AdminWarehouse[]> & { meta?: Record<string, unknown> };
