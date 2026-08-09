@@ -173,7 +173,7 @@ module "cloudwatch" {
     warning  = module.sns.topic_arns["customer_events"]
     info     = module.sns.topic_arns["customer_events"]
   }
-  tags                  = local.common_tags
+  tags = local.common_tags
 }
 
 module "eventbridge" {

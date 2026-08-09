@@ -55,7 +55,7 @@ data "aws_iam_policy_document" "plan_trust" {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values   = [
-        "repo:${var.github_org_repo}:pull_request"
+        "repo:${var.github_org_repo}:pull_request*"
       ]
     }
   }
@@ -87,7 +87,7 @@ data "aws_iam_policy_document" "plan_permissions" {
     ]
   }
 
-  # Read-Only Infrastructure Metadata for terraform plan
+  # Read-Only Infrastructure Metadata for terraform plan state refresh
   statement {
     sid       = "ReadOnlyInfrastructureMetadata"
     effect    = "Allow"
@@ -95,13 +95,40 @@ data "aws_iam_policy_document" "plan_permissions" {
       "lambda:GetFunction",
       "lambda:GetFunctionConfiguration",
       "lambda:GetAlias",
+      "lambda:ListFunctions",
       "cloudfront:GetDistribution",
       "s3:GetBucket*",
       "s3:ListBucket",
       "cloudwatch:DescribeAlarms",
       "cloudwatch:GetMetricData",
+      "cloudwatch:ListMetrics",
       "cognito-idp:DescribeUserPool",
-      "cognito-idp:DescribeUserPoolClient"
+      "cognito-idp:DescribeUserPoolClient",
+      "sqs:GetQueueAttributes",
+      "sqs:GetQueueUrl",
+      "sqs:ListQueues",
+      "dynamodb:DescribeTable",
+      "dynamodb:ListTables",
+      "dynamodb:DescribeContinuousBackups",
+      "dynamodb:DescribeTimeToLive",
+      "apigateway:GET",
+      "sns:GetTopicAttributes",
+      "sns:ListTopics",
+      "sns:ListSubscriptionsByTopic",
+      "events:DescribeRule",
+      "events:ListRules",
+      "events:ListTargetsByRule",
+      "synthetics:DescribeCanaries",
+      "synthetics:GetCanaryRuns",
+      "iam:GetRole",
+      "iam:GetPolicy",
+      "iam:GetPolicyVersion",
+      "iam:ListAttachedRolePolicies",
+      "secretsmanager:DescribeSecret",
+      "ssm:DescribeParameters",
+      "ssm:GetParameter",
+      "ses:GetIdentityVerificationAttributes",
+      "ses:GetCustomVerificationEmailTemplate"
     ]
     resources = ["*"]
   }
