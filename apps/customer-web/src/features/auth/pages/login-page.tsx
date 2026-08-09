@@ -36,9 +36,9 @@ const LoginPage = () => {
       setTimeout(() => {
         const urls = getEnvironmentUrls();
         if (isAdmin) {
-          const adminTarget = window.location.hostname.includes('admin')
+          const adminTarget = window.location.hostname.includes('admin') || window.location.pathname.startsWith('/admin')
             ? '/admin/dashboard'
-            : `${urls.adminWebUrl}/admin/dashboard`;
+            : `${urls.adminWebUrl.replace(/\/+$/, '')}/dashboard`;
           window.location.assign(adminTarget);
         } else {
           navigate('/');

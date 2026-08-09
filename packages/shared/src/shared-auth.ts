@@ -56,9 +56,12 @@ export const getEnvironmentUrls = () => {
     // ignore
   }
 
+  const cleanOrigin = origin.replace(/\/+$/, '');
+  const adminWebUrl = cleanOrigin.endsWith('/admin') ? cleanOrigin : `${cleanOrigin}/admin`;
+
   return {
-    customerWebUrl: origin + '/',
-    adminWebUrl: origin + '/admin/',
+    customerWebUrl: cleanOrigin + '/',
+    adminWebUrl,
     authApiBaseUrl,
     adminApiBaseUrl,
     commerceApiBaseUrl

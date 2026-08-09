@@ -44,12 +44,16 @@ const RequireAdminSession = () => {
   return null;
 };
 
+const basename = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') ? '/admin' : undefined;
+
 export const AppRouter = () => (
-  <BrowserRouter>
+  <BrowserRouter basename={basename}>
     <Suspense fallback={<RouteSkeleton />}>
       <AppErrorBoundary>
         <Routes>
         <Route element={<RequireAdminSession />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path={adminRoutePaths.dashboard} element={<DashboardPage />} />
         <Route path={adminRoutePaths.products} element={<ProductsPage />} />
         <Route path={adminRoutePaths.categories} element={<CategoriesPage />} />
@@ -66,7 +70,7 @@ export const AppRouter = () => (
         <Route path={adminRoutePaths.roles} element={<RolesPage />} />
         <Route path={adminRoutePaths.settings} element={<SettingsPage />} />
         </Route>
-        <Route path="*" element={<Navigate replace to={adminRoutePaths.dashboard} />} />
+        <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
       </AppErrorBoundary>
     </Suspense>
