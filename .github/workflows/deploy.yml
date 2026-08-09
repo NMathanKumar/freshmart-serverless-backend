@@ -46,6 +46,16 @@ jobs:
                 --zip-file "fileb://$zip_path" \
                 --region ap-southeast-1 \
                 --no-cli-pager 2>&1 | grep -E '"FunctionName"|"CodeSize"|"LastModified"|Error' || true
+              # Wait for code update to complete before updating config
+              aws lambda wait function-updated \
+                --function-name "$fn_name" \
+                --region ap-southeast-1 || true
+              # Enforce correct handler (src/lambda.handler) — prevents index.handler drift
+              aws lambda update-function-configuration \
+                --function-name "$fn_name" \
+                --handler "src/lambda.handler" \
+                --region ap-southeast-1 \
+                --no-cli-pager 2>&1 | grep -E '"Handler"|"LastModified"|Error' || true
             else
               echo "WARNING: $zip_path not found, skipping $fn_name"
             fi
