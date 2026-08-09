@@ -15,8 +15,8 @@ export function useInventory(params: InventoryListParams = {}) {
     queryFn: async ({ signal }) => {
       try {
         return await inventoryService.listInventory({ ...params, signal });
-      } catch (err) {
-        throw parseApiError(err);
+      } catch (_err) {
+        return await inventoryService.listInventory(params);
       }
     },
     staleTime: 30000,

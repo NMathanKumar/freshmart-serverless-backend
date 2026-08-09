@@ -161,6 +161,95 @@ export class InventoryService {
       });
     }
 
+    if (!items || items.length === 0) {
+      items = [
+        {
+          id: 'PROD-001',
+          name: 'Fresh Organic Fuji Apples',
+          sku: 'SKU-FM-APP01',
+          category: 'Fresh Produce',
+          warehouse: 'WH-MAIN',
+          stock: 100,
+          maxStock: 300,
+          reserved: 5,
+          unit: 'units',
+          status: 'IN_STOCK',
+          image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=80&auto=format&fit=crop&q=80',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'PROD-002',
+          name: 'Farm Fresh Whole Milk',
+          sku: 'SKU-FM-MLK02',
+          category: 'Dairy & Eggs',
+          warehouse: 'WH-MAIN',
+          stock: 150,
+          maxStock: 450,
+          reserved: 10,
+          unit: 'units',
+          status: 'IN_STOCK',
+          image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=80&auto=format&fit=crop&q=80',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'PROD-003',
+          name: 'Artisanal Whole Wheat Bread',
+          sku: 'SKU-FM-BRD03',
+          category: 'Bakery',
+          warehouse: 'WH-MAIN',
+          stock: 80,
+          maxStock: 240,
+          reserved: 2,
+          unit: 'units',
+          status: 'IN_STOCK',
+          image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&auto=format&fit=crop&q=80',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'PROD-004',
+          name: 'Raw Organic Wildflower Honey',
+          sku: 'SKU-FM-HNY04',
+          category: 'Organic Staples',
+          warehouse: 'WH-MAIN',
+          stock: 60,
+          maxStock: 180,
+          reserved: 0,
+          unit: 'units',
+          status: 'IN_STOCK',
+          image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=80&auto=format&fit=crop&q=80',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'PROD-005',
+          name: 'Cold-Pressed Organic Orange Juice',
+          sku: 'SKU-FM-ORG05',
+          category: 'Beverages',
+          warehouse: 'WH-MAIN',
+          stock: 45,
+          maxStock: 150,
+          reserved: 1,
+          unit: 'units',
+          status: 'IN_STOCK',
+          image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=80&auto=format&fit=crop&q=80',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'PROD-006',
+          name: 'Organic Hass Avocados (Pack of 3)',
+          sku: 'SKU-FM-AVO06',
+          category: 'Fresh Produce',
+          warehouse: 'WH-MAIN',
+          stock: 8,
+          maxStock: 100,
+          reserved: 2,
+          unit: 'units',
+          status: 'LOW_STOCK',
+          image: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=80&auto=format&fit=crop&q=80',
+          createdAt: new Date().toISOString()
+        }
+      ];
+    }
+
     return items;
   }
 
