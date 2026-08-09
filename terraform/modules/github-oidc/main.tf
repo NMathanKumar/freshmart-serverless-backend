@@ -126,6 +126,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "cognito-idp:GetUserPoolDomain",
       "cognito-idp:GetGroup",
       "cognito-idp:ListGroups",
+      "cognito-idp:GetUICustomization",
       "cognito-identity:DescribeIdentityPool",
       "cognito-identity:GetIdentityPoolRoles",
       "sqs:GetQueueAttributes",
