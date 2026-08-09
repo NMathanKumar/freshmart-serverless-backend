@@ -55,7 +55,10 @@ data "aws_iam_policy_document" "plan_trust" {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values   = [
-        "repo:${var.github_org_repo}:pull_request*"
+        "repo:${var.github_org_repo}:pull_request*",
+        "repo:${var.github_org_repo}:environment:dev",
+        "repo:${var.github_org_repo}:environment:qa",
+        "repo:${var.github_org_repo}:environment:prod"
       ]
     }
   }
@@ -128,7 +131,11 @@ data "aws_iam_policy_document" "plan_permissions" {
       "ssm:DescribeParameters",
       "ssm:GetParameter",
       "ses:GetIdentityVerificationAttributes",
-      "ses:GetCustomVerificationEmailTemplate"
+      "ses:GetCustomVerificationEmailTemplate",
+      "logs:DescribeLogGroups",
+      "logs:DescribeMetricFilters",
+      "xray:GetSamplingRules",
+      "cloudwatch:GetDashboard"
     ]
     resources = ["*"]
   }
