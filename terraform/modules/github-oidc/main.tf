@@ -148,6 +148,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "events:ListRules",
       "events:ListTargetsByRule",
       "synthetics:DescribeCanaries",
+      "synthetics:GetCanary",
       "synthetics:GetCanaryRuns",
       "iam:GetRole",
       "iam:GetRolePolicy",
@@ -157,6 +158,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "iam:ListRolePolicies",
       "secretsmanager:DescribeSecret",
       "secretsmanager:GetResourcePolicy",
+      "secretsmanager:GetSecretValue",
       "ssm:DescribeParameters",
       "ssm:GetParameter",
       "ses:GetIdentityVerificationAttributes",
@@ -185,7 +187,8 @@ data "aws_iam_policy_document" "plan_permissions" {
       "iam:ListRoleTags",
       "iam:ListPolicyTags",
       "synthetics:ListTagsForResource",
-      "budgets:ViewBudget"
+      "budgets:ViewBudget",
+      "budgets:ListTagsForResource"
     ]
     resources = ["*"]
   }
