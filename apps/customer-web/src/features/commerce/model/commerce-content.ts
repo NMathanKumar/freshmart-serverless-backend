@@ -303,32 +303,30 @@ export const mergeProducts = (remote: unknown, fallback: CommerceProduct[]): Com
 
 export const mergeCart = (remote: unknown): CartLine[] => {
   const data = isRecord(remote) && isRecord(remote.cart) ? remote.cart : remote;
-  const items = isRecord(data) && Array.isArray(data.items) ? data.items : [];
-  if (items.length === 0) return cartLines;
+  const items = isRecord(data) && Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+  if (items.length === 0) return [];
 
-  return mergeProducts(items, cartLines).map((product, index) => ({
+  return mergeProducts(items, searchProducts).map((product, index) => ({
     ...product,
-    quantityInCart: isRecord(items[index]) ? numberValue(items[index], ['quantity', 'quantityInCart'], cartLines[index]?.quantityInCart ?? 1) : cartLines[index]?.quantityInCart ?? 1
+    quantityInCart: isRecord(items[index]) ? numberValue(items[index], ['quantity', 'quantityInCart'], 1) : 1
   }));
 };
 
 export const mergeAddresses = (remote: unknown): AddressView[] => {
   const profile = isRecord(remote) && isRecord(remote.user) ? remote.user : remote;
-  const addresses = isRecord(profile) && Array.isArray(profile.addresses) ? profile.addresses : [];
-  if (addresses.length === 0) return savedAddresses;
+  const addresses = isRecord(profile) && Array.isArray(profile.addresses) ? profile.addresses : (Array.isArray(profile) ? profile : []);
+  if (addresses.length === 0) return [];
 
   return addresses.filter(isRecord).map((address, index) => {
-    const fallback = savedAddresses[index % savedAddresses.length] ?? savedAddresses[0];
     return {
-      ...fallback,
-      addressId: text(address, ['addressId', 'id'], fallback.addressId),
-      label: text(address, ['label', 'type'], fallback.label) as AddressView['label'],
-      name: text(address, ['name', 'recipientName'], fallback.name),
-      phone: text(address, ['phone', 'phoneNumber'], fallback.phone),
-      lines: [text(address, ['line1'], fallback.lines[0]), text(address, ['line2'], fallback.lines[1]), text(address, ['landmark'], fallback.lines[2])].filter(Boolean),
-      city: text(address, ['city'], fallback.city),
-      state: text(address, ['state'], fallback.state),
-      postalCode: text(address, ['postalCode', 'pinCode'], fallback.postalCode),
+      addressId: text(address, ['addressId', 'id'], `addr-${index + 1}`),
+      label: (text(address, ['label', 'type'], 'Home') as AddressView['label']) || 'Home',
+      name: text(address, ['name', 'recipientName'], 'Customer'),
+      phone: text(address, ['phone', 'phoneNumber'], ''),
+      lines: [text(address, ['line1'], ''), text(address, ['line2'], ''), text(address, ['landmark'], '')].filter(Boolean),
+      city: text(address, ['city'], ''),
+      state: text(address, ['state'], ''),
+      postalCode: text(address, ['postalCode', 'pinCode'], ''),
       isDefault: Boolean(address.isDefault ?? index === 0)
     };
   });

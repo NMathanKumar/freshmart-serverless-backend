@@ -17,6 +17,7 @@ const CheckoutPaymentContent = () => {
   const navigate = useNavigate();
   const { data, isError, isLoading, refetch } = useGetCheckoutQuery();
   const [selectedMethod, setSelectedMethod] = useState('CARD');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createPayment, paymentState] = useCreatePaymentMutation();
   const totals = useMemo(() => {
     const subtotal = data?.cart.reduce((sum, item) => sum + item.price * item.quantityInCart, 0) ?? 0;
@@ -25,13 +26,25 @@ const CheckoutPaymentContent = () => {
   }, [data]);
 
   const pay = async () => {
-    await createPayment({ orderId: `FM-${Date.now()}`, paymentMethod: selectedMethod }).unwrap().catch(() => undefined);
-    navigate('/checkout/confirmation');
+    setErrorMessage(null);
+    try {
+      const orderId = `FM-${Date.now()}`;
+      await createPayment({ orderId, paymentMethod: selectedMethod }).unwrap();
+      navigate('/checkout/confirmation');
+    } catch (err: any) {
+      console.error('Payment processing error:', err);
+      setErrorMessage(err?.data?.detail || err?.message || 'Payment processing failed. Please try again.');
+    }
   };
 
   return (
     <CommerceShell active="account" showBack title="Payment">
       <main className="mx-auto max-w-[1440px] px-4 pb-12 pt-28 md:px-10">
+        {errorMessage && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800">
+            {errorMessage}
+          </div>
+        )}
         {isLoading && <ListSkeleton count={2} />}
         {isError && <CommerceState description="We could not load checkout details. Please retry." onAction={() => void refetch()} title="Checkout unavailable" />}
         {!isLoading && !isError && data && (

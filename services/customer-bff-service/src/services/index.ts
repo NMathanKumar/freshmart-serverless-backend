@@ -397,7 +397,8 @@ export class HttpCustomerGateway implements DownstreamGateway {
   async getHome(customerId: string, authorization?: string): Promise<HomePageView> {
     try {
       const [categories, productsRes, cartRes, promotions] = await Promise.all([
-        this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/products', authorization, []),
+        this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/api/v1/categories', authorization, undefined)
+          .catch(() => this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/categories', authorization, [])),
         this.request<Record<string, unknown> | Array<Record<string, unknown>>>(this.config.catalogBaseUrl, '/products', authorization, []),
         this.request<Record<string, unknown>>(this.config.cartBaseUrl, '/cart', authorization, { items: [], grandTotal: 0 }),
         this.request<Array<Record<string, unknown>>>(this.config.promotionsBaseUrl, '/promotions', authorization, [])
@@ -507,7 +508,8 @@ export class HttpCustomerGateway implements DownstreamGateway {
 
   async getProfile(customerId: string, authorization?: string): Promise<ProfileView> {
     const [userRes, ordersRes, wishlist] = await Promise.all([
-      this.request<Record<string, unknown>>(this.config.userBaseUrl, '/users/profile', authorization, {}),
+      this.request<Record<string, unknown>>(this.config.userBaseUrl, '/api/v1/users/profile', authorization, undefined)
+        .catch(() => this.request<Record<string, unknown>>(this.config.userBaseUrl, '/users/profile', authorization, {})),
       this.request<Array<Record<string, unknown>> | Record<string, unknown>>(this.config.orderBaseUrl, '/orders', authorization, []),
       this.request<Array<Record<string, unknown>>>(this.config.wishlistBaseUrl, '/wishlist', authorization, [])
     ]);
@@ -584,14 +586,18 @@ export class HttpCustomerGateway implements DownstreamGateway {
   }
 
   async getWishlist(customerId: string, authorization?: string): Promise<WishlistView> {
-    const wishlist = await this.request<Array<Record<string, unknown>>>(this.config.wishlistBaseUrl, '/wishlist', authorization, []);
+    const wishlist = await this.request<Array<Record<string, unknown>>>(this.config.wishlistBaseUrl, `/api/v1/wishlist/${customerId}`, authorization, undefined)
+      .catch(() => this.request<Array<Record<string, unknown>>>(this.config.wishlistBaseUrl, `/wishlist/${customerId}`, authorization, undefined))
+      .catch(() => this.request<Array<Record<string, unknown>>>(this.config.wishlistBaseUrl, '/wishlist', authorization, []));
     return {
       items: Array.isArray(wishlist) ? wishlist : []
     };
   }
 
   async getNotifications(customerId: string, authorization?: string): Promise<NotificationsView> {
-    const notifications = await this.request<Array<Record<string, unknown>>>(this.config.notificationBaseUrl, '/notifications', authorization, []);
+    const notifications = await this.request<Array<Record<string, unknown>>>(this.config.notificationBaseUrl, `/api/v1/notifications/${customerId}`, authorization, undefined)
+      .catch(() => this.request<Array<Record<string, unknown>>>(this.config.notificationBaseUrl, `/notifications/${customerId}`, authorization, undefined))
+      .catch(() => this.request<Array<Record<string, unknown>>>(this.config.notificationBaseUrl, '/notifications', authorization, []));
     return {
       notifications: Array.isArray(notifications) ? notifications : []
     };

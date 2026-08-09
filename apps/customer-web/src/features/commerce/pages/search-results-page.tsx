@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { SlidersHorizontal, SortAsc, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@freshmart/design-system';
+import { useSearchParams } from 'react-router-dom';
 import { useSearchProductsQuery } from '../api/commerce-api.js';
 import { CommerceProductCard } from '../components/commerce-product-card.js';
 import { CommerceSearchBar, CommerceShell } from '../components/commerce-layout.js';
@@ -9,7 +10,8 @@ import { CommerceState, ProductGridSkeleton } from '../components/commerce-state
 const chips = ['All Results', 'Hass Avocados', 'Avocado Oil', 'Organic Dips', 'Ready to Eat', 'Bulk Packs'];
 
 const SearchResultsContent = () => {
-  const query = new URLSearchParams(window.location.search).get('q') ?? 'Organic Avocados';
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get('q') || 'Organic Avocados';
   const { data = [], isError, isLoading, refetch } = useSearchProductsQuery({ query });
 
   return (
@@ -19,7 +21,7 @@ const SearchResultsContent = () => {
         <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-center">
           <div>
             <h1 className="mb-1 text-2xl font-bold leading-8 text-[#171d16] md:text-4xl md:leading-10">Results for "{query}"</h1>
-            <p className="text-base text-[#3e4a3d]">Showing 24 premium organic items</p>
+            <p className="text-base text-[#3e4a3d]">Showing {data.length} {data.length === 1 ? 'item' : 'items'}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button className="gap-2 rounded-full border border-[#bdcaba] bg-white text-[#171d16] shadow-none hover:bg-[#eff6ea]" variant="secondary"><SlidersHorizontal className="h-4 w-4" />Filters</Button>

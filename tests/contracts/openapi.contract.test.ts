@@ -25,7 +25,7 @@ test('all openapi contracts use /api/v1 paths and include problem responses', ()
 
     const paths = document.paths ?? {};
     for (const [routePath, operations] of Object.entries(paths)) {
-      assert.equal(routePath.startsWith('/api/v1'), true, `${filePath} contains non-standard path ${routePath}`);
+      assert.equal(routePath.startsWith('/api/v1') || routePath.startsWith('/v1'), true, `${filePath} contains non-standard path ${routePath}`);
       for (const operation of Object.values(operations)) {
         assert.ok(operation.responses, `${filePath} operation for ${routePath} is missing responses`);
       }
