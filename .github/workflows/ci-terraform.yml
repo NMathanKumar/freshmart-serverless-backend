@@ -24,8 +24,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: [dev, qa, prod]
-    
+        include:
+          - environment: dev
+            iam_role: arn:aws:iam::769044546162:role/freshmart-github-ci-dev-role
+          - environment: qa
+            iam_role: arn:aws:iam::769044546162:role/freshmart-github-ci-qa-role
+          - environment: prod
+            iam_role: arn:aws:iam::769044546162:role/freshmart-github-ci-prod-role
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -35,10 +41,10 @@ jobs:
         with:
           terraform_version: 1.10.5
 
-      - name: Configure AWS Credentials via GitHub OIDC (PR Plan Role)
+      - name: Configure AWS Credentials via GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::769044546162:role/freshmart-github-ci-plan-role
+          role-to-assume: ${{ matrix.iam_role }}
           aws-region: ap-southeast-1
           role-session-name: GitHubActions-TerraformPlan-${{ matrix.environment }}
 
