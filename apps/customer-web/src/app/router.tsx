@@ -202,6 +202,10 @@ export const AppRouter = () => (
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/inventory" element={<RedirectToAdmin path="/admin/inventory" />} />
+          <Route path="/products" element={<RedirectToAdmin path="/admin/products" />} />
+          <Route path="/orders" element={<RedirectToAdmin path="/admin/orders" />} />
+          <Route path="/users" element={<RedirectToAdmin path="/admin/users" />} />
           <Route path="/analytics" element={<RedirectToAdmin path="/admin/analytics" />} />
           <Route path="/dashboard" element={<RedirectToAdmin path="/admin/dashboard" />} />
           <Route path="/admin/*" element={<RedirectToAdmin path="/admin/dashboard" />} />
