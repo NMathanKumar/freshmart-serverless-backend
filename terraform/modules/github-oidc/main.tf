@@ -135,8 +135,27 @@ data "aws_iam_policy_document" "plan_permissions" {
       "ses:GetCustomVerificationEmailTemplate",
       "logs:DescribeLogGroups",
       "logs:DescribeMetricFilters",
+      "logs:ListTagsLogGroup",
+      "logs:ListTagsForResource",
       "xray:GetSamplingRules",
-      "cloudwatch:GetDashboard"
+      "xray:ListTagsForResource",
+      "cloudwatch:GetDashboard",
+      "cloudwatch:ListTagsForResource",
+      "sns:ListTagsForResource",
+      "ssm:ListTagsForResource",
+      "ssm:GetParameters",
+      "lambda:ListTags",
+      "lambda:GetFunctionEventInvokeConfig",
+      "lambda:GetFunctionConcurrency",
+      "lambda:GetPolicy",
+      "dynamodb:ListTagsOfResource",
+      "events:ListTagsForResource",
+      "cognito-idp:ListTagsForResource",
+      "secretsmanager:ListSecretVersionIds",
+      "cloudfront:ListTagsForResource",
+      "iam:ListRoleTags",
+      "iam:ListPolicyTags",
+      "synthetics:ListTagsForResource"
     ]
     resources = ["*"]
   }
