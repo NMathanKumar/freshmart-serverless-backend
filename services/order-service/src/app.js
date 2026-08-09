@@ -25,6 +25,7 @@ module.exports = createServiceApp({
 
     app.use('/admin/orders', adminRouter);
     app.use('/v1/admin/orders', adminRouter);
+    app.use('/', analyticsRouter);
     app.use('/admin/analytics', analyticsRouter);
     app.use('/v1/admin/analytics', analyticsRouter);
     app.use('/orders/fulfillments', fulfillRouter);
