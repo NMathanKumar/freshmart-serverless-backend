@@ -1,6 +1,6 @@
 import { ApiClient, ApiError, createFreshMartSdk } from '@freshmart/api-sdk';
 import { authApi } from '../../auth/api/auth-api.js';
-import { isAuthenticated, sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
+import { getEnvironmentUrls, isAuthenticated, sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
 import {
   categoryProducts,
   mergeAddresses,
