@@ -69,6 +69,11 @@ resource "aws_lambda_function" "this" {
   }
 
   lifecycle {
+    # filename is an absolute local path that differs between dev machines (Windows)
+    # and CI runners (Linux). Ignoring it prevents false drift in terraform plan
+    # while source_code_hash continues to detect real Lambda package changes.
+    ignore_changes = [filename]
+
     precondition {
       condition     = var.runtime == "nodejs22.x"
       error_message = "Lambda runtime must be nodejs22.x."
