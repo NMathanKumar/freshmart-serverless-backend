@@ -59,6 +59,8 @@ export const AppRouter = () => (
         <Route path="/privacy-security" element={<RequireAuth><PrivacySecurityPage /></RequireAuth>} />
         <Route path="/system-states" element={<SystemStatesPage />} />
         <Route path={authPaths.login} element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/sign-in" element={<LoginPage />} />
         <Route path={authPaths.register} element={<RegisterPage />} />
         <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
         <Route path={authPaths.verifyEmail} element={<VerifyEmailPage />} />
