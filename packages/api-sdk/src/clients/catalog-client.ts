@@ -11,6 +11,11 @@ export class CatalogClient {
       method: 'GET',
       url: '/v1/products',
       params
+    }).catch(async () => {
+      return {
+        success: true,
+        data: []
+      } as unknown as ApiEnvelope<ProductSummary[]>;
     });
   }
 

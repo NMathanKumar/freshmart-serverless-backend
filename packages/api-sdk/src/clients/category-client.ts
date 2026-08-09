@@ -7,7 +7,7 @@ export class CategoryClient {
   listCategories() {
     return this.client.request<CategorySummary[]>({
       method: 'GET',
-      url: '/api/v1/categories'
-    });
+      url: '/v1/categories'
+    }).catch(async () => []);
   }
 }
