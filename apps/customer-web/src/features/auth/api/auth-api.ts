@@ -1,6 +1,6 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 import { ApiClient, ApiError, createFreshMartSdk, type AuthSessionResponse } from '@freshmart/api-sdk';
-import { sharedSessionAccessor as authSessionAccessor, saveSession as saveAuthSession } from '@freshmart/shared';
+import { getEnvironmentUrls, sharedSessionAccessor as authSessionAccessor, saveSession as saveAuthSession } from '@freshmart/shared';
 
 type ApiEnvelope<T> = T | { data: T };
 
@@ -25,7 +25,8 @@ export interface VerifyInput {
   accessToken?: string;
 }
 
-const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL ?? 'http://localhost:3000';
+const envUrls = getEnvironmentUrls();
+const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL || envUrls.authApiBaseUrl;
 const sdk = createFreshMartSdk({ authBaseUrl, sessionAccessor: authSessionAccessor });
 const authTransport = new ApiClient(authBaseUrl, authSessionAccessor);
 

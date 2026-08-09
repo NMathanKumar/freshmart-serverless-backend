@@ -1,6 +1,6 @@
 import { ApiClient, ApiError, createFreshMartSdk } from '@freshmart/api-sdk';
 import { authApi } from '../../auth/api/auth-api.js';
-import { sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
+import { getEnvironmentUrls, sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
 import {
   categoryProducts,
   mergeAddresses,
@@ -42,11 +42,12 @@ export interface AddressInput {
   isDefault: boolean;
 }
 
-const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL ?? 'http://localhost:3000';
-const customerBaseUrl = import.meta.env.VITE_CUSTOMER_API_BASE_URL ?? authBaseUrl;
-const commerceBaseUrl = import.meta.env.VITE_COMMERCE_API_BASE_URL ?? customerBaseUrl;
-const userBaseUrl = import.meta.env.VITE_USER_API_BASE_URL ?? customerBaseUrl;
-const paymentBaseUrl = import.meta.env.VITE_PAYMENT_API_BASE_URL ?? customerBaseUrl;
+const envUrls = getEnvironmentUrls();
+const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL || envUrls.authApiBaseUrl;
+const customerBaseUrl = import.meta.env.VITE_CUSTOMER_API_BASE_URL || envUrls.commerceApiBaseUrl;
+const commerceBaseUrl = import.meta.env.VITE_COMMERCE_API_BASE_URL || envUrls.commerceApiBaseUrl;
+const userBaseUrl = import.meta.env.VITE_USER_API_BASE_URL || envUrls.commerceApiBaseUrl;
+const paymentBaseUrl = import.meta.env.VITE_PAYMENT_API_BASE_URL || envUrls.commerceApiBaseUrl;
 
 const sdk = createFreshMartSdk({ authBaseUrl, customerBaseUrl, commerceBaseUrl, sessionAccessor: authSessionAccessor });
 const commerceTransport = new ApiClient(commerceBaseUrl, authSessionAccessor);
