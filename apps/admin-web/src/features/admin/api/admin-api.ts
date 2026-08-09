@@ -93,7 +93,7 @@ export const updateCustomerStatus = async (customerId: string, status: string) =
   adminSdk.admin.updateCustomerStatus(customerId, status as AdminCustomerStatus);
 
 export const fetchAdminCategories = async (params: AdminListParams = {}): Promise<AdminCategoryListResponse> =>
-  adminSdk.admin.listCategories(params);
+  adminSdk.admin.listCategories(params as Record<string, unknown>) as unknown as Promise<AdminCategoryListResponse>;
 
 export const createCategory = async (payload: Record<string, unknown>) =>
   adminSdk.admin.createCategory(payload);
@@ -105,7 +105,7 @@ export const deleteCategory = async (id: string) =>
   adminSdk.admin.deleteCategory(id);
 
 export const fetchAdminReviews = async (params: AdminListParams = {}): Promise<AdminReviewListResponse> =>
-  adminSdk.admin.listReviews(params);
+  adminSdk.admin.listReviews(params as Record<string, unknown>) as unknown as Promise<AdminReviewListResponse>;
 
 export const moderateReview = async (id: string, payload: Record<string, unknown>) =>
   adminSdk.admin.updateReview(id, payload);
@@ -114,7 +114,7 @@ export const deleteReview = async (id: string) =>
   adminSdk.admin.deleteReview(id);
 
 export const fetchAdminCoupons = async (params: AdminListParams = {}): Promise<AdminCouponListResponse> =>
-  adminSdk.admin.listCoupons(params);
+  adminSdk.admin.listCoupons(params as Record<string, unknown>) as unknown as Promise<AdminCouponListResponse>;
 
 export const createCoupon = async (payload: Record<string, unknown>) =>
   adminSdk.admin.createCoupon(payload);
