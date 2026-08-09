@@ -4,8 +4,6 @@ const { EVENT_TYPES } = constants;
 
 const logger = sharedLogger.child({ service: 'payment-service' });
 
-
-
 const publishPaymentEvent = async (eventType, payload = {}, context = {}) => {
   const start = Date.now();
   try {
@@ -50,4 +48,5 @@ module.exports = {
   publishPaymentSuccess: createPublisher(EVENT_TYPES.PAYMENT_SUCCESS),
   publishPaymentFailed: createPublisher(EVENT_TYPES.PAYMENT_FAILED),
   publishPaymentRefunded: createPublisher(EVENT_TYPES.PAYMENT_REFUNDED),
+  publishPaymentSucceededV1: createPublisher('PaymentSucceeded.v1'),
 };

@@ -9,10 +9,28 @@
   color: #121812;
 }
 
+/* ─── Fluid Responsive Layout ───────────────────────────────────────────────
+   Allow the admin dashboard to fluidly adapt to standard laptop screens,
+   tablets, and high-DPI scaled displays without forcing zoom adjustments. */
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
 /* Approved Supplier Management composition */
 .admin-suppliers-layout {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
   background: #f4fbed;
 }
 
@@ -6926,17 +6944,14 @@ input {
   flex-direction: column;
   gap: 24px;
   padding-bottom: 40px;
+  min-width: 0;
 }
 
 .dashboard-sticky-header {
-  position: sticky;
-  z-index: 12;
-  top: 104px;
+  position: relative;
+  z-index: 1;
   margin: 0 8px;
   padding: 14px 0 18px;
-  border-bottom: 1px solid rgb(189 202 186 / 55%);
-  background: linear-gradient(180deg, rgb(244 250 240 / 98%) 70%, rgb(244 250 240 / 88%) 88%, transparent);
-  backdrop-filter: blur(18px);
 }
 
 .dashboard-sticky-header > section { padding-top: 0; }
@@ -7049,7 +7064,7 @@ input {
 
 .dashboard-orders-table { overflow-x: auto; }
 .dashboard-orders-head,
-.dashboard-order-row { display: grid; min-width: 760px; grid-template-columns: 110px minmax(190px, 1.4fr) 130px 90px 115px 40px; align-items: center; gap: 14px; padding: 0 24px; }
+.dashboard-order-row { display: grid; min-width: 680px; grid-template-columns: 110px minmax(190px, 1.4fr) 130px 90px 90px 40px; align-items: center; gap: 14px; padding: 0 24px; }
 .dashboard-orders-head { min-height: 48px; color: #7a8676; background: #f7faf5; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .dashboard-order-row { min-height: 88px; border-top: 1px solid #e4eae1; transition: background-color 160ms ease, transform 160ms ease; }
 .dashboard-order-row:hover { background: #f7fcf5; }
@@ -7102,10 +7117,11 @@ input {
 @keyframes dashboard-value-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes dashboard-shimmer { to { background-position: -220% 0; } }
 
-@media (max-width: 1280px) {
+@media (max-width: 1480px) {
   .dashboard-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dashboard-chart-grid { grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); }
+  .dashboard-chart-grid { grid-template-columns: 1fr; }
   .dashboard-operations-grid { grid-template-columns: 1fr; }
+  .dashboard-category-card { min-height: auto; }
 }
 
 @media (max-width: 1023px) {

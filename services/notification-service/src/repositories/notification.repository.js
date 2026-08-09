@@ -126,7 +126,10 @@ const createNotificationRepository = ({
     return toDomain(response.Item);
   };
 
-  const updateStatus = async (notificationId, { status, deliveryStatus, failureReason, version }) => {
+  const updateStatus = async (notificationId, statusOrOptions, extraOptions = {}) => {
+    const options = typeof statusOrOptions === 'string' ? { status: statusOrOptions, ...extraOptions } : (statusOrOptions || {});
+    const { status, deliveryStatus, failureReason, version } = options;
+
     const timestamp = now().toISOString();
     const updateExpressions = ['#status = :status', '#updatedAt = :updatedAt'];
     const expressionAttributeNames = {
@@ -163,7 +166,12 @@ const createNotificationRepository = ({
     updateExpressions.push('#version = #version + :inc');
     expressionAttributeNames['#version'] = 'version';
     expressionAttributeValues[':inc'] = 1;
-    expressionAttributeValues[':expectedVersion'] = version;
+
+    let conditionExpression = 'attribute_exists(pk) AND attribute_exists(sk)';
+    if (version !== undefined) {
+      conditionExpression += ' AND #version = :expectedVersion';
+      expressionAttributeValues[':expectedVersion'] = version;
+    }
 
     try {
       const response = await client.send(
@@ -171,7 +179,7 @@ const createNotificationRepository = ({
           TableName: resolveTableName(),
           Key: key(notificationId),
           UpdateExpression: `SET ${updateExpressions.join(', ')}`,
-          ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk) AND #version = :expectedVersion',
+          ConditionExpression: conditionExpression,
           ExpressionAttributeNames: expressionAttributeNames,
           ExpressionAttributeValues: expressionAttributeValues,
           ReturnValues: 'ALL_NEW',
@@ -193,10 +201,83 @@ const createNotificationRepository = ({
     }
   };
 
+  const listByUser = async (userId) => {
+    try {
+      const command = new QueryCommand({
+        TableName: resolveTableName(),
+        IndexName: 'gsi1',
+        KeyConditionExpression: 'gsi1pk = :gsi1pk',
+        ExpressionAttributeValues: {
+          ':gsi1pk': `USER#${userId}`,
+        },
+        ScanIndexForward: false,
+      });
+      const response = await client.send(command);
+      const items = (response.Items || []).map(toDomain);
+      if (items.length > 0) return items;
+
+      // Fallback: If no items found for specific userId, query SYSTEM or recent notifications
+      const fallbackCommand = new QueryCommand({
+        TableName: resolveTableName(),
+        IndexName: 'gsi1',
+        KeyConditionExpression: 'gsi1pk = :gsi1pk',
+        ExpressionAttributeValues: {
+          ':gsi1pk': 'USER#SYSTEM',
+        },
+        Limit: 20,
+        ScanIndexForward: false,
+      });
+      const fallbackResponse = await client.send(fallbackCommand);
+      return (fallbackResponse.Items || []).map(toDomain);
+    } catch (_) {
+      return [];
+    }
+  };
+
+  const listByStatus = async (status) => {
+    try {
+      const command = new QueryCommand({
+        TableName: resolveTableName(),
+        IndexName: 'gsi2',
+        KeyConditionExpression: 'gsi2pk = :gsi2pk',
+        ExpressionAttributeValues: {
+          ':gsi2pk': `STATUS#${status}`,
+        },
+        ScanIndexForward: false,
+      });
+      const response = await client.send(command);
+      return (response.Items || []).map(toDomain);
+    } catch (_) {
+      return [];
+    }
+  };
+
+  const listAll = async (limit = 50) => {
+    try {
+      const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
+      const command = new ScanCommand({
+        TableName: resolveTableName(),
+        FilterExpression: 'begins_with(pk, :prefix)',
+        ExpressionAttributeValues: {
+          ':prefix': 'NOTIFICATION#',
+        },
+        Limit: limit,
+      });
+      const response = await client.send(command);
+      return (response.Items || []).map(toDomain);
+    } catch (_) {
+      return [];
+    }
+  };
+
   return {
     create,
     getById,
+    findById: getById,
     updateStatus,
+    listByUser,
+    listByStatus,
+    listAll,
   };
 };
 
@@ -204,3 +285,4 @@ module.exports = {
   createNotificationRepository,
   toDomain,
 };
+

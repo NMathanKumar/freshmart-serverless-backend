@@ -26,7 +26,8 @@ variable "rules" {
   type = map(object({
     description          = optional(string, null)
     enabled              = optional(bool, true)
-    detail_type_prefixes = list(string)
+    detail_types         = optional(list(string), [])
+    detail_type_prefixes = optional(list(string), [])
     sources              = optional(list(string), [])
     target_sns_keys      = optional(list(string), [])
     target_lambda_keys   = optional(list(string), [])

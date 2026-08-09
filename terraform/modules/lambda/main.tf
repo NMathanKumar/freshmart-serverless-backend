@@ -69,6 +69,11 @@ resource "aws_lambda_function" "this" {
   }
 
   lifecycle {
+    # filename is an absolute local path that differs between dev machines (Windows)
+    # and CI runners (Linux). Ignoring it prevents false drift in terraform plan
+    # while source_code_hash continues to detect real Lambda package changes.
+    ignore_changes = [filename]
+
     precondition {
       condition     = var.runtime == "nodejs22.x"
       error_message = "Lambda runtime must be nodejs22.x."
@@ -85,12 +90,12 @@ resource "aws_lambda_function" "this" {
     }
 
     precondition {
-      condition     = var.reserved_concurrent_executions == null || var.reserved_concurrent_executions >= 0
+      condition     = var.reserved_concurrent_executions == null || try(var.reserved_concurrent_executions >= 0, false)
       error_message = "reserved_concurrent_executions must be null or a non-negative integer."
     }
 
     precondition {
-      condition     = var.ephemeral_storage == null || (var.ephemeral_storage.size >= 512 && var.ephemeral_storage.size <= 10240)
+      condition     = var.ephemeral_storage == null || try(var.ephemeral_storage.size >= 512 && var.ephemeral_storage.size <= 10240, false)
       error_message = "ephemeral_storage.size must be between 512 and 10240 MB."
     }
 

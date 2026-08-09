@@ -1,4 +1,31 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
+
+const RedirectToAdmin = ({ path }: { path: string }) => {
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const currentSearch = window.location.search;
+    const targetPath = currentPath.startsWith('/admin') ? `${currentPath}${currentSearch}` : `${path}${currentSearch}`;
+    window.location.assign(targetPath);
+  }, [path]);
+  return null;
+};
+
+// Handles /admin/auth/callback from Cognito - passes OAuth code to admin app
+const AdminAuthCallbackHandler = () => {
+  useEffect(() => {
+    // Preserve the full URL including OAuth code query params and redirect to admin
+    const search = window.location.search;
+    window.location.replace(`${window.location.origin}/admin/auth/callback${search}`);
+  }, []);
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4fcf0' }}>
+      <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div style={{ width: 48, height: 48, border: '3px solid #16a34a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+        <p style={{ color: '#374151', fontWeight: 600 }}>Completing sign in...</p>
+      </div>
+    </div>
+  );
+};
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Skeleton, AppErrorBoundary } from '@freshmart/design-system';
 import * as shared from '@freshmart/shared';
@@ -8,27 +35,74 @@ import { RequireAuth } from '../features/auth/components/require-auth.js';
 const { customerRoutePaths } = shared;
 
 const HomePage = lazy(() => import('../features/home/pages/home-page.js'));
-const AccountSettingsPage = lazy(() => import('../features/account/pages/account-settings-page.js'));
-const AddressManagementPage = lazy(() => import('../features/commerce/pages/address-management-page.js'));
+const AccountSettingsPage = lazy(
+  () => import('../features/account/pages/account-settings-page.js')
+);
+const AddressManagementPage = lazy(
+  () => import('../features/commerce/pages/address-management-page.js')
+);
 const CartPage = lazy(() => import('../features/commerce/pages/cart-page.js'));
-const CategoryListingPage = lazy(() => import('../features/commerce/pages/category-listing-page.js'));
-const CheckoutPaymentPage = lazy(() => import('../features/commerce/pages/checkout-payment-page.js'));
-const OrderDetailsPage = lazy(() => import('../features/commerce/pages/order-details-page.js'));
-const OrderConfirmationPage = lazy(() => import('../features/commerce/pages/order-confirmation-page.js'));
-const OrdersPage = lazy(() => import('../features/commerce/pages/orders-page.js'));
-const ProductDetailsPage = lazy(() => import('../features/commerce/pages/product-details-page.js'));
-const SearchResultsPage = lazy(() => import('../features/commerce/pages/search-results-page.js'));
-const WishlistPage = lazy(() => import('../features/commerce/pages/wishlist-page.js'));
-const PrivacySecurityPage = lazy(() => import('../features/account/pages/privacy-security-page.js'));
-const SystemStatesPage = lazy(() => import('../features/system/pages/system-states-page.js'));
-const NotFoundPage = lazy(() => import('../features/system/pages/system-states-page.js').then((module) => ({ default: module.NotFoundPage })));
+const CategoryListingPage = lazy(
+  () => import('../features/commerce/pages/category-listing-page.js')
+);
+const CheckoutPaymentPage = lazy(
+  () => import('../features/commerce/pages/checkout-payment-page.js')
+);
+const OrderDetailsPage = lazy(
+  () => import('../features/commerce/pages/order-details-page.js')
+);
+const OrderConfirmationPage = lazy(
+  () => import('../features/commerce/pages/order-confirmation-page.js')
+);
+const OrdersPage = lazy(
+  () => import('../features/commerce/pages/orders-page.js')
+);
+const ProductDetailsPage = lazy(
+  () => import('../features/commerce/pages/product-details-page.js')
+);
+const SearchResultsPage = lazy(
+  () => import('../features/commerce/pages/search-results-page.js')
+);
+const WishlistPage = lazy(
+  () => import('../features/commerce/pages/wishlist-page.js')
+);
+const NotificationsPage = lazy(
+  () => import('../features/account/pages/notifications-page.js')
+);
+const PrivacySecurityPage = lazy(
+  () => import('../features/account/pages/privacy-security-page.js')
+);
+const HelpCenterPage = lazy(
+  () => import('../features/account/pages/help-center-page.js')
+);
+const AboutPage = lazy(
+  () => import('../features/account/pages/about-page.js')
+);
+const SystemStatesPage = lazy(
+  () => import('../features/system/pages/system-states-page.js')
+);
+const NotFoundPage = lazy(() =>
+  import('../features/system/pages/system-states-page.js').then((module) => ({
+    default: module.NotFoundPage,
+  }))
+);
 const LoginPage = lazy(() => import('../features/auth/pages/login-page.js'));
-const RegisterPage = lazy(() => import('../features/auth/pages/register-page.js'));
-const ForgotPasswordPage = lazy(() => import('../features/auth/pages/forgot-password-page.js'));
-const VerifyEmailPage = lazy(() => import('../features/auth/pages/verify-email-page.js'));
+const RegisterPage = lazy(
+  () => import('../features/auth/pages/register-page.js')
+);
+const ForgotPasswordPage = lazy(
+  () => import('../features/auth/pages/forgot-password-page.js')
+);
+const VerifyEmailPage = lazy(
+  () => import('../features/auth/pages/verify-email-page.js')
+);
 
 const AuthRouteSkeleton = () => (
-  <main className="auth-page flex min-h-screen items-center justify-center p-4" aria-busy="true" aria-label="Loading authentication screen">
+  <main
+    className="auth-page flex min-h-screen items-center justify-center p-4"
+    aria-busy="true"
+    aria-label="Loading authentication screen"
+  >
     <div className="w-full max-w-[480px] space-y-5 rounded-2xl bg-white p-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
       <Skeleton className="mx-auto h-16 w-16 rounded-full" />
       <Skeleton className="mx-auto h-9 w-2/3" />
@@ -44,25 +118,118 @@ export const AppRouter = () => (
     <Suspense fallback={<AuthRouteSkeleton />}>
       <AppErrorBoundary>
         <Routes>
-        <Route path={customerRoutePaths.home} element={<HomePage />} />
-        <Route path={customerRoutePaths.search} element={<SearchResultsPage />} />
-        <Route path={customerRoutePaths.categories} element={<CategoryListingPage />} />
-        <Route path={customerRoutePaths.productDetails} element={<ProductDetailsPage />} />
-        <Route path={customerRoutePaths.wishlist} element={<WishlistPage />} />
-        <Route path={customerRoutePaths.cart} element={<CartPage />} />
-        <Route path={customerRoutePaths.checkout} element={<RequireAuth><CheckoutPaymentPage /></RequireAuth>} />
-        <Route path={customerRoutePaths.orders} element={<RequireAuth><OrdersPage /></RequireAuth>} />
-        <Route path={`${customerRoutePaths.orders}/:orderId`} element={<RequireAuth><OrderDetailsPage /></RequireAuth>} />
-        <Route path={customerRoutePaths.settings} element={<RequireAuth><AccountSettingsPage /></RequireAuth>} />
-        <Route path="/addresses" element={<RequireAuth><AddressManagementPage /></RequireAuth>} />
-        <Route path="/checkout/confirmation" element={<RequireAuth><OrderConfirmationPage /></RequireAuth>} />
-        <Route path="/privacy-security" element={<RequireAuth><PrivacySecurityPage /></RequireAuth>} />
-        <Route path="/system-states" element={<SystemStatesPage />} />
-        <Route path={authPaths.login} element={<LoginPage />} />
-        <Route path={authPaths.register} element={<RegisterPage />} />
-        <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
-        <Route path={authPaths.verifyEmail} element={<VerifyEmailPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+          <Route
+            path={customerRoutePaths.home}
+            element={
+              <RequireAuth>
+                <HomePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path={customerRoutePaths.search}
+            element={<SearchResultsPage />}
+          />
+          <Route
+            path={customerRoutePaths.categories}
+            element={<CategoryListingPage />}
+          />
+          <Route
+            path={customerRoutePaths.productDetails}
+            element={<ProductDetailsPage />}
+          />
+          <Route
+            path={customerRoutePaths.wishlist}
+            element={
+              <RequireAuth>
+                <WishlistPage />
+              </RequireAuth>
+            }
+          />
+          <Route path={customerRoutePaths.cart} element={<CartPage />} />
+          <Route
+            path={customerRoutePaths.checkout}
+            element={
+              <RequireAuth>
+                <CheckoutPaymentPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path={customerRoutePaths.orders}
+            element={
+              <RequireAuth>
+                <OrdersPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path={`${customerRoutePaths.orders}/:orderId`}
+            element={
+              <RequireAuth>
+                <OrderDetailsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path={customerRoutePaths.settings}
+            element={
+              <RequireAuth>
+                <AccountSettingsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/addresses"
+            element={
+              <RequireAuth>
+                <AddressManagementPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/checkout/confirmation"
+            element={
+              <RequireAuth>
+                <OrderConfirmationPage />
+              </RequireAuth>
+            }
+          />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/help" element={<HelpCenterPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route
+            path="/privacy-security"
+            element={
+              <RequireAuth>
+                <PrivacySecurityPage />
+              </RequireAuth>
+            }
+          />
+          <Route path="/system-states" element={<SystemStatesPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/sign-in" element={<LoginPage />} />
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/sign-in" element={<LoginPage />} />
+          <Route path={authPaths.login} element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/auth/register" element={<RegisterPage />} />
+          <Route path={authPaths.register} element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/inventory" element={<RedirectToAdmin path="/admin/inventory" />} />
+          <Route path="/products" element={<RedirectToAdmin path="/admin/products" />} />
+          <Route path="/orders" element={<RedirectToAdmin path="/admin/orders" />} />
+          <Route path="/users" element={<RedirectToAdmin path="/admin/users" />} />
+          <Route path="/analytics" element={<RedirectToAdmin path="/admin/analytics" />} />
+          <Route path="/dashboard" element={<RedirectToAdmin path="/admin/dashboard" />} />
+          {/* Must be before /admin/* wildcard to preserve OAuth code */}
+          <Route path="/admin/auth/callback" element={<AdminAuthCallbackHandler />} />
+          <Route path="/admin/sign-in" element={<RedirectToAdmin path="/admin/login" />} />
+          <Route path="/admin/*" element={<RedirectToAdmin path="/admin/dashboard" />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppErrorBoundary>
     </Suspense>

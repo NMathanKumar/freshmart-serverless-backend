@@ -51,10 +51,22 @@ export const routes: RouteDefinition[] = [
     handler: ({ auth, event }) => controller.home(auth?.subject ?? 'guest', getAuth(event))
   },
 
-  // /customer/categories (and legacy /api/v1/customer/categories)
+  // /customer/categories (and /categories, /v1/categories, /api/v1/customer/categories)
   {
     method: 'GET',
     path: '/customer/categories',
+    authorize: false,
+    handler: ({ event }) => controller.categories(getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/categories',
+    authorize: false,
+    handler: ({ event }) => controller.categories(getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/v1/categories',
     authorize: false,
     handler: ({ event }) => controller.categories(getAuth(event))
   },

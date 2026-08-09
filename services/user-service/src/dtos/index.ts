@@ -13,10 +13,13 @@ export const addressSchema = z.object({
 });
 
 export const upsertProfileSchema = z.object({
-  firstName: z.string().min(1).max(80),
-  lastName: z.string().min(1).max(80),
-  email: z.string().email(),
-  phoneNumber: z.string().min(8).max(20).optional(),
+  fullName: z.string().optional(),
+  name: z.string().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  phoneNumber: z.string().optional(),
   avatarUrl: z.string().optional()
 });
 

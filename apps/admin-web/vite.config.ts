@@ -11,8 +11,21 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3001,
+    port: 5173,
     host: true,
+    proxy: {
+      '/api-proxy': {
+        target: 'https://98fyk75ya9.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api-proxy/, ''),
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('[proxy error]', err.message);
+          });
+        },
+      },
+    },
   },
   build: {
     chunkSizeWarningLimit: 1000,

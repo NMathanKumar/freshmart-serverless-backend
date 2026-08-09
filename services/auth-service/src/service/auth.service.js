@@ -617,6 +617,43 @@ const createAuthService = ({
       context,
     });
 
+    // Also write to user-profiles table so user-service listCustomers reflects the new user immediately
+    try {
+      const { PutCommand } = require('@aws-sdk/lib-dynamodb');
+      const { documentClient, config: awsConfig } = require('@freshmart/service-shared').aws;
+      const userProfilesTable = awsConfig.dynamodb?.tables?.userProfiles
+        || process.env.DDB_TABLE_USER_PROFILES
+        || 'freshmart-dev-user-profiles';
+      const userId = profile.userId || profile.cognitoSub;
+      const now = new Date().toISOString();
+      await documentClient.send(new PutCommand({
+        TableName: userProfilesTable,
+        ConditionExpression: 'attribute_not_exists(pk)', // Don't overwrite if somehow exists
+        Item: {
+          pk: `USER#${userId}`,
+          sk: 'PROFILE',
+          userId,
+          email: profile.email,
+          name: name || profile.name || '',
+          fullName: name || profile.name || '',
+          phone: phone || '',
+          avatarUrl: null,
+          addresses: [],
+          role: selectedRole,
+          status: 'ACTIVE',
+          createdAt: now,
+          updatedAt: now,
+        },
+      }));
+    } catch (profileWriteErr) {
+      // Log but don't fail — the Cognito user was created successfully.
+      // The user profile will be written on first login via the post-confirmation trigger.
+      logger.warn('adminCreateUser: failed to pre-write user-profiles table entry', {
+        email,
+        error: profileWriteErr.message,
+      });
+    }
+
     return {
       user: sanitizeUser(profile),
     };

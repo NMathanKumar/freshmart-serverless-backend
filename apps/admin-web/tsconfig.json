@@ -22,7 +22,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@/shared/components*": ["src/shared/components/index.ts", "src/shared/components*"]
     }
   },
   "include": ["src"]

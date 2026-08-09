@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { X, Save, AlertCircle, RefreshCcw, PackageMinus, PackagePlus } from 'lucide-react';
+import { Logger } from '@/shared/utils/logger';
 import { useAdjustStock, useAdjustDamage, useAdjustExpired, useAdjustReturn } from '../hooks/useInventory';
 import { InventoryModel } from '../services/inventory.service';
-import { useToast } from '../../../components/ui/toast';
+import { useToast } from '@/shared/components/ui/toast';
 
 interface AdjustmentModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({ isOpen, onClos
       setRemarks('');
       showToast('Stock adjusted successfully!', 'success');
     } catch (err: any) {
-      console.error('Failed to adjust stock', err);
+      Logger.error('Failed to adjust stock', err, { module: 'AdjustmentModal', operation: activeTab });
       showToast(err?.message || 'Failed to adjust stock', 'error');
     }
   };

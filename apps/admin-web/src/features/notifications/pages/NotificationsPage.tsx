@@ -20,8 +20,9 @@ import {
   useArchiveNotification,
   useDeleteNotification,
 } from '../hooks/useNotifications';
-import { Skeleton } from '../../../components/ui/skeleton';
+import { Skeleton, CardSkeleton, ErrorState } from '@/shared/components/ui';
 import { isAdmin } from '@freshmart/shared';
+import { AdminShell } from '../../admin/components/admin-shell.js';
 
 export const NotificationsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('All');
@@ -65,51 +66,49 @@ export const NotificationsPage: React.FC = () => {
 
   if (!userIsAdmin) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#0f172a]">403 Access Denied</h3>
-        <p className="text-xs text-slate-500">
-          You do not have administrative permissions to view or manage store system notifications.
-        </p>
+      <AdminShell searchPlaceholder="Search notifications..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12 px-5 lg:px-8">
+        <ErrorState 
+          title="Access Denied" 
+          description="You do not have administrative permissions to view or manage store system notifications."
+        />
       </div>
+      </AdminShell>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <AdminShell searchPlaceholder="Search notifications..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="space-y-6 px-5 lg:px-8">
         <div className="flex justify-between items-center">
           <Skeleton className="h-7 w-48 rounded-xl" />
           <Skeleton className="h-10 w-32 rounded-xl" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
+            <CardSkeleton key={i} />
           ))}
         </div>
         <Skeleton className="h-96 rounded-2xl" />
       </div>
+      </AdminShell>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#0f172a]">Failed to load notifications</h3>
-        <p className="text-xs text-slate-500">{error?.message || 'Server connection error'}</p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-white font-bold text-xs hover:bg-[#037030] transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Retry</span>
-        </button>
+      <AdminShell searchPlaceholder="Search notifications..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="my-12 max-w-lg mx-auto px-5 lg:px-8">
+        <ErrorState
+          title="Failed to load notifications"
+          description={error?.message || 'Server connection error.'}
+          onRetry={() => refetch()}
+          errorCode={error?.code}
+          correlationId={error?.correlationId}
+        />
       </div>
+      </AdminShell>
     );
   }
 
@@ -173,7 +172,8 @@ export const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <AdminShell searchPlaceholder="Search notifications..." user="alex" variant="operations" onSearch={setSearchTerm}>
+    <div className="space-y-6 px-5 lg:px-8 pb-12">
       {/* Title & Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -407,5 +407,6 @@ export const NotificationsPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </AdminShell>
   );
 };

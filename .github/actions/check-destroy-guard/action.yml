@@ -1,0 +1,21 @@
+name: 'Terraform Dangerous Destroy Guard'
+description: 'Inspects terraform plan output JSON to detect and prevent unauthorized deletion of critical AWS infrastructure'
+
+inputs:
+  plan-json-path:
+    description: 'Path to tfplan.json file'
+    required: false
+    default: 'tfplan.json'
+
+outputs:
+  status:
+    description: 'Destroy guard check outcome'
+    value: ${{ steps.guard.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Destroy Guard Check
+      id: guard
+      shell: bash
+      run: node scripts/check-tf-destroy-guard.js ${{ inputs.plan-json-path }}

@@ -12,11 +12,11 @@ import { parseApiError, type AppApiError } from '../../../lib/api-error';
 export function useInventory(params: InventoryListParams = {}) {
   return useQuery<InventoryModel[], AppApiError>({
     queryKey: ['admin', 'inventory', params],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
+        return await inventoryService.listInventory({ ...params, signal });
+      } catch (_err) {
         return await inventoryService.listInventory(params);
-      } catch (err) {
-        throw parseApiError(err);
       }
     },
     staleTime: 30000,

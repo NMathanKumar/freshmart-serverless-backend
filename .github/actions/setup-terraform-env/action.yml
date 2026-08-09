@@ -1,0 +1,26 @@
+name: 'Setup Terraform Environment'
+description: 'Installs HashiCorp Terraform CLI and configures environment wrapper options'
+
+inputs:
+  terraform-version:
+    description: 'Terraform version'
+    required: false
+    default: '1.9.0'
+
+outputs:
+  terraform-version:
+    description: 'Installed Terraform version'
+    value: ${{ inputs.terraform-version }}
+  status:
+    description: 'Execution status'
+    value: ${{ steps.setup-tf.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Terraform
+      id: setup-tf
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false

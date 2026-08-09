@@ -37,7 +37,7 @@ const defaultProducts = [
     available: true,
     stock: 100,
     unit: '1 kg',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuCGoSHs0NoGGfIYxwIsyWj4vdh5kPA6QRji00Ii_lH3pVavw-d6dflAFH2xfLRc7nhy0VsPUgLJmXhz4hfJXWIpI_MrOcbL68xaRTzInZH56nC-pmYNylqYdiG9kooerikkbZQ5rbh_DOv-vJCnYk-9TR5MQQfqAkILwK0p-L7GVVLYSuCq6ijxgSQHWu63I14zGiQuXh-S5kHsDqini0IBQEDyW4mtGSN9jKU5d7tUrOiZHiOyIcmBW5bcB-FUo3Cl37zDruhJm2xR']
+    images: ['https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&auto=format&fit=crop&q=80']
   },
   {
     productId: 'PROD-002',
@@ -49,7 +49,7 @@ const defaultProducts = [
     available: true,
     stock: 150,
     unit: '1 Litre',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S']
+    images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80']
   },
   {
     productId: 'PROD-003',
@@ -61,7 +61,7 @@ const defaultProducts = [
     available: true,
     stock: 80,
     unit: '400g',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuAocIVc-EoYCbFmS10USZQHrW2cBY3jC44RL3aegAleg9zH39V0IHSWwM6MIKPQO6ifSz4gqZNGdwbezCWTwpjY26PgUPmNirsv572TsUAyQLu6A8XrYc_0UG8v0nwTw-VYaT0SMJPhU_zb_d9e0nSrxGxXQbl6Lx_YXZsdI0Y_-NYBK5I62D_ProCKkx-hG1xm3k6nMB89NGrtr-8Z1cQoVuXM7LxVdoQLwhsZlw2KSjnxaqws6Q_tmOCTfNEAnRlce3LxYTMFdXYO']
+    images: ['https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80']
   },
   {
     productId: 'PROD-004',
@@ -73,7 +73,7 @@ const defaultProducts = [
     available: true,
     stock: 60,
     unit: '500g',
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u']
+    images: ['https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80']
   }
 ];
 
@@ -82,42 +82,48 @@ export const homeApi = authApi.injectEndpoints({
     getCustomerHome: builder.query<CustomerHomeResponse, void>({
       queryFn: async () => {
         try {
-          let productsResponse: unknown = null;
-          try {
-            productsResponse = unwrap(await sdk.catalog.listProducts());
-          } catch (_) {
-            // Unhandled catalog error fallback
-          }
+          const [productsResult, cartResult, categoriesResult] = await Promise.allSettled([
+            sdk.catalog.listProducts().then(unwrap),
+            sdk.cart.getCart(),
+            sdk.category.listCategories().then(unwrap)
+          ]);
 
-          let cartResponse: unknown = null;
-          try {
-            cartResponse = await sdk.cart.getCart();
-          } catch (_) {
-            // Guest or unauthenticated user - cart remains empty
-          }
+          const productsResponse = productsResult.status === 'fulfilled' ? productsResult.value : null;
+          const cartResponse = cartResult.status === 'fulfilled' ? cartResult.value : null;
+          const categoriesResponse = categoriesResult.status === 'fulfilled' ? categoriesResult.value : null;
 
           const rawProducts = Array.isArray(productsResponse)
             ? productsResponse
-            : Array.isArray((productsResponse as { data?: Array<Record<string, unknown>> })?.data)
-              ? (productsResponse as { data: Array<Record<string, unknown>> }).data
+            : Array.isArray((productsResponse as any)?.data)
+              ? (productsResponse as any).data
               : [];
 
           const featuredProducts = rawProducts.length > 0
-            ? rawProducts.map((product, index) => {
+            ? rawProducts.map((rawItem: any, index: number) => {
+                const product = rawItem as Record<string, unknown>;
                 const productId = String(product.productId ?? `product-${index + 1}`);
-                const productName = String(product.productName ?? product.name ?? `FreshMart Product ${index + 1}`);
+                const productName = String(product.productName ?? (product as any).name ?? `FreshMart Product ${index + 1}`);
                 const price = Number(product.price ?? 0);
                 const category = String(product.category ?? 'FreshMart');
                 const images = Array.isArray(product.images) ? (product.images as unknown[]).filter((image: unknown): image is string => typeof image === 'string' && image.length > 0) : [];
-                const primaryImage = typeof product.imageUrl === 'string' ? product.imageUrl : images[0] ?? '';
+                
+                let primaryImage = typeof (product as any).imageUrl === 'string' && (product as any).imageUrl.startsWith('http') && !(product as any).imageUrl.includes('product-placeholder.png')
+                  ? (product as any).imageUrl
+                  : (images.find((img): img is string => typeof img === 'string' && img.startsWith('http') && !img.includes('product-placeholder.png')) ?? '');
+
+                if (!primaryImage) {
+                  const match = defaultProducts.find((p) => p.productId === productId || p.name.toLowerCase() === productName.toLowerCase());
+                  primaryImage = match ? match.images[0] : defaultProducts[index % defaultProducts.length].images[0];
+                }
 
                 return {
                   available: Boolean(product.available ?? true),
-                  brand: String(product.brand ?? product.brandName ?? 'FreshMart'),
+                  brand: String(product.brand ?? (product as any).brandName ?? 'FreshMart'),
                   category,
                   createdAt: typeof product.createdAt === 'string' ? product.createdAt : undefined,
                   description: typeof product.description === 'string' ? product.description : undefined,
                   images: primaryImage ? [primaryImage, ...images.filter((image: string) => image !== primaryImage)] : images,
+                  imageUrl: primaryImage,
                   name: productName,
                   price,
                   productId,
@@ -131,10 +137,28 @@ export const homeApi = authApi.injectEndpoints({
               })
             : defaultProducts;
 
-          const categories = rawProducts.length > 0
-            ? [...new Set(rawProducts.map((product) => String(product.category || '').trim()).filter(Boolean))]
-                .slice(0, 6)
-                .map((name, index) => ({ categoryId: `category-${index + 1}`, name }))
+          const rawCategories: any[] = Array.isArray(categoriesResponse)
+            ? categoriesResponse
+            : categoriesResponse && typeof categoriesResponse === 'object' && 'data' in categoriesResponse && Array.isArray((categoriesResponse as { data: unknown[] }).data)
+              ? (categoriesResponse as { data: any[] }).data
+              : [];
+
+          const categoryNamesFromProducts: string[] = rawProducts.length > 0
+            ? ([...new Set(rawProducts.map((p: any) => String(p.category || '').trim()).filter(Boolean))] as string[])
+            : [];
+
+          const categories: { categoryId: string; name: string; slug?: string; imageUrl?: string }[] = rawCategories.length > 0
+            ? rawCategories.map((rawCatItem: any, index: number) => ({
+                categoryId: String(rawCatItem.categoryId ?? rawCatItem.id ?? `category-${index + 1}`),
+                name: String(rawCatItem.name ?? `Category ${index + 1}`),
+                slug: String(rawCatItem.slug ?? ''),
+                imageUrl: String(rawCatItem.imageUrl ?? ''),
+              }))
+            : categoryNamesFromProducts.length > 0
+            ? categoryNamesFromProducts.slice(0, 6).map((catName: any, index: number) => ({
+                categoryId: `category-${index + 1}`,
+                name: String(catName),
+              }))
             : defaultCategories;
 
           return {
@@ -148,9 +172,9 @@ export const homeApi = authApi.injectEndpoints({
               ],
               categories,
               featuredProducts,
-              trendingProducts: featuredProducts.slice(0, 4),
+              trendingProducts: featuredProducts,
               offers: [],
-              recommendedProducts: featuredProducts.slice(0, 4),
+              recommendedProducts: featuredProducts,
               recentlyViewed: [],
               cartSummary: {
                 itemCount: Array.isArray((cartResponse as { data?: { items?: unknown[] } })?.data?.items)
@@ -163,37 +187,71 @@ export const homeApi = authApi.injectEndpoints({
         } catch (error) {
           return { error: toApiError(error) };
         }
-      }
+      },
+      providesTags: ['CustomerHome', 'Cart']
     }),
-    addHomeProductToCart: builder.mutation<Record<string, unknown>, { productId: string }>({
-      queryFn: async ({ productId }) => {
-        try {
-          const product = unwrap(await sdk.catalog.getProduct(productId)) as { data?: Record<string, unknown> } | Record<string, unknown>;
-          const detail = typeof product === 'object' && product !== null && 'data' in product
-            ? product.data as Record<string, unknown>
-            : product as Record<string, unknown>;
+    addHomeProductToCart: builder.mutation<Record<string, unknown>, { productId: string; name?: string; price?: number; brand?: string; imageUrl?: string | null }>({
+      queryFn: async ({ productId, name: inputName, price: inputPrice, brand: inputBrand, imageUrl: inputImageUrl }) => {
+        let price = inputPrice ?? 2.99;
+        let productName = inputName ?? 'FreshMart Item';
+        let imageUrl: string | undefined = typeof inputImageUrl === 'string' ? inputImageUrl : undefined;
+        let brand = inputBrand ?? 'FreshMart';
 
-          return {
-            data: await sdk.cart.saveCart({
-              productId,
-              quantity: 1,
-              price: Number(detail.price ?? 0),
-              productName: String(detail.productName ?? detail.name ?? productId),
-              imageUrl: typeof detail.imageUrl === 'string'
-                ? detail.imageUrl
-                : Array.isArray(detail.images) && typeof detail.images[0] === 'string'
-                  ? detail.images[0]
-                  : undefined,
-              available: Boolean(detail.available ?? true)
-            })
-          };
-        } catch (error) {
-          return { error: toApiError(error) };
+        if (!inputImageUrl || !inputName) {
+          try {
+            const raw = unwrap(await sdk.catalog.getProduct(productId));
+            const detail = typeof raw === 'object' && raw !== null && 'data' in raw
+              ? ((raw as { data: unknown }).data as Record<string, unknown>)
+              : (raw as unknown as Record<string, unknown>);
+            price = Number(detail.price ?? price);
+            productName = String(detail.productName ?? detail.name ?? productName);
+            imageUrl = typeof detail.imageUrl === 'string'
+              ? detail.imageUrl
+              : Array.isArray(detail.images) && typeof detail.images[0] === 'string'
+                ? detail.images[0]
+                : imageUrl;
+            brand = String(detail.brand ?? brand);
+          } catch (_) {
+            const match = defaultProducts.find((p) => p.productId === productId);
+            if (match) {
+              price = match.price;
+              productName = match.name;
+              imageUrl = match.images[0];
+              brand = match.brand;
+            }
+          }
         }
-      }
+
+        // Add to local persistent cart storage with full image details
+        const { addOrUpdateStoredCartItem } = await import('../../commerce/model/commerce-content.js');
+        const updatedLocalCart = addOrUpdateStoredCartItem({
+          productId,
+          productName,
+          name: productName,
+          price,
+          brand,
+          imageUrl
+        });
+
+        try {
+          await sdk.cart.saveCart({
+            productId,
+            quantity: 1,
+            price,
+            productName,
+            imageUrl,
+            available: true
+          });
+        } catch (_) {
+          // Ignore remote unauthenticated errors; local cart is saved
+        }
+
+        return { data: { productId, quantity: 1, items: updatedLocalCart, success: true } };
+      },
+      invalidatesTags: ['CustomerHome' as never, 'Cart' as never, 'CommerceCart' as never]
     })
   }),
-  overrideExisting: false
+  overrideExisting: true
 });
 
 export const { useAddHomeProductToCartMutation, useGetCustomerHomeQuery } = homeApi;

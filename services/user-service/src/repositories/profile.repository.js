@@ -15,7 +15,8 @@ const toDomain = (item) => {
   return {
     userId: item.userId,
     email: item.email,
-    fullName: item.fullName || '',
+    name: item.name || item.fullName || '',
+    fullName: item.fullName || item.name || '',
     phone: item.phone || '',
     avatarUrl: item.avatarUrl || null,
     addresses: item.addresses || [],
@@ -39,11 +40,13 @@ const createProfileRepository = ({ client = documentClient } = {}) => {
 
   const createProfile = async (data) => {
     const now = new Date().toISOString();
+    const nameVal = data.fullName || data.name || '';
     const item = {
       ...key(data.userId),
       userId: data.userId,
-      email: data.email,
-      fullName: data.fullName || '',
+      email: data.email || '',
+      name: nameVal,
+      fullName: nameVal,
       phone: data.phone || '',
       avatarUrl: data.avatarUrl || null,
       addresses: data.addresses || [],
@@ -67,16 +70,31 @@ const createProfileRepository = ({ client = documentClient } = {}) => {
     const expressionAttributeNames = { '#updatedAt': 'updatedAt' };
     const expressionAttributeValues = { ':updatedAt': now };
 
-    if (data.fullName !== undefined) {
-      updateExpressions.push('#fullName = :fullName');
+    const nameValue = data.fullName || data.name;
+    if (nameValue !== undefined) {
+      updateExpressions.push('#fullName = :fullName', '#name = :name');
       expressionAttributeNames['#fullName'] = 'fullName';
-      expressionAttributeValues[':fullName'] = data.fullName;
+      expressionAttributeNames['#name'] = 'name';
+      expressionAttributeValues[':fullName'] = nameValue;
+      expressionAttributeValues[':name'] = nameValue;
+    }
+
+    if (data.email !== undefined) {
+      updateExpressions.push('#email = :email');
+      expressionAttributeNames['#email'] = 'email';
+      expressionAttributeValues[':email'] = data.email;
     }
 
     if (data.phone !== undefined) {
       updateExpressions.push('#phone = :phone');
       expressionAttributeNames['#phone'] = 'phone';
       expressionAttributeValues[':phone'] = data.phone;
+    }
+
+    if (data.avatarUrl !== undefined) {
+      updateExpressions.push('#avatarUrl = :avatarUrl');
+      expressionAttributeNames['#avatarUrl'] = 'avatarUrl';
+      expressionAttributeValues[':avatarUrl'] = data.avatarUrl;
     }
 
     if (data.addresses !== undefined) {

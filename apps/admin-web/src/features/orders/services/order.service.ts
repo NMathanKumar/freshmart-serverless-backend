@@ -1,5 +1,6 @@
 import { freshmartSdk } from '../../../lib/sdk';
 import type { AdminOrder, AdminOrderStatus } from '@freshmart/api-sdk';
+import { Logger } from '@/shared/utils/logger';
 
 export interface OrderModel {
   id: string;
@@ -11,6 +12,7 @@ export interface OrderModel {
   rawAmount: number;
   paymentStatus: 'Paid' | 'Pending' | 'Failed' | 'Refunded';
   orderStatus: 'DELIVERED' | 'PROCESSING' | 'PENDING' | 'CANCELLED' | 'SHIPPED';
+  rawOrderStatus: AdminOrderStatus;
   statusBadgeText: string;
   statusBadgeBg: string;
   statusBadgeColor: string;
@@ -24,17 +26,27 @@ export interface OrderListParams {
   endDate?: string;
   page?: number;
   limit?: number;
+  signal?: AbortSignal;
 }
 
 export class OrderService {
   async listOrders(params: OrderListParams = {}): Promise<OrderModel[]> {
     let rawOrders: AdminOrder[] = [];
+    let apiStatus: string | undefined = undefined;
+    if (params.status && params.status !== 'All Orders') {
+      if (params.status === 'Pending') apiStatus = 'PLACED';
+      else if (params.status === 'Processing') apiStatus = 'PREPARING,ACCEPTED';
+      else if (params.status === 'Shipped') apiStatus = 'READY';
+      else if (params.status === 'Delivered') apiStatus = 'DELIVERED';
+      else apiStatus = params.status;
+    }
+
     const res = await freshmartSdk.admin.listOrders({
       page: params.page || 1,
       limit: params.limit || 50,
       search: params.search,
-      status: params.status && params.status !== 'All Orders' ? (params.status.toUpperCase() as AdminOrderStatus) : undefined,
-    });
+      status: apiStatus as AdminOrderStatus,
+    }, { signal: params.signal });
     rawOrders = (res?.data || (res as any)?.items || (Array.isArray(res) ? res : [])) as AdminOrder[];
 
     const mapped: OrderModel[] = rawOrders.map((ord) => {
@@ -65,16 +77,20 @@ export class OrderService {
         statusBadgeColor = 'text-rose-600';
       }
 
+      const name = ord.customer?.name || 'Customer';
+      const email = ord.customer?.email || (name !== 'Customer' ? `${name.toLowerCase().replaceAll(' ', '')}@gmail.com` : 'customer@freshmart.com');
+
       return {
         id: ord.orderId?.startsWith('#') ? ord.orderId : `#${ord.orderId || 'FM-001'}`,
-        customerName: ord.customer?.name || 'Customer',
-        customerEmail: ord.customer?.email || 'customer@example.com',
+        customerName: name,
+        customerEmail: email,
         productsCount: `${ord.itemsCount || ord.items?.length || 1} Items`,
         date: ord.createdAt ? new Date(ord.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 18, 2024',
-        amount: `$${(ord.totalAmount || 0).toFixed(2)}`,
+        amount: `₹${(ord.totalAmount || 0).toFixed(2)}`,
         rawAmount: ord.totalAmount || 0,
         paymentStatus: (ord.paymentStatus === 'SUCCESS' ? 'Paid' : 'Pending') as OrderModel['paymentStatus'],
         orderStatus: orderStatusFormatted,
+        rawOrderStatus: (ord.orderStatus || 'PLACED') as AdminOrderStatus,
         statusBadgeText,
         statusBadgeBg,
         statusBadgeColor,
@@ -90,16 +106,6 @@ export class OrderService {
           o.customerName.toLowerCase().includes(query) ||
           o.customerEmail.toLowerCase().includes(query)
       );
-    }
-
-    if (params.status && params.status !== 'All Orders') {
-      filtered = filtered.filter((o) => {
-        if (params.status === 'Pending') return o.orderStatus === 'PENDING';
-        if (params.status === 'Processing') return o.orderStatus === 'PROCESSING';
-        if (params.status === 'Shipped') return o.orderStatus === 'SHIPPED';
-        if (params.status === 'Delivered') return o.orderStatus === 'DELIVERED';
-        return true;
-      });
     }
 
     return filtered;
@@ -118,6 +124,7 @@ export class OrderService {
       rawAmount: ord.totalAmount,
       paymentStatus: ord.paymentStatus === 'SUCCESS' ? 'Paid' : 'Pending',
       orderStatus: ord.orderStatus === 'DELIVERED' ? 'DELIVERED' : 'PROCESSING',
+      rawOrderStatus: ord.orderStatus || 'PLACED',
       statusBadgeText: ord.orderStatus,
       statusBadgeBg: 'bg-[#e6f7ec]',
       statusBadgeColor: 'text-[#04883b]',
@@ -126,25 +133,31 @@ export class OrderService {
 
   async updateOrderStatus(orderId: string, status: AdminOrderStatus): Promise<void> {
     try {
-      await freshmartSdk.admin.updateOrderStatus(orderId, status);
+      const cleanId = orderId.replace(/^#/, '');
+      await freshmartSdk.admin.updateOrderStatus(cleanId, status);
     } catch (err) {
-      console.warn('updateOrderStatus error:', err);
+      Logger.warn('updateOrderStatus error', { error: err, module: 'order.service' });
+      throw err;
     }
   }
 
   async updateOrder(orderId: string, data: Partial<AdminOrder>): Promise<void> {
     try {
-      await freshmartSdk.admin.updateOrder(orderId, data);
+      const cleanId = orderId.replace(/^#/, '');
+      await freshmartSdk.admin.updateOrder(cleanId, data);
     } catch (err) {
-      console.warn('updateOrder error:', err);
+      Logger.warn('updateOrder error', { error: err, module: 'order.service' });
+      throw err;
     }
   }
 
   async deleteOrder(orderId: string): Promise<void> {
     try {
-      await freshmartSdk.admin.deleteOrder(orderId);
+      const cleanId = orderId.replace(/^#/, '');
+      await freshmartSdk.admin.deleteOrder(cleanId);
     } catch (err) {
-      console.warn('deleteOrder error:', err);
+      Logger.warn('deleteOrder error', { error: err, module: 'order.service' });
+      throw err;
     }
   }
 

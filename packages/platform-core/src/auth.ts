@@ -93,7 +93,14 @@ export const createJwtAuthorizer = (options?: JwtAuthorizerOptions) => {
     }
 
     const token = authorizationHeader.replace(/^Bearer\s+/i, '');
-    const claims = await verifier.verify(token);
+    let claims;
+    try {
+      claims = await verifier.verify(token);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Invalid token';
+      throw new DomainError(`Unauthorized: ${msg}`, 401);
+    }
+    
     const groups = Array.isArray(claims['cognito:groups']) ? claims['cognito:groups'] : [];
     const roles = groups.map((value) => String(value));
     

@@ -8,8 +8,8 @@ import {
   Play,
 } from 'lucide-react';
 import { freshmartSdk } from '../../../lib/sdk';
-import { useToast } from '../../../components/ui/toast';
-import { Skeleton, TableSkeleton, CardSkeleton } from '../../../components/ui/skeleton';
+import { useToast } from '@/shared/components/ui/toast';
+import { Skeleton, TableSkeleton, CardSkeleton } from '@/shared/components/ui/skeleton';
 
 export const ForecastDashboard: React.FC = () => {
   const { showToast } = useToast();

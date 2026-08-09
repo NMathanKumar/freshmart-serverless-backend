@@ -28,7 +28,7 @@ type CategoryStat = {
 
 const CategoriesPage = () => {
   const { data: categoryData, retry, state } = useApiResource(fetchAdminCategories);
-  const categoriesList = categoryData?.data ?? [];
+  const categoriesList = (categoryData as any)?.data ?? [];
 
   const categories: CategoryRecord[] = useMemo(() => {
     return categoriesList.map((item: any) => {

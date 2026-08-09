@@ -108,6 +108,11 @@ const consumers = {
     requiredPaths: ['order.orderId'],
     action: notificationService.handleOrderReadyEvent,
   }),
+  [EVENT_TYPES.ORDER_OUT_FOR_DELIVERY]: createConsumer({
+    consumerName: 'orderOutForDeliveryConsumer',
+    requiredPaths: ['order.orderId'],
+    action: notificationService.handleOrderOutForDeliveryEvent,
+  }),
   [EVENT_TYPES.ORDER_COMPLETED]: createConsumer({
     consumerName: 'orderCompletedConsumer',
     requiredPaths: ['order.orderId'],

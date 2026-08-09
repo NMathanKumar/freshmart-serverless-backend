@@ -30,12 +30,13 @@ import {
   useDeleteProduct,
 } from '../hooks/useProducts';
 import { productService, type ProductModel } from '../services/product.service';
-import { Skeleton, CardSkeleton, TableSkeleton } from '../../../components/ui/skeleton';
-import { DeleteConfirmationModal } from '../../../components/ui/delete-modal';
-import { Select } from '../../../components/ui/select';
-import { useToast } from '../../../components/ui/toast';
-import { EmptyState } from '../../../components/ui/empty-state';
+import { Skeleton, CardSkeleton, TableSkeleton, ErrorState, EmptyState } from '@/shared/components/ui';
+import { DeleteConfirmationModal } from '@/shared/components/ui/delete-modal';
+import { Select } from '@/shared/components/ui/select';
+import { useToast } from '@/shared/components/ui/toast';
+import { Logger } from '@/shared/utils/logger';
 import { isAdmin } from '@freshmart/shared';
+import { AdminShell } from '../../admin/components/admin-shell.js';
 
 export const ProductsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,8 +83,8 @@ export const ProductsPage: React.FC = () => {
   // Active Preview Image Index in Card Preview
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
 
-  // Category Dropdown Options
-  const categoryOptions = [
+  // Dynamic Category Dropdown Options loaded from Real-time API
+  const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([
     { value: 'All Categories', label: 'All Categories' },
     { value: 'Fresh Produce', label: 'Fresh Produce' },
     { value: 'Dairy & Eggs', label: 'Dairy & Eggs' },
@@ -92,7 +93,34 @@ export const ProductsPage: React.FC = () => {
     { value: 'Snacks & Bakery', label: 'Snacks & Bakery' },
     { value: 'Frozen Foods', label: 'Frozen Foods' },
     { value: 'Meat & Seafood', label: 'Meat & Seafood' },
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchApiCategories = async () => {
+      try {
+        const { freshmartSdk } = await import('../../../lib/sdk');
+        const res = await freshmartSdk.category.listCategories();
+        const raw = (res as any)?.data || (res as any)?.items || (Array.isArray(res) ? res : []);
+        if (Array.isArray(raw) && raw.length > 0) {
+          const apiCats = raw.map((c: any) => ({
+            value: c.name || c.title || c.categoryName || 'Category',
+            label: c.name || c.title || c.categoryName || 'Category',
+          }));
+          setCategoryOptions([{ value: 'All Categories', label: 'All Categories' }, ...apiCats]);
+        }
+      } catch (err) {
+        Logger.warn('Failed to load categories from API for ProductsPage', { error: err });
+      }
+    };
+    fetchApiCategories();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'new') {
+      handleOpenCreateForm();
+    }
+  }, []);
 
   // Status Dropdown Options
   const statusOptions = [
@@ -205,7 +233,7 @@ export const ProductsPage: React.FC = () => {
         images: [...prev.images, ...uploadedUrls],
       }));
     } catch (err) {
-      console.warn('Error uploading image to AWS S3:', err);
+      Logger.warn('Error uploading image to AWS S3', { error: err, module: 'ProductsPage' });
     } finally {
       setIsUploadingToS3(false);
     }
@@ -326,7 +354,8 @@ export const ProductsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <AdminShell searchPlaceholder="Search products..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="space-y-6 px-5 lg:px-8">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div className="space-y-2">
             <Skeleton className="h-8 w-56 rounded-xl" />
@@ -344,30 +373,71 @@ export const ProductsPage: React.FC = () => {
         </div>
         <TableSkeleton rows={6} columns={8} />
       </div>
+      </AdminShell>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-8 bg-[#ffffff] rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#0f172a]">Failed to load product catalog</h3>
-        <p className="text-xs text-slate-500">{error?.message || 'Server connection error.'}</p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#04883b] text-white text-xs font-bold shadow-md hover:bg-[#037030] transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Retry</span>
-        </button>
+      <AdminShell searchPlaceholder="Search products..." user="alex" variant="operations" onSearch={setSearchTerm}>
+      <div className="my-12 max-w-lg mx-auto px-5 lg:px-8">
+        <ErrorState
+          title="Failed to load product catalog"
+          description={error?.message || 'Server connection error.'}
+          onRetry={() => refetch()}
+          errorCode={error?.code}
+          correlationId={error?.correlationId}
+        />
       </div>
+      </AdminShell>
     );
   }
 
   return (
-    <div className="space-y-6 min-h-[calc(100vh-120px)] pb-12">
+    <AdminShell searchPlaceholder="Search products..." user="alex" variant="operations" onSearch={setSearchTerm}>
+    <div className="space-y-6 min-h-[calc(100vh-120px)] pb-12 px-5 lg:px-8">
+      {/* TOP PRODUCT NAVIGATION MENU TABS */}
+      <div className="bg-white p-3 rounded-2xl border border-[#e9f2e7] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => handleCloseForm()}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+              !showInPageForm
+                ? 'bg-[#04883b] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-[#e6f7ec] hover:text-[#04883b]'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>Show All Products</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenCreateForm()}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+              showInPageForm && !editingProduct
+                ? 'bg-[#04883b] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-[#e6f7ec] hover:text-[#04883b]'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Add Product</span>
+          </button>
+
+          {editingProduct && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold bg-amber-500 text-white shadow-sm">
+              <Edit3 className="w-4 h-4" />
+              <span>Editing: {editingProduct.name}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="text-xs font-bold text-slate-500 hidden sm:block">
+          Total Catalog Items: <span className="text-[#04883b] font-black">{displayProducts.length}</span>
+        </div>
+      </div>
+
       {/* SECTION 1: IN-PAGE PRODUCT FORM WITH AWS S3 UPLOAD & LIVE STORE CARD PREVIEW */}
       {showInPageForm ? (
         <div className="space-y-6 animate-fadeIn">
@@ -994,5 +1064,6 @@ export const ProductsPage: React.FC = () => {
         isDeleting={deleteProductMutation.isPending}
       />
     </div>
+    </AdminShell>
   );
 };

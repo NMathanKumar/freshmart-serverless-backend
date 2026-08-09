@@ -5,9 +5,9 @@ import { parseApiError, type AppApiError } from '../../../lib/api-error';
 export function useAnalyticsDashboard(period = '30d') {
   return useQuery<AnalyticsSummaryModel, AppApiError>({
     queryKey: ['admin', 'analytics', 'dashboard', period],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
-        return await analyticsService.getAnalyticsDashboard(period);
+        return await analyticsService.getAnalyticsDashboard(period, signal);
       } catch (err) {
         throw parseApiError(err);
       }
@@ -22,9 +22,9 @@ export function useAnalyticsDashboard(period = '30d') {
 export function useRevenueAnalytics(params: Record<string, unknown> = {}) {
   return useQuery<Record<string, unknown>, AppApiError>({
     queryKey: ['admin', 'analytics', 'revenue', params],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
-        return await analyticsService.getRevenueAnalytics(params);
+        return await analyticsService.getRevenueAnalytics(params, signal);
       } catch (err) {
         throw parseApiError(err);
       }

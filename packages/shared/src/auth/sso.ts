@@ -42,11 +42,18 @@ export const generatePKCE = async (): Promise<{ codeVerifier: string; codeChalle
 };
 
 export const redirectToSSO = async (redirectUri: string, returnUrl?: string): Promise<void> => {
-  // @ts-ignore
-  const env = (import.meta as any).env;
-  const domain = env.VITE_COGNITO_DOMAIN;
-  const clientId = env.VITE_COGNITO_CLIENT_ID;
-  const scopes = env.VITE_OAUTH_SCOPES || 'openid email profile';
+  let env: any = {};
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      env = import.meta.env;
+    }
+  } catch (e) {}
+
+  const domain = env?.VITE_COGNITO_DOMAIN || 'https://freshmart-dev-auth.auth.ap-southeast-1.amazoncognito.com';
+  const clientId = env?.VITE_COGNITO_CLIENT_ID || '5qeg7to1eroscp415s5jqicvt2';
+  const scopes = env?.VITE_OAUTH_SCOPES || 'openid email profile';
 
   if (!domain || !clientId) {
     console.error('SSO Configuration missing. Cannot redirect.');
@@ -72,10 +79,17 @@ export const redirectToSSO = async (redirectUri: string, returnUrl?: string): Pr
 };
 
 export const exchangeCodeForTokens = async (code: string): Promise<any> => {
-  // @ts-ignore
-  const env = (import.meta as any).env;
-  const domain = env.VITE_COGNITO_DOMAIN;
-  const clientId = env.VITE_COGNITO_CLIENT_ID;
+  let env: any = {};
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      env = import.meta.env;
+    }
+  } catch (e) {}
+
+  const domain = env?.VITE_COGNITO_DOMAIN || 'https://freshmart-dev-auth.auth.ap-southeast-1.amazoncognito.com';
+  const clientId = env?.VITE_COGNITO_CLIENT_ID || '5qeg7to1eroscp415s5jqicvt2';
   const redirectUri = sessionStorage.getItem('oauth_redirect_uri');
   const codeVerifier = sessionStorage.getItem('pkce_verifier');
 
@@ -119,10 +133,17 @@ export const exchangeCodeForTokens = async (code: string): Promise<any> => {
 };
 
 export const logoutFromSSO = (redirectUri?: string): void => {
-  // @ts-ignore
-  const env = (import.meta as any).env;
-  const domain = env.VITE_COGNITO_DOMAIN;
-  const clientId = env.VITE_COGNITO_CLIENT_ID;
+  let env: any = {};
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      env = import.meta.env;
+    }
+  } catch (e) {}
+
+  const domain = env?.VITE_COGNITO_DOMAIN || 'https://freshmart-dev-auth.auth.ap-southeast-1.amazoncognito.com';
+  const clientId = env?.VITE_COGNITO_CLIENT_ID || '5qeg7to1eroscp415s5jqicvt2';
 
   if (!domain || !clientId) {
     console.error('SSO Configuration missing. Cannot execute logout redirect.');

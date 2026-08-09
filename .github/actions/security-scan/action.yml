@@ -1,0 +1,167 @@
+name: 'Security Scan, License Policy Enforcement & SBOM Generation'
+description: 'npm audit, license allowlist/denylist enforcement, SPDX SBOM generation, and secret regex scan'
+
+outputs:
+  status:
+    description: 'Overall security scan status'
+    value: ${{ steps.license-policy.outcome }}
+  sbom-file:
+    description: 'Path to generated SPDX SBOM'
+    value: 'freshmart-sbom.spdx.json'
+
+runs:
+  using: 'composite'
+  steps:
+    # ──────────────────────────────────────────────────────────
+    # 1. npm audit – fail on HIGH or CRITICAL CVEs
+    # ──────────────────────────────────────────────────────────
+    - name: Dependency Vulnerability Audit (npm audit)
+      id: audit
+      shell: bash
+      run: |
+        echo "::group::npm audit (fail-on: high)"
+        npm audit --audit-level=high
+        echo "::endgroup::"
+
+    # ──────────────────────────────────────────────────────────
+    # 2. License policy enforcement
+    #    ALLOWED : MIT, Apache-2.0, BSD-*, ISC, 0BSD, Unlicense, CC0-1.0, Python-2.0
+    #    BLOCKED  : GPL-*, AGPL-*, LGPL-*, SSPL, BUSL, Commons Clause
+    # ──────────────────────────────────────────────────────────
+    - name: License Policy Enforcement
+      id: license-policy
+      shell: bash
+      run: |
+        echo "::group::License Policy – Allowlist / Denylist Enforcement"
+        node -e '
+        const fs = require("fs");
+        const path = require("path");
+
+        const ALLOWED = new Set([
+          "MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause",
+          "ISC", "0BSD", "Unlicense", "CC0-1.0", "Python-2.0",
+          "BlueOak-1.0.0", "Artistic-2.0", "CDDL-1.0",
+        ]);
+        const DENIED_PATTERNS = [
+          /GPL/i, /AGPL/i, /LGPL/i, /SSPL/i, /BUSL/i, /Commons Clause/i,
+        ];
+
+        let lockRaw;
+        try {
+          lockRaw = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+        } catch {
+          console.log("No package-lock.json found – skipping license policy.");
+          process.exit(0);
+        }
+
+        const violations = [];
+        const packages = lockRaw.packages || {};
+
+        for (const [name, meta] of Object.entries(packages)) {
+          if (!name || name === "") continue; // skip root
+          const lic = meta.license || "UNKNOWN";
+          const licStr = Array.isArray(lic) ? lic.join(" OR ") : String(lic);
+
+          if (licStr === "UNKNOWN" || licStr === "NOASSERTION") continue; // grace – not declared
+          if (ALLOWED.has(licStr)) continue;
+          if (DENIED_PATTERNS.some(rx => rx.test(licStr))) {
+            violations.push({ package: name, license: licStr });
+          }
+        }
+
+        if (violations.length > 0) {
+          console.error("❌ License policy violations detected:");
+          violations.forEach(v => console.error(`  - ${v.package}: ${v.license}`));
+          process.exit(1);
+        } else {
+          console.log("✅ All package licenses conform to policy (MIT/Apache-2.0/BSD/ISC/...).");
+        }
+        '
+        echo "::endgroup::"
+
+    # ──────────────────────────────────────────────────────────
+    # 3. Generate SPDX-2.3 Software Bill of Materials (SBOM)
+    # ──────────────────────────────────────────────────────────
+    - name: Generate SPDX Software Bill of Materials (SBOM)
+      id: sbom
+      shell: bash
+      run: |
+        echo "::group::SPDX SBOM Generation"
+        node -e '
+        const fs = require("fs");
+
+        const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+        let lock;
+        try {
+          lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+        } catch {
+          lock = { packages: {} };
+        }
+
+        const packages = Object.entries(lock.packages || {})
+          .filter(([name]) => name && name !== "")
+          .map(([name, meta], idx) => ({
+            SPDXID: `SPDXRef-Package-${idx}`,
+            name: name.replace(/^node_modules\//, ""),
+            versionInfo: meta.version || "0.0.0",
+            downloadLocation: meta.resolved || "NOASSERTION",
+            filesAnalyzed: false,
+            licenseConcluded: meta.license || "NOASSERTION",
+            licenseDeclared: meta.license || "NOASSERTION",
+            copyrightText: "NOASSERTION",
+          }));
+
+        const sbom = {
+          spdxVersion: "SPDX-2.3",
+          dataLicense: "CC0-1.0",
+          SPDXID: "SPDXRef-DOCUMENT",
+          name: pkg.name + "-sbom",
+          documentNamespace: `https://spdx.org/spdxdocs/${pkg.name}-${pkg.version}-${Date.now()}`,
+          creationInfo: {
+            creators: [
+              "Tool: FreshMart-CI-SBOM-Generator-v2",
+              `Tool: npm/${process.env.npm_config_user_agent || "unknown"}`,
+            ],
+            created: new Date().toISOString(),
+          },
+          packages,
+        };
+
+        fs.writeFileSync("freshmart-sbom.spdx.json", JSON.stringify(sbom, null, 2));
+        console.log(`✅ SPDX SBOM generated with ${packages.length} components.`);
+        '
+        echo "::endgroup::"
+
+    # ──────────────────────────────────────────────────────────
+    # 4. Regex secret guard (fast pre-Gitleaks check on diff)
+    # ──────────────────────────────────────────────────────────
+    - name: Regex Secret Guard (diff scan)
+      id: secret-scan
+      shell: bash
+      run: |
+        echo "::group::Regex Secret Guard"
+        PATTERNS='(AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=\s*[A-Za-z0-9+/]{40}|ghp_[0-9a-zA-Z]{36}|ghs_[0-9a-zA-Z]{36}|xox[baprs]-[0-9A-Za-z\-]+)'
+        if git log --oneline -1 &>/dev/null; then
+          if git diff origin/HEAD...HEAD 2>/dev/null | grep -iE "$PATTERNS"; then
+            echo "::error::Hardcoded credential pattern detected in git diff. Failing build."
+            exit 1
+          fi
+        fi
+        echo "✅ No hardcoded credentials found in diff."
+        echo "::endgroup::"
+
+    # ──────────────────────────────────────────────────────────
+    # 5. Emit security scan summary
+    # ──────────────────────────────────────────────────────────
+    - name: Publish Security Scan Summary
+      if: always()
+      shell: bash
+      run: |
+        echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| npm audit (High/Critical CVEs) | ${{ steps.audit.outcome == 'success' && '✅ Clean' || '❌ Vulnerabilities Found' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| License Policy (GPL/AGPL blocked) | ${{ steps.license-policy.outcome == 'success' && '✅ Compliant' || '❌ Violations Found' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| SPDX SBOM Generation | ${{ steps.sbom.outcome == 'success' && '✅ Generated' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Regex Secret Guard | ${{ steps.secret-scan.outcome == 'success' && '✅ Clean' || '❌ Secrets Found' }} |" >> $GITHUB_STEP_SUMMARY

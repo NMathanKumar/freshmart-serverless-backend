@@ -1,0 +1,14 @@
+# terraform.tfvars.example
+# Copy this file to terraform.tfvars and fill in the values.
+# DO NOT commit terraform.tfvars to version control.
+# All sensitive values must be injected via GitHub Actions secrets or AWS SSM.
+
+project_name = "freshmart"
+environment  = "dev"
+aws_region   = "ap-southeast-1"
+
+# internal_service_token must be provided at deploy time via:
+#   GitHub Actions: TF_VAR_internal_service_token secret
+#   Local dev:      export TF_VAR_internal_service_token="<your-local-dev-token>"
+# Never paste the actual value here or in any committed file.
+internal_service_token = "<REPLACE_WITH_SECRET_FROM_GITHUB_ACTIONS>"

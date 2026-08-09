@@ -25,7 +25,9 @@ const emit = (level: string, context: LoggerContext, message: string, extra?: Re
     operation: context.operation,
     duration: extra?.duration,
     status: extra?.status,
-    errorCode: extra?.errorCode
+    errorCode: extra?.errorCode,
+    error: extra?.error,
+    details: extra?.details
   };
   
   const cleanPayload = Object.fromEntries(

@@ -4,15 +4,13 @@ import { ShieldCheck, Download, Search, Filter } from 'lucide-react';
 import { usePermissions } from '../context/PermissionsContext';
 import { freshmartSdk } from '../lib/sdk';
 import { queryKeys } from '../lib/queryKeys';
-import { Badge } from '../components/ui/badge';
-import { Input } from '../components/ui/input';
-import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
-import { Drawer } from '../components/ui/drawer';
-import { Pagination } from '../components/ui/pagination';
-import { LoadingState } from '../components/ui/loading-state';
-import { ErrorState } from '../components/ui/error-state';
-import { EmptyState } from '../components/ui/empty-state';
+import { Badge } from '@/shared/components/ui/badge';
+import { Input } from '@/shared/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
+import { Select } from '@/shared/components/ui/select';
+import { Drawer } from '@/shared/components/ui/drawer';
+import { Pagination } from '@/shared/components/ui/pagination';
+import { Skeleton, TableSkeleton, ErrorState, EmptyState } from '@/shared/components/ui';
 import type { ActivityLog } from '@freshmart/api-sdk';
 
 export const AuditLogs: React.FC = () => {
@@ -87,7 +85,7 @@ export const AuditLogs: React.FC = () => {
                 placeholder="Search user, action, or ID..."
                 className="pl-10"
                 value={searchTerm}
-                onChange={(e) => {
+                onChange={(e: any) => {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
@@ -96,7 +94,7 @@ export const AuditLogs: React.FC = () => {
           </div>
           <Select
             value={selectedRole}
-            onChange={(value) => {
+            onChange={(value: any) => {
               setSelectedRole(value);
               setPage(1);
             }}
@@ -110,7 +108,7 @@ export const AuditLogs: React.FC = () => {
           />
           <Select
             value={selectedResource}
-            onChange={(value) => {
+            onChange={(value: any) => {
               setSelectedResource(value);
               setPage(1);
             }}
@@ -127,12 +125,20 @@ export const AuditLogs: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <LoadingState label="Loading activity logs..." />
+          <div className="space-y-4">
+            <TableSkeleton rows={5} columns={6} />
+          </div>
         ) : isError ? (
-          <ErrorState description="Failed to load activity logs" onRetry={() => refetch()} />
+          <div className="my-12">
+            <ErrorState 
+              title="Failed to load activity logs"
+              description="Server connection error or invalid request." 
+              onRetry={() => refetch()} 
+            />
+          </div>
         ) : logs.length === 0 ? (
           <EmptyState
-            icon={<Filter className="h-8 w-8 text-slate-500" />}
+            icon={<Filter className="h-8 w-8 text-slate-500 mx-auto" />}
             title="No logs found"
             description="Try adjusting your filters or search terms."
           />

@@ -12,12 +12,26 @@ const getOrder = utils.asyncHandler(async (req, res) => {
 });
 
 const updateStatus = utils.asyncHandler(async (req, res) => {
+  const statusToSet = req.body.orderStatus || req.body.status || req.body.rawOrderStatus || req.body.order_status || 'DELIVERED';
   const order = await adminOrderService.updateStatus(
     req.params.orderId,
-    req.body.orderStatus,
+    statusToSet,
     req.eventContext
   );
   response.success(res, { message: `Order status updated to '${order.orderStatus}'`, data: order });
 });
 
-module.exports = { getOrder, listOrders, updateStatus };
+const getAnalyticsDashboard = utils.asyncHandler(async (req, res) => {
+  const data = await adminOrderService.getAnalyticsDashboard(req.query);
+  response.success(res, { message: 'Analytics dashboard metrics fetched', data });
+});
+
+const exportAnalyticsReport = utils.asyncHandler(async (req, res) => {
+  const format = req.query.format || 'csv';
+  const { csvContent, fileName } = await adminOrderService.exportAnalyticsReport(format);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.status(200).send(csvContent);
+});
+
+module.exports = { getOrder, listOrders, updateStatus, getAnalyticsDashboard, exportAnalyticsReport };

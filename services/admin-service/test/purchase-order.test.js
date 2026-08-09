@@ -93,8 +93,8 @@ test('PO service update rejects edit in ORDERED', async () => {
 test('PO service receive updates inventory and changes status', async () => {
   const repo = makeRepo();
   const inventoryCalls = [];
-  const mockInventoryIncrease = async (productId, quantity) => {
-    inventoryCalls.push({ productId, quantity });
+  const mockInventoryIncrease = async (productId, warehouseId, quantity) => {
+    inventoryCalls.push({ productId, warehouseId, quantity });
     return { success: true };
   };
 
@@ -104,7 +104,7 @@ test('PO service receive updates inventory and changes status', async () => {
   await svc.updateStatus(created.adminItemId, 'APPROVED');
   await svc.updateStatus(created.adminItemId, 'ORDERED');
 
-  const received = await svc.receive(created.adminItemId, { receivedItems: [{ productId: 'PROD_1', receivedQuantity: 10 }] });
+  const received = await svc.receive(created.adminItemId, { warehouseId: 'WH_MAIN', receivedItems: [{ productId: 'PROD_1', receivedQuantity: 10 }] });
   assert.equal(received.status, 'RECEIVED');
   assert.equal(inventoryCalls.length, 1);
   assert.equal(inventoryCalls[0].productId, 'PROD_1');
@@ -115,7 +115,7 @@ test('PO service receive throws if not ORDERED', async () => {
   const repo = makeRepo();
   const svc = createPurchaseOrderService({ repository: repo });
   const created = await svc.create({ supplierId: 'SUP_1', items: [] }, 'admin');
-  await assert.rejects(() => svc.receive(created.adminItemId, { receivedItems: [] }), { errorCode: 'CONFLICT' });
+  await assert.rejects(() => svc.receive(created.adminItemId, { warehouseId: 'WH_MAIN', receivedItems: [] }), { errorCode: 'CONFLICT' });
 });
 
 test('PO service cancel allows DRAFT to CANCELLED', async () => {
@@ -134,7 +134,7 @@ test('PO service cancel throws if already RECEIVED', async () => {
   await svc.updateStatus(created.adminItemId, 'SUBMITTED');
   await svc.updateStatus(created.adminItemId, 'APPROVED');
   await svc.updateStatus(created.adminItemId, 'ORDERED');
-  await svc.receive(created.adminItemId, { receivedItems: [{ productId: 'P1', receivedQuantity: 10 }] });
+  await svc.receive(created.adminItemId, { warehouseId: 'WH_MAIN', receivedItems: [{ productId: 'P1', receivedQuantity: 10 }] });
   await assert.rejects(() => svc.cancel(created.adminItemId), { errorCode: 'CONFLICT' });
 });
 

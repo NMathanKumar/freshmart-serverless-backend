@@ -1,36 +1,37 @@
-name: FreshMart CI
+# DEPRECATED — This workflow has been retired.
+#
+# All checks previously performed here are now covered by ci-backend.yml:
+#   - npm test            → backend-quality-matrix (all 15 services)
+#   - npm run typecheck   → package-services action
+#   - npm run build       → package-services action
+#   - terraform fmt       → terraform-validation job (dev / qa / prod)
+#   - terraform validate  → terraform-validation job (dev / qa / prod)
+#
+# This file is kept for audit history. It will not run automatically.
+# If you need to trigger it manually for debugging, use workflow_dispatch.
+#
+# Retired: 2026-08 as part of Phase 1 CI/CD Maturity Upgrade (Stage 2 → 5)
+
+name: "[RETIRED] FreshMart CI"
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manually triggering this retired workflow"
+        required: true
+        default: "debugging only"
 
 jobs:
-  ci-pipeline:
+  retired-notice:
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: ap-southeast-1
-      TF_VAR_aws_region: ap-southeast-1
-      TF_VAR_environment: dev
-      TF_VAR_internal_service_token: ${{ secrets.TF_VAR_INTERNAL_SERVICE_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - uses: hashicorp/setup-terraform@v3
-      - name: Install dependencies
-        run: npm ci
-      - name: Run Tests
-        run: npm test
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Build
-        run: npm run build
-      - name: Terraform Format Check
-        run: terraform -chdir=terraform/environments/dev fmt -check
-      - name: Terraform Init
-        run: terraform -chdir=terraform/environments/dev init -backend=false
-      - name: Terraform Validate
-        run: terraform -chdir=terraform/environments/dev validate
+      - name: Retirement Notice
+        shell: bash
+        run: |
+          echo "## ⚠️ This workflow is retired" >> $GITHUB_STEP_SUMMARY
+          echo "All checks are now handled by **ci-backend.yml**." >> $GITHUB_STEP_SUMMARY
+          echo "Triggered manually by: ${{ github.actor }} — ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo ""
+          echo "This workflow was retired as part of Phase 1 CI/CD Maturity Upgrade."
+          echo "See .github/workflows/ci-backend.yml for the active pipeline."

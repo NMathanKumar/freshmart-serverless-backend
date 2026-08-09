@@ -4,8 +4,9 @@ const notificationService = require('../services/notification.service');
 
 const listNotifications = asyncHandler(async (req, res) => {
   const isStaff = ['ADMIN', 'STAFF'].includes(req.user?.role);
+  const targetUserId = req.query.userId || req.headers['x-user-id'] || req.user?.userId || req.user?.sub || 'SYSTEM';
   const items = await notificationService.listNotifications({
-    userId: req.query.userId || (req.query.status && isStaff ? null : req.user?.userId || null),
+    userId: targetUserId,
     status: req.query.status || null,
   });
   success(res, { message: 'Notifications fetched', data: items });

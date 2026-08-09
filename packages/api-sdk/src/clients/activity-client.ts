@@ -7,7 +7,7 @@ export class ActivityClient {
   async listActivities(params?: Record<string, any>) {
     const response = await this.client.request<{ data: ActivityLog[], meta: any }>({
       method: 'GET',
-      url: '/admin/api/v1/activity',
+      url: '/v1/admin/audit',
       params
     });
     return response;
@@ -16,7 +16,7 @@ export class ActivityClient {
   async getActivity(id: string) {
     const response = await this.client.request<{ data: ActivityLog }>({
       method: 'GET',
-      url: `/admin/api/v1/activity/${id}`
+      url: `/v1/admin/audit/${id}`
     });
     return response.data;
   }
@@ -24,7 +24,7 @@ export class ActivityClient {
   async getActivitiesByUser(userId: string) {
     const response = await this.client.request<{ data: ActivityLog[] }>({
       method: 'GET',
-      url: `/admin/api/v1/activity/user/${userId}`
+      url: `/v1/admin/audit/user/${userId}`
     });
     return response.data;
   }
@@ -32,7 +32,7 @@ export class ActivityClient {
   async getActivitiesByResource(resource: string) {
     const response = await this.client.request<{ data: ActivityLog[] }>({
       method: 'GET',
-      url: `/admin/api/v1/activity/resource/${resource}`
+      url: `/v1/admin/audit/resource/${resource}`
     });
     return response.data;
   }

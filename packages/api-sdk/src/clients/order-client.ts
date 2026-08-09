@@ -1,10 +1,12 @@
 import { ApiClient } from '../http/create-api-client.js';
+import type { AxiosRequestConfig } from 'axios';
 
 export class OrderClient {
   constructor(private readonly client: ApiClient) {}
 
-  listOrders() {
+  listOrders(config?: AxiosRequestConfig) {
     return this.client.request<Record<string, unknown>>({
+      ...config,
       method: 'GET',
       url: '/v1/orders'
     });

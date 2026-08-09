@@ -1,0 +1,49 @@
+name: CodeQL Scheduled Security Scan
+
+on:
+  schedule:
+    # Every Monday at 02:00 UTC – required by enterprise security posture
+    - cron: '0 2 * * 1'
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+
+permissions:
+  security-events: write
+  actions: read
+  contents: read
+
+jobs:
+  codeql-scheduled:
+    name: CodeQL Scheduled SAST Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL Database
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'javascript-typescript'
+          # Full suite including security-extended + security-and-quality
+          queries: +security-extended,security-and-quality
+
+      - name: Autobuild (CodeQL)
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis & Upload SARIF to Security Tab
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'
+          upload: true
+
+      - name: Notify on SARIF Upload
+        shell: bash
+        run: |
+          echo "## 🔍 CodeQL Scheduled Scan Complete" >> $GITHUB_STEP_SUMMARY
+          echo "SARIF report uploaded to GitHub Security tab." >> $GITHUB_STEP_SUMMARY
+          echo "Review at: https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY

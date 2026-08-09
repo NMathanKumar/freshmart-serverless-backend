@@ -86,8 +86,8 @@ const buildConfig = (env = process.env) => ({
   },
   aws: {
     region: env.AWS_REGION || 'ap-southeast-1',
-    eventBusName: env.AWS_EVENT_BUS_NAME || '',
-    eventSource: env.AWS_EVENT_SOURCE || '',
+    eventBusName: env.AWS_EVENT_BUS_NAME || env.EVENT_BUS_NAME || 'freshmart-event-bus-dev',
+    eventSource: env.AWS_EVENT_SOURCE || env.EVENT_SOURCE || 'freshmart-backend',
     menuServiceBaseUrl: env.MENU_SERVICE_URL || env.MENU_SERVICE_BASE_URL || '',
     internalServiceToken: env.MENU_INTERNAL_TOKEN || env.INTERNAL_SERVICE_TOKEN || '',
     s3Bucket: env.AWS_S3_BUCKET || '',

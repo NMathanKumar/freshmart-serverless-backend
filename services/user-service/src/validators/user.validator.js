@@ -4,7 +4,7 @@ const profileSchema = Joi.object({
   name: Joi.string().min(2).max(120).required(),
   email: Joi.string().email().required(),
   phone: Joi.string().max(20).allow('', null).optional(),
-  avatarUrl: Joi.string().uri().max(500).allow('', null).optional(),
+  avatarUrl: Joi.string().max(2000000).allow('', null).optional(),
   preferences: Joi.object().unknown(true).optional(),
 });
 

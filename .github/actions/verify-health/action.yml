@@ -1,0 +1,20 @@
+name: 'Verify Post-Deployment Health'
+description: 'Executes post-deployment smoke tests, web verification, and live health endpoint checks'
+
+outputs:
+  status:
+    description: 'Health verification outcome'
+    value: ${{ steps.smoke.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Verify Web Distributable Health
+      id: verify-web
+      shell: bash
+      run: node scripts/verify-web.js
+
+    - name: Run Live Smoke Verification
+      id: smoke
+      shell: bash
+      run: npm run test:smoke:deployment

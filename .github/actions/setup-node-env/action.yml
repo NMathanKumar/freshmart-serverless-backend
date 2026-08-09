@@ -1,0 +1,35 @@
+name: 'Setup Node Environment'
+description: 'Initializes Node.js 22 environment with npm workspace caching and performance logging'
+
+inputs:
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '22'
+  cache-dependency-path:
+    description: 'Path to package-lock.json'
+    required: false
+    default: 'package-lock.json'
+
+outputs:
+  node-version:
+    description: 'Installed Node.js version'
+    value: ${{ inputs.node-version }}
+  status:
+    description: 'Execution status (success/failure)'
+    value: ${{ steps.setup.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      id: setup
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Install Monorepo Dependencies
+      shell: bash
+      run: npm ci

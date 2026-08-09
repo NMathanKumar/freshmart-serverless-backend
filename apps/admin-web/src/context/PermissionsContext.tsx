@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { freshmartSdk } from '../lib/sdk';
+import { Logger } from '../shared/utils/logger';
 
 interface PermissionsContextType {
   permissions: string[];
@@ -40,7 +41,7 @@ export const PermissionsProvider: React.FC<{ children: ReactNode }> = ({ childre
         }
         setPermissions(Array.from(permsSet));
       } catch (err) {
-        console.error('Failed to fetch permissions', err);
+        Logger.error('Failed to fetch permissions', err, { module: 'PermissionsContext' });
       } finally {
         setIsLoading(false);
       }

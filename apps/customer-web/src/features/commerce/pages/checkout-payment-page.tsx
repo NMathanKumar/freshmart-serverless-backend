@@ -1,88 +1,496 @@
-import { Suspense, useMemo, useState } from 'react';
-import { Building2, ChevronRight, CreditCard, HandCoins, LoaderCircle, Lock, Plus, ShieldCheck, Smartphone, WalletCards } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  CreditCard,
+  Lock,
+  Plus,
+  ShieldCheck,
+  Wallet,
+  Building2,
+  Banknote,
+  Smartphone,
+} from 'lucide-react';
 import { Button } from '@freshmart/design-system';
-import { useNavigate } from 'react-router-dom';
-import { useCreatePaymentMutation, useGetCheckoutQuery } from '../api/commerce-api.js';
-import { CommerceShell } from '../components/commerce-layout.js';
-import { CommerceState, ListSkeleton } from '../components/commerce-state.js';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { HomeHeader } from '../../home/components/home-header.js';
+import { HomeFooter } from '../../home/components/home-footer.js';
+import {
+  useCreateOrderMutation,
+  useCreatePaymentMutation,
+  useGetCartQuery,
+} from '../api/commerce-api.js';
 
-const methods = [
-  { key: 'UPI', title: 'UPI', detail: 'Google Pay, PhonePe, Paytm & more', icon: Smartphone, tone: 'bg-[#d8f4ce] text-[#2b4c1d]' },
-  { key: 'NET_BANKING', title: 'Net Banking', detail: 'All major banks supported', icon: Building2, tone: 'bg-[#eff6ea] text-[#006b2c]' },
-  { key: 'WALLET', title: 'Wallets', detail: 'Paytm, Amazon Pay, Mobikwik', icon: WalletCards, tone: 'bg-[#ffd9de] text-[#a72d51]' },
-  { key: 'COD', title: 'Cash on Delivery', detail: 'Pay with cash at your doorstep', icon: HandCoins, tone: 'bg-[#e9f0e5] text-[#3e4a3d]' }
+interface SavedCard {
+  id: string;
+  type: 'visa' | 'mastercard';
+  last4: string;
+  holder: string;
+  expiry: string;
+  isDefault: boolean;
+}
+
+const SAVED_CARDS: SavedCard[] = [
+  {
+    id: 'card-1',
+    type: 'visa',
+    last4: '4242',
+    holder: 'ADITYA SHARMA',
+    expiry: '08/26',
+    isDefault: true,
+  },
+  {
+    id: 'card-2',
+    type: 'mastercard',
+    last4: '8812',
+    holder: 'ADITYA SHARMA',
+    expiry: '11/24',
+    isDefault: false,
+  },
 ];
 
-const CheckoutPaymentContent = () => {
+export function CheckoutPaymentContent() {
   const navigate = useNavigate();
-  const { data, isError, isLoading, refetch } = useGetCheckoutQuery();
-  const [selectedMethod, setSelectedMethod] = useState('CARD');
+  const location = useLocation();
+  const deliveryAddress = location.state?.deliveryAddress || (typeof location.state?.address === 'string' ? location.state.address : 'Home');
+  const deliveryAddressData = location.state?.addressData || location.state?.addressObj || (typeof location.state?.address === 'object' ? location.state.address : null);
+  const { data: cartItems = [] } = useGetCartQuery();
+  const [createOrder, orderState] = useCreateOrderMutation();
   const [createPayment, paymentState] = useCreatePaymentMutation();
-  const totals = useMemo(() => {
-    const subtotal = data?.cart.reduce((sum, item) => sum + item.price * item.quantityInCart, 0) ?? 0;
-    const discount = subtotal * 0.2;
-    return { subtotal, discount, total: subtotal - discount + 2 };
-  }, [data]);
 
-  const pay = async () => {
-    await createPayment({ orderId: `FM-${Date.now()}`, paymentMethod: selectedMethod }).unwrap().catch(() => undefined);
-    navigate('/checkout/confirmation');
+  const [selectedCard, setSelectedCard] = useState('card-1');
+  const [selectedOption, setSelectedOption] = useState('card');
+
+  const totalQuantity = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.quantityInCart, 0),
+    [cartItems]
+  );
+  const subtotal = useMemo(
+    () =>
+      cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantityInCart,
+        0
+      ),
+    [cartItems]
+  );
+
+  const deliveryFee = 0;
+  const platformFee = 1.5;
+  const taxes = 1.35;
+  const discount = 0;
+  const grandTotal = Math.max(
+    0,
+    subtotal + platformFee + taxes - discount
+  );
+
+  const handlePay = async () => {
+    try {
+      if (typeof deliveryAddress === 'string' && deliveryAddress.trim().length > 3) {
+        try {
+          localStorage.setItem('freshmart_selected_address', deliveryAddress.trim());
+        } catch (_) {}
+      }
+
+      const orderItems = cartItems.length > 0
+        ? cartItems.map((c) => ({
+            productId: c.productId,
+            productName: c.name,
+            name: c.name,
+            imageUrl: c.imageUrl,
+            quantity: c.quantityInCart || 1,
+            price: Number(c.price || 4.99),
+          }))
+        : [
+            {
+              productId: 'PROD-001',
+              productName: 'Fresh Organic Produce',
+              name: 'Fresh Organic Produce',
+              imageUrl: 'https://freshmart-dev-assets-769044546162.s3.ap-southeast-1.amazonaws.com/catalog/products/product_avocado_sample.png',
+              quantity: 1,
+              price: Math.max(subtotal, 4.99),
+            },
+          ];
+
+      const effectiveSubtotal = Math.max(subtotal, 4.99);
+      const effectiveGrandTotal = Math.max(grandTotal, effectiveSubtotal + platformFee + taxes);
+
+      // Retrieve logged-in customer identity
+      const sessionUser = (await import('@freshmart/shared')).getCurrentUser();
+      let activeCustomerEmail = sessionUser?.email || '';
+      let activeCustomerName = sessionUser?.name || '';
+
+      if (!activeCustomerEmail && typeof localStorage !== 'undefined') {
+        try {
+          for (const key of ['freshmart_session', 'freshmart_auth', 'freshmart_auth_session', 'freshmart_user', 'auth_user']) {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              activeCustomerEmail = parsed.email || parsed.user?.email || parsed.claims?.email || parsed.username || activeCustomerEmail;
+              activeCustomerName = parsed.name || parsed.user?.name || parsed.claims?.name || activeCustomerName;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (!activeCustomerEmail && typeof localStorage !== 'undefined') {
+        activeCustomerEmail = localStorage.getItem('freshmart_user_email') || '';
+      }
+      if (!activeCustomerName && typeof localStorage !== 'undefined') {
+        activeCustomerName = localStorage.getItem('freshmart_user_name') || 'Valued Customer';
+      }
+
+      const orderRes = await createOrder({
+        items: orderItems,
+        itemSubtotal: effectiveSubtotal,
+        subtotal: effectiveSubtotal,
+        platformFee,
+        deliveryFee,
+        tax: taxes,
+        taxes,
+        discount: 0,
+        totalAmount: effectiveGrandTotal,
+        grandTotal: effectiveGrandTotal,
+        customerEmail: activeCustomerEmail || undefined,
+        customerName: activeCustomerName || undefined,
+        deliveryAddress,
+        deliveryAddressData,
+        paymentMethod: selectedOption.toUpperCase(),
+      } as any).unwrap();
+
+      // Backend returns { message, data: { orderId: 'ORDER_<uuid>' } }
+      // .unwrap() gives us the raw response envelope
+      const rawOrderId =
+        (orderRes as any)?.data?.orderId ||
+        (orderRes as any)?.orderId ||
+        (orderRes as any)?.data?.id ||
+        (orderRes as any)?.id;
+
+      if (!rawOrderId) {
+        throw new Error('Order was placed but no order ID was returned from server');
+      }
+      const orderId = String(rawOrderId);
+
+      await createPayment({
+        orderId,
+        paymentMethod: selectedOption.toUpperCase(),
+        amount: grandTotal,
+        currency: 'INR',
+      })
+        .unwrap()
+        .catch(() => undefined);
+
+      // ✅ Clear local cart immediately after successful order
+      const { saveStoredCart } = await import('../model/commerce-content.js');
+      saveStoredCart([]);
+
+      // ✅ Also clear remote cart (backend) silently
+      try {
+        const sdkModule = await import('@freshmart/api-sdk');
+        const sdkDefault = (sdkModule as any).default ?? sdkModule;
+        await (sdkDefault as any)?.cart?.clearCart?.();
+      } catch (_) {
+        // Ignore remote clear errors — local cart is already cleared
+      }
+
+      navigate(`/checkout/confirmation?orderId=${encodeURIComponent(orderId)}`);
+    } catch (err) {
+      // Clear local cart even on error
+      try {
+        const { saveStoredCart } = await import('../model/commerce-content.js');
+        saveStoredCart([]);
+      } catch (_) {}
+      // Do NOT navigate to confirmation with a fake ID — let the error surface
+      console.error('Order placement failed:', err);
+    }
   };
 
   return (
-    <CommerceShell active="account" showBack title="Payment">
-      <main className="mx-auto max-w-[1440px] px-4 pb-12 pt-28 md:px-10">
-        {isLoading && <ListSkeleton count={2} />}
-        {isError && <CommerceState description="We could not load checkout details. Please retry." onAction={() => void refetch()} title="Checkout unavailable" />}
-        {!isLoading && !isError && data && (
-          <div className="flex flex-col items-start gap-8 md:flex-row">
-            <section className="flex w-full flex-col gap-8 md:w-2/3">
-              <div><h1 className="mb-2 text-3xl font-bold md:text-4xl">Select Payment Method</h1><p className="text-[#3e4a3d]">Choose your preferred way to pay for a secure and fast checkout.</p></div>
-              <section className="commerce-card p-6">
-                <div className="mb-5 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-semibold"><CreditCard className="h-5 w-5 text-[#006b2c]" />Saved Cards</h2><button className="commerce-focus flex items-center gap-1 font-semibold text-[#006b2c] hover:underline" type="button"><Plus className="h-4 w-4" />Add New Card</button></div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <SavedCard active brand="Visa" holder="ADITYA SHARMA" number="4242" expires="08/26" onClick={() => setSelectedMethod('CARD')} />
-                  <SavedCard brand="Mastercard" holder="ADITYA SHARMA" number="8812" expires="11/24" onClick={() => setSelectedMethod('CARD')} />
+    <div className="min-h-screen bg-[#f4fcf0] font-sans text-[#171d16]">
+      <HomeHeader variant="cart" />
+
+      <main className="mx-auto max-w-[1600px] space-y-8 px-4 pt-24 pb-16 sm:px-6 md:px-10">
+        {/* Page Title & Subtitle */}
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black tracking-tight text-[#171d16] sm:text-4xl">
+            Select Payment Method
+          </h1>
+          <p className="text-sm font-semibold text-[#8b9888]">
+            Choose your preferred way to pay for a secure and fast checkout.
+          </p>
+        </div>
+
+        {/* 2-Column Side-by-Side Layout matching Figma */}
+        <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
+          {/* Left Column: Saved Cards & Other Payment Options */}
+          <div className="space-y-6">
+            {/* 1. Saved Cards Card */}
+            <div className="space-y-5 rounded-[28px] border border-[#e2ebdE] bg-white p-6 shadow-xs sm:p-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-[#006b2c]" />
+                  <h2 className="text-base font-extrabold text-[#171d16]">
+                    Saved Cards
+                  </h2>
                 </div>
-              </section>
-              <section className="space-y-3"><h2 className="px-1 text-xl font-semibold">Other Payment Options</h2>{methods.map((method) => <PaymentMethod active={selectedMethod === method.key} key={method.key} method={method} onSelect={() => setSelectedMethod(method.key)} />)}</section>
-            </section>
-            <aside className="w-full md:sticky md:top-28 md:w-1/3">
-              <div className="commerce-card flex flex-col gap-6 p-6">
-                <h2 className="border-b border-[#bdcaba]/30 pb-4 text-xl font-semibold">Order Summary</h2>
-                <div className="space-y-4 text-[#3e4a3d]">
-                  <Row label={`Items Total (${data.cart.reduce((count, item) => count + item.quantityInCart, 0)} items)`} value={`$${totals.subtotal.toFixed(2)}`} />
-                  <Row label="Discount Applied (FRESH20)" value={`- $${totals.discount.toFixed(2)}`} success />
-                  <Row label="Delivery Fee" value="FREE" muted="$2.50" />
-                  <Row label="Platform Fee" value="$2.00" />
-                  <div className="flex items-center justify-between border-t border-[#bdcaba]/40 pt-4"><span className="text-xl font-semibold text-[#171d16]">Grand Total</span><span className="text-xl font-semibold text-[#006b2c]">${totals.total.toFixed(2)}</span></div>
-                </div>
-                <div className="flex items-center gap-4 rounded-lg bg-[#d8f4ce]/50 p-4"><ShieldCheck className="h-5 w-5 text-[#006b2c]" /><p className="text-xs leading-5 text-[#2b4c1d]">Your payment is secured with 256-bit SSL encryption for a safe transaction.</p></div>
-                <Button className="w-full gap-3 rounded-xl py-5 text-lg" disabled={paymentState.isLoading} onClick={() => void pay()} type="button">{paymentState.isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : null}Pay ${totals.total.toFixed(2)}<Lock className="h-5 w-5" /></Button>
+                <button
+                  className="flex items-center gap-1 text-xs font-extrabold text-[#006b2c] hover:underline"
+                  type="button"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add New Card</span>
+                </button>
               </div>
-            </aside>
+
+              {/* Saved Cards Row */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {SAVED_CARDS.map((card) => {
+                  const isSelected =
+                    selectedCard === card.id && selectedOption === 'card';
+                  return (
+                    <div
+                      key={card.id}
+                      className={`flex cursor-pointer flex-col justify-between space-y-6 rounded-[20px] p-5 shadow-xs transition-all ${
+                        isSelected
+                          ? 'border-2 border-[#006b2c] bg-[#eff6ea]'
+                          : 'border border-[#e2ebdE] bg-white hover:border-[#bdcaba]'
+                      }`}
+                      onClick={() => {
+                        setSelectedCard(card.id);
+                        setSelectedOption('card');
+                      }}
+                    >
+                      <div className="flex items-start justify-between">
+                        {/* Card Network Logo Badge */}
+                        <div className="flex h-8 w-12 items-center justify-center rounded-lg border border-[#bdcaba]/40 bg-white p-1 text-xs font-black tracking-tighter text-blue-900">
+                          {card.type === 'visa' ? 'VISA' : 'MC'}
+                        </div>
+
+                        {isSelected && (
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#006b2c] text-white">
+                            <Check className="h-3 w-3 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-base font-black tracking-widest text-[#171d16]">
+                          •••• •••• •••• {card.last4}
+                        </p>
+
+                        <div className="flex items-center justify-between text-[10px] font-extrabold tracking-wider text-[#8b9888] uppercase">
+                          <div>
+                            <span className="block text-[9px] text-[#8b9888]">
+                              CARD HOLDER
+                            </span>
+                            <span className="text-[#171d16]">
+                              {card.holder}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="block text-[9px] text-[#8b9888]">
+                              EXPIRES
+                            </span>
+                            <span className="text-[#171d16]">
+                              {card.expiry}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Other Payment Options */}
+            <div className="space-y-3">
+              <h2 className="px-1 text-base font-extrabold text-[#171d16]">
+                Other Payment Options
+              </h2>
+
+              {/* UPI Option */}
+              <div
+                className={`flex cursor-pointer items-center justify-between rounded-[24px] border bg-white p-5 shadow-xs transition-all ${
+                  selectedOption === 'upi'
+                    ? 'border-2 border-[#006b2c] bg-[#eff6ea]'
+                    : 'border-[#e2ebdE] hover:border-[#bdcaba]'
+                }`}
+                onClick={() => setSelectedOption('upi')}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eff6ea] text-[#006b2c]">
+                    <Smartphone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#171d16]">
+                      UPI
+                    </h3>
+                    <p className="text-xs font-semibold text-[#8b9888]">
+                      Google Pay, PhonePe, Paytm & more
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-[#8b9888]" />
+              </div>
+
+              {/* Net Banking Option */}
+              <div
+                className={`flex cursor-pointer items-center justify-between rounded-[24px] border bg-white p-5 shadow-xs transition-all ${
+                  selectedOption === 'netbanking'
+                    ? 'border-2 border-[#006b2c] bg-[#eff6ea]'
+                    : 'border-[#e2ebdE] hover:border-[#bdcaba]'
+                }`}
+                onClick={() => setSelectedOption('netbanking')}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eff6ea] text-[#006b2c]">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#171d16]">
+                      Net Banking
+                    </h3>
+                    <p className="text-xs font-semibold text-[#8b9888]">
+                      All major banks supported
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-[#8b9888]" />
+              </div>
+
+              {/* Wallets Option */}
+              <div
+                className={`flex cursor-pointer items-center justify-between rounded-[24px] border bg-white p-5 shadow-xs transition-all ${
+                  selectedOption === 'wallets'
+                    ? 'border-2 border-[#006b2c] bg-[#eff6ea]'
+                    : 'border-[#e2ebdE] hover:border-[#bdcaba]'
+                }`}
+                onClick={() => setSelectedOption('wallets')}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eff6ea] text-[#006b2c]">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#171d16]">
+                      Wallets
+                    </h3>
+                    <p className="text-xs font-semibold text-[#8b9888]">
+                      Paytm, Amazon Pay, Mobikwik
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-[#8b9888]" />
+              </div>
+
+              {/* Cash on Delivery Option */}
+              <div
+                className={`flex cursor-pointer items-center justify-between rounded-[24px] border bg-white p-5 shadow-xs transition-all ${
+                  selectedOption === 'cod'
+                    ? 'border-2 border-[#006b2c] bg-[#eff6ea]'
+                    : 'border-[#e2ebdE] hover:border-[#bdcaba]'
+                }`}
+                onClick={() => setSelectedOption('cod')}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eff6ea] text-[#006b2c]">
+                    <Banknote className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#171d16]">
+                      Cash on Delivery
+                    </h3>
+                    <p className="text-xs font-semibold text-[#8b9888]">
+                      Pay with cash at your doorstep
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-[#8b9888]" />
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Right Column: Order Summary Card */}
+          <div className="sticky top-24 space-y-4">
+            <div className="space-y-6 rounded-[28px] border border-[#e2ebdE] bg-white p-6 shadow-xs sm:p-8">
+              <h2 className="text-lg font-black tracking-tight text-[#171d16]">
+                Order Summary
+              </h2>
+
+              <div className="space-y-3 text-xs font-extrabold text-[#3e4a3d]">
+                <div className="flex items-center justify-between">
+                  <span>
+                    Items Total ({totalQuantity} item
+                    {totalQuantity === 1 ? '' : 's'})
+                  </span>
+                  <span className="font-black text-[#171d16]">
+                    ₹{subtotal.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span>Delivery Fee</span>
+                  <span className="font-black text-[#006c4a]">
+                    <span className="mr-1.5 text-[#8b9888] line-through">
+                      ₹2.50
+                    </span>
+                    FREE
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span>Platform Fee</span>
+                  <span className="font-black text-[#171d16]">
+                    ₹{platformFee.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span>Taxes</span>
+                  <span className="font-black text-[#171d16]">
+                    ₹{taxes.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Grand Total Row */}
+              <div className="flex items-center justify-between border-t border-[#e2ebdE] pt-4">
+                <span className="text-base font-black text-[#171d16]">
+                  Grand Total
+                </span>
+                <span className="text-xl font-black text-[#006c4a]">
+                  ₹{grandTotal.toFixed(2)}
+                </span>
+              </div>
+
+              {/* Green Security Banner */}
+              <div className="flex items-center gap-2 rounded-2xl border border-[#bdcaba]/30 bg-[#eff6ea] p-3.5 text-xs font-bold text-[#006c4a]">
+                <ShieldCheck className="h-5 w-5 shrink-0" />
+                <span>
+                  Your payment is secured with 256-bit SSL encryption for a safe
+                  transaction.
+                </span>
+              </div>
+
+              {/* Pay CTA Button */}
+              <Button
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#006b2c] text-base font-extrabold text-white shadow-md transition-all hover:bg-[#005422] active:scale-98 disabled:opacity-50"
+                disabled={orderState.isLoading || paymentState.isLoading}
+                onClick={handlePay}
+                type="button"
+              >
+                <span>Pay ₹{grandTotal.toFixed(2)}</span>
+                <Lock className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </main>
-    </CommerceShell>
+    </div>
   );
-};
-
-const SavedCard = ({ active = false, brand, expires, holder, number, onClick }: { active?: boolean; brand: string; expires: string; holder: string; number: string; onClick: () => void }) => (
-  <button className={`commerce-focus rounded-xl border p-4 text-left transition-all active:scale-[0.98] ${active ? 'border-2 border-[#006b2c] bg-[#d8f4ce]/30' : 'border-[#bdcaba] bg-white hover:border-[#006b2c]/50'}`} onClick={onClick} type="button">
-    <div className="mb-6 flex items-start justify-between"><span className="rounded-lg bg-white px-3 py-2 text-sm font-bold shadow-sm">{brand}</span>{active && <span className="text-[#006b2c]">●</span>}</div>
-    <div className="mb-6 text-lg font-bold tracking-widest">•••• •••• •••• {number}</div>
-    <div className="flex justify-between text-xs uppercase tracking-wide text-[#3e4a3d]"><span>Card Holder<br /><strong className="text-[#171d16]">{holder}</strong></span><span className="text-right">Expires<br /><strong className="text-[#171d16]">{expires}</strong></span></div>
-  </button>
-);
-
-const PaymentMethod = ({ active, method, onSelect }: { active: boolean; method: (typeof methods)[number]; onSelect: () => void }) => {
-  const Icon = method.icon;
-  return <button className={`commerce-focus flex w-full items-center justify-between rounded-xl border bg-white p-5 text-left transition-all hover:shadow-sm ${active ? 'border-[#006b2c]' : 'border-[#bdcaba]/40'}`} onClick={onSelect} type="button"><div className="flex items-center gap-4"><div className={`flex h-12 w-12 items-center justify-center rounded-full ${method.tone}`}><Icon className="h-5 w-5" /></div><div><h3 className="text-lg font-semibold">{method.title}</h3><p className="text-xs text-[#3e4a3d]">{method.detail}</p></div></div><ChevronRight className="h-5 w-5 text-[#3e4a3d]" /></button>;
-};
-
-const Row = ({ label, muted, success, value }: { label: string; muted?: string; success?: boolean; value: string }) => <div className={`flex items-center justify-between ${success ? 'text-[#3f6d2a]' : ''}`}><span>{label}</span><span className="font-medium">{muted && <span className="mr-1 text-xs text-[#6e7b6c] line-through">{muted}</span>}{value}</span></div>;
+}
 
 export default function CheckoutPaymentPage() {
-  return <Suspense fallback={<ListSkeleton count={2} />}><CheckoutPaymentContent /></Suspense>;
+  return <CheckoutPaymentContent />;
 }

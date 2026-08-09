@@ -1,11 +1,19 @@
 const Joi = require('joi');
 const { PAYMENT_METHOD } = require('@freshmart/service-shared').constants;
 
-const PAYMENT_METHOD_VALUES = Object.values(PAYMENT_METHOD);
+const ALL_PAYMENT_METHODS = Array.from(new Set([
+  ...Object.values(PAYMENT_METHOD),
+  'APPLE_PAY',
+  'GOOGLE_PAY',
+  'COD',
+  'NET_BANKING',
+  'CREDIT_CARD',
+  'DEBIT_CARD',
+]));
 
 const createPaymentSchema = Joi.object({
   orderId: Joi.string().required(),
-  paymentMethod: Joi.string().valid(...PAYMENT_METHOD_VALUES).default(PAYMENT_METHOD.DUMMY),
+  paymentMethod: Joi.string().valid(...ALL_PAYMENT_METHODS).default(PAYMENT_METHOD.DUMMY),
   currency: Joi.string().max(10).optional(),
 });
 

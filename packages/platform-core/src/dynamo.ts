@@ -55,7 +55,8 @@ export class DynamoRepository<TItem extends TableEntity> {
     const result = await this.client.send(
       new GetCommand({
         TableName: this.tableName,
-        Key: { pk, sk }
+        Key: { pk, sk },
+        ConsistentRead: true
       })
     );
     return (result.Item as TItem | undefined) ?? null;

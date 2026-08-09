@@ -1,0 +1,25 @@
+name: 'Lint & Typecheck'
+description: 'Runs ESLint, Prettier formatting checks, and TypeScript typechecking across workspaces'
+
+outputs:
+  status:
+    description: 'Overall linting status'
+    value: ${{ steps.typecheck.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prettier Format Check
+      id: prettier
+      shell: bash
+      run: npx prettier --check .
+
+    - name: ESLint Check
+      id: eslint
+      shell: bash
+      run: npm run lint
+
+    - name: TypeScript Typecheck
+      id: typecheck
+      shell: bash
+      run: npm run typecheck

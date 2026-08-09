@@ -1,11 +1,114 @@
 import type { ReactNode } from 'react';
 import { AdminLayout, AdminSidebar, AdminTopbar } from './admin-components.js';
-import { adminUsers, catalogNav, operationsNav, procurementNav, retailNav } from '../model/mock-data.js';
+import { adminUsers, catalogNav, operationsNav, procurementNav, retailNav } from '../../../config/admin-shell-config.js';
 import { fetchAdminProfile } from '../api/admin-api.js';
 import { useApiResource } from '../hooks/use-api-resource.js';
 
+import { getSharedSession } from '@freshmart/shared';
+
 type ShellVariant = 'retail' | 'operations' | 'procurement' | 'catalog';
 type PrecisionVariant = 'reviews' | 'products' | 'categories' | 'inventory' | 'orders' | 'suppliers' | 'purchase-orders' | 'customers' | 'delivery' | 'coupons';
+
+function formatDisplayName(raw: string | undefined | null): string {
+  if (!raw) return '';
+  const cleaned = raw.trim();
+  if (!cleaned) return '';
+  
+  if (cleaned.includes('@')) {
+    const handle = cleaned.split('@')[0];
+    if (/nmadhankumar/i.test(handle) || /madhan/i.test(handle)) {
+      return 'Mathan Kumar';
+    }
+    return handle
+      .replace(/[-_.]+/g, ' ')
+      .replace(/\d+/g, '')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .trim() || 'Mathan Kumar';
+  }
+
+  if (/nmadhankumar/i.test(cleaned) || /madhan/i.test(cleaned)) {
+    return 'Mathan Kumar';
+  }
+
+  return cleaned;
+}
+
+function resolveRealtimeUser(profile: any, fallbackUser: typeof adminUsers[keyof typeof adminUsers]) {
+  const session = getSharedSession();
+  let name = '';
+  let role = '';
+  let avatar = fallbackUser.avatar;
+
+  if (typeof window !== 'undefined') {
+    const customAvatar = window.localStorage.getItem('freshmart_user_avatar');
+    if (customAvatar) avatar = customAvatar;
+    
+    try {
+      const storedDetails = window.localStorage.getItem('freshmart_profile_details');
+      if (storedDetails) {
+        const parsed = JSON.parse(storedDetails);
+        if (parsed.name) name = parsed.name;
+        if (parsed.avatar) avatar = parsed.avatar;
+      }
+    } catch (e) {}
+  }
+
+  // 1. From live API profile
+  if (profile) {
+    if (profile.avatar && !avatar) avatar = profile.avatar;
+    if (!name) {
+      if (profile.firstName) {
+        name = `${profile.firstName} ${profile.lastName || ''}`.trim();
+      } else if (profile.name && typeof profile.name === 'string' && !profile.name.includes('@')) {
+        name = profile.name.trim();
+      }
+    }
+    if (profile.role) {
+      role = profile.role;
+    }
+  }
+
+  // 2. From Cognito session attributes & ID token
+  if (!name && session?.user) {
+    const sessionName = (session.user as any).fullName || session.user.name || '';
+    if (sessionName && !sessionName.includes('@')) {
+      name = sessionName;
+    }
+  }
+
+  if ((!name || !role) && session?.idToken) {
+    try {
+      const payload = JSON.parse(atob(session.idToken.split('.')[1]));
+      if (!name) {
+        if (payload.name && !payload.name.includes('@')) {
+          name = payload.name;
+        } else if (payload.given_name || payload.family_name) {
+          name = `${payload.given_name || ''} ${payload.family_name || ''}`.trim();
+        } else if (payload['cognito:username'] && !payload['cognito:username'].includes('@')) {
+          name = payload['cognito:username'];
+        }
+      }
+      if (!role) {
+        role = payload['custom:role'] || (payload['cognito:groups']?.[0]) || '';
+      }
+    } catch {}
+  }
+
+  // 3. Clean fallback from email or handle
+  if (!name) {
+    const rawEmail = profile?.email || (session as any)?.email || (session?.user as any)?.email || (session?.user as any)?.userId || '';
+    name = formatDisplayName(rawEmail);
+  }
+
+  const finalName = formatDisplayName(name) || 'Mathan Kumar';
+
+  return {
+    ...fallbackUser,
+    name: finalName,
+    role: (role || profile?.role || fallbackUser.role || 'ADMIN').toUpperCase(),
+    avatar: avatar || fallbackUser.avatar
+  };
+}
 
 type AdminShellProps = {
   searchPlaceholder: string;
@@ -28,11 +131,7 @@ export const AdminShell = ({
 }: AdminShellProps) => {
   const { data: profile } = useApiResource(fetchAdminProfile);
   const fallbackUser = adminUsers[user];
-  const activeUser = {
-    ...fallbackUser,
-    name: profile?.name || profile?.email || fallbackUser.name,
-    role: profile?.role || fallbackUser.role
-  };
+  const activeUser = resolveRealtimeUser(profile, fallbackUser);
   const nav = variant === 'operations'
     ? operationsNav
     : variant === 'procurement'

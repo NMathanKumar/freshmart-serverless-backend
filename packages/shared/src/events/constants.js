@@ -17,6 +17,7 @@ const EVENT_TYPES = Object.freeze({
   ORDER_CANCELLED: 'order.cancelled',
   ORDER_ACCEPTED: 'order.accepted',
   ORDER_READY: 'order.ready',
+  ORDER_OUT_FOR_DELIVERY: 'order.out_for_delivery',
   ORDER_COMPLETED: 'order.completed',
   PAYMENT_CREATED: 'payment.created',
   PAYMENT_SUCCESS: 'payment.succeeded',

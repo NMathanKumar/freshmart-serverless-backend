@@ -12,9 +12,12 @@ export interface Address {
 
 export interface UserProfile {
   userId: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  name?: string;
   email: string;
+  phone?: string;
   phoneNumber?: string;
   wishlistCount: number;
   addresses: Address[];

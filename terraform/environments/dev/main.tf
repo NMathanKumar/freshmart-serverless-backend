@@ -81,14 +81,22 @@ module "dynamodb" {
 module "apigateway" {
   source = "../../modules/apigateway"
 
-  project_name           = var.project_name
-  environment            = var.environment
-  aws_region             = var.aws_region
-  api_name               = local.api_name
-  description            = "FreshMart HTTP API for ${var.environment}."
-  lambdas                = local.api_gateway_lambdas
-  routes                 = local.api_gateway_routes
-  cors_allow_origins     = ["*"]
+  project_name = var.project_name
+  environment  = var.environment
+  aws_region   = var.aws_region
+  api_name     = local.api_name
+  description  = "FreshMart HTTP API for ${var.environment}."
+  lambdas      = local.api_gateway_lambdas
+  routes       = local.api_gateway_routes
+  cors_allow_origins = [
+    "https://${module.unified_web.cloudfront_domain_name}",
+    "https://${module.customer_web.cloudfront_domain_name}",
+    "https://${module.admin_web.cloudfront_domain_name}",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://localhost:3001"
+  ]
   cors_allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
   cors_allow_headers     = ["content-type", "authorization", "x-amz-date", "x-api-key", "x-amz-security-token", "x-amz-user-agent"]
   cors_allow_credentials = false
@@ -186,9 +194,12 @@ module "cloudwatch" {
   api_stage_name        = local.cloudwatch_api_stage_name
   dynamodb_tables       = local.cloudwatch_dynamodb_tables
   log_retention_in_days = 30
-  alarm_actions         = [module.sns.topic_arns["customer_events"]]
-  ok_actions            = [module.sns.topic_arns["customer_events"]]
-  tags                  = local.common_tags
+  alarm_sns_topics = {
+    critical = module.sns.topic_arns["customer_events"]
+    warning  = module.sns.topic_arns["customer_events"]
+    info     = module.sns.topic_arns["customer_events"]
+  }
+  tags = local.common_tags
 
   sqs_queues = {
     for name, q in module.sqs.queue_name : name => { queue_name = q }
@@ -242,13 +253,21 @@ module "cognito" {
     temporary_password_validity_days = 7
   }
   callback_urls = [
+    "https://${module.unified_web.cloudfront_domain_name}/admin/auth/callback",
     "https://${module.unified_web.cloudfront_domain_name}/auth/callback",
+    "https://${module.admin_web.cloudfront_domain_name}/admin/auth/callback",
+    "http://localhost:5173/admin/auth/callback",
     "http://localhost:5173/auth/callback",
+    "http://localhost:5174/admin/auth/callback",
+    "http://localhost:5174/auth/callback",
     "http://localhost:3001/auth/callback"
   ]
   logout_urls = [
+    "https://${module.unified_web.cloudfront_domain_name}/admin",
     "https://${module.unified_web.cloudfront_domain_name}",
+    "https://${module.admin_web.cloudfront_domain_name}",
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3001"
   ]
   tags = local.common_tags

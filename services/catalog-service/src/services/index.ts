@@ -24,23 +24,46 @@ export class CatalogService {
 
   async upsert(input: UpsertDto) {
     const now = new Date().toISOString();
-    const entity: CatalogProduct = {
-      productId: input.productId ?? randomUUID(),
+    const productId = input.productId || input.id || `PROD_${randomUUID().substring(0, 8)}`;
+    const nameStr = input.productName || input.name || 'Fresh Product';
+    const categoryStr = input.category || input.categoryId || 'Fresh Produce';
+    const priceVal = typeof input.price === 'number' ? input.price : 0;
+    const stockVal = typeof input.stock === 'number' ? input.stock : 0;
+
+    const entity: any = {
+      productId,
+      id: productId,
+      productName: nameStr,
+      name: nameStr,
+      category: categoryStr,
+      categoryId: categoryStr,
+      price: priceVal,
+      stock: stockVal,
+      available: input.available ?? (input.availability !== 'OUT_OF_STOCK'),
+      sku: input.sku || `SKU-${productId.substring(0, 8).toUpperCase()}`,
+      description: input.description || 'Fresh organic product delivered straight from local farms.',
+      images: Array.isArray(input.images) && input.images.length > 0 ? input.images : ['https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300&auto=format&fit=crop&q=80'],
       ...input,
       rating: input.rating ?? 0,
-      variants: input.variants.map((variant) => ({
-        ...variant,
-        variantId: variant.variantId ?? randomUUID()
-      })),
+      variants: Array.isArray(input.variants)
+        ? input.variants.map((variant: any) => ({
+            ...variant,
+            variantId: variant?.variantId ?? randomUUID()
+          }))
+        : [],
       createdAt: now,
       updatedAt: now
     };
     await this.repository.save(entity);
-    await this.publisher?.publish({
-      source: 'freshmart.catalog',
-      detailType: 'freshmart.catalog.product_upserted',
-      detail: entity
-    });
+    try {
+      await this.publisher?.publish({
+        source: 'freshmart.catalog',
+        detailType: 'freshmart.catalog.product_upserted',
+        detail: entity
+      });
+    } catch {
+      // Event bridge publish failure shouldn't fail product creation
+    }
     return entity;
   }
 }

@@ -41,6 +41,7 @@ const unwrap = <T,>(value: ApiEnvelope<T>): T =>
 
 export const authApi = createApi({
   reducerPath: 'authApi',
+  tagTypes: ['CustomerHome', 'Cart'],
   baseQuery: fakeBaseQuery<ReturnType<typeof toApiError>>(),
   endpoints: (builder) => ({
     login: builder.mutation<AuthSessionResponse, LoginInput>({
@@ -64,7 +65,15 @@ export const authApi = createApi({
             password,
             phone
           });
-          return { data: unwrap(response as ApiEnvelope<Record<string, unknown>>) };
+          const data = unwrap(response as ApiEnvelope<Record<string, unknown>>);
+          try {
+            const loginResponse = await sdk.auth.login({ email, password });
+            const session = unwrap(loginResponse as ApiEnvelope<AuthSessionResponse>);
+            saveAuthSession(session);
+          } catch (_) {
+            // Auto-login fallback
+          }
+          return { data };
         } catch (error) {
           return { error: toApiError(error) };
         }

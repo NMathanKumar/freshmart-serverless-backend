@@ -161,6 +161,18 @@ locals {
           partition_key   = "createdDate"
           projection_type = "ALL"
         },
+        {
+          name            = "gsi1"
+          partition_key   = "gsi1pk"
+          sort_key        = "gsi1sk"
+          projection_type = "ALL"
+        },
+        {
+          name            = "gsi2"
+          partition_key   = "gsi2pk"
+          sort_key        = "gsi2sk"
+          projection_type = "ALL"
+        },
       ]
     })
 
@@ -298,6 +310,10 @@ locals {
         {
           table_arn = module.dynamodb["auth_users"].table_arn
           actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
+          actions   = local.iam_dynamodb_rw_actions
         }
       ]
       allow_eventbridge_put_events   = true
@@ -385,6 +401,10 @@ locals {
         },
         {
           table_arn = module.dynamodb["products"].table_arn
+          actions   = local.iam_dynamodb_ro_actions
+        },
+        {
+          table_arn = module.dynamodb["user_profiles"].table_arn
           actions   = local.iam_dynamodb_ro_actions
         },
       ]
@@ -565,6 +585,10 @@ locals {
         {
           table_arn = module.dynamodb["user_profiles"].table_arn
           actions   = local.iam_dynamodb_rw_actions
+        },
+        {
+          table_arn = module.dynamodb["orders"].table_arn
+          actions   = local.iam_dynamodb_ro_actions
         }
       ]
       allow_eventbridge_put_events   = false
@@ -658,10 +682,11 @@ locals {
       handler       = "src/lambda.handler"
       role_arn      = module.iam["auth"].role_arn
       environment_variables = merge(local.lambda_common_environment, {
-        SERVICE_NAME         = "auth-service"
-        AWS_EVENT_BUS_NAME   = local.eventbridge_bus_name
-        AWS_EVENT_SOURCE     = "auth-service"
-        DDB_TABLE_AUTH_USERS = module.dynamodb["auth_users"].table_name
+        SERVICE_NAME            = "auth-service"
+        AWS_EVENT_BUS_NAME      = local.eventbridge_bus_name
+        AWS_EVENT_SOURCE        = "auth-service"
+        DDB_TABLE_AUTH_USERS    = module.dynamodb["auth_users"].table_name
+        DDB_TABLE_USER_PROFILES = module.dynamodb["user_profiles"].table_name
       })
     })
 
@@ -1128,11 +1153,23 @@ locals {
       lambda_key         = "admin"
       authorization_type = "JWT"
     }
+    admin_users_post = {
+      method             = "POST"
+      path               = "/admin/users"
+      lambda_key         = "auth"
+      authorization_type = "JWT"
+    }
     admin_audit = {
       method             = "GET"
       path               = "/admin/audit"
       lambda_key         = "admin"
       authorization_type = "JWT"
+    }
+    admin_orders_list = {
+      method             = "GET"
+      path               = "/admin/orders"
+      lambda_key         = "order"
+      authorization_type = "NONE"
     }
 
     customer_home_get = {
@@ -1184,6 +1221,24 @@ locals {
       lambda_key         = "user"
       authorization_type = "JWT"
     }
+    admin_customers_get = {
+      method             = "GET"
+      path               = "/admin/customers"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    admin_customers_id_get = {
+      method             = "GET"
+      path               = "/admin/customers/{customerId}"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
+    admin_customers_id_status_patch = {
+      method             = "PATCH"
+      path               = "/admin/customers/{customerId}/status"
+      lambda_key         = "user"
+      authorization_type = "JWT"
+    }
     coupon_admin = {
       method             = "ANY"
       path               = "/admin/coupons/{proxy+}"
@@ -1221,22 +1276,22 @@ locals {
 
   eventbridge_rules = {
     orders = {
-      description          = "Match FreshMart order domain events."
-      sources              = ["freshmart.order-service"]
-      detail_type_prefixes = ["order."]
-      target_sns_keys      = ["order_events"]
+      description     = "Match FreshMart order domain events."
+      sources         = ["freshmart.order-service"]
+      detail_types    = ["OrderPlaced.v1", "OrderStatusUpdated.v1"]
+      target_sns_keys = ["order_events"]
     }
     customers = {
-      description          = "Match FreshMart customer domain events."
-      sources              = ["freshmart.auth-service", "freshmart.user-service"]
-      detail_type_prefixes = ["customer."]
-      target_sns_keys      = ["customer_events"]
+      description     = "Match FreshMart customer domain events."
+      sources         = ["freshmart.auth-service", "freshmart.user-service"]
+      detail_types    = ["CustomerRegistered.v1", "UserLoggedIn.v1"]
+      target_sns_keys = ["customer_events"]
     }
     inventory = {
-      description          = "Match FreshMart inventory domain events."
-      sources              = ["freshmart.inventory-service"]
-      detail_type_prefixes = ["inventory."]
-      target_sns_keys      = ["inventory_events"]
+      description     = "Match FreshMart inventory domain events."
+      sources         = ["freshmart.inventory-service"]
+      detail_types    = ["InventoryLow.v1"]
+      target_sns_keys = ["inventory_events"]
     }
     products = {
       description          = "Match FreshMart product domain events."
@@ -1245,10 +1300,10 @@ locals {
       target_sns_keys      = ["inventory_events"]
     }
     payments = {
-      description          = "Match FreshMart payment domain events."
-      sources              = ["freshmart.payment-service"]
-      detail_type_prefixes = ["payment."]
-      target_sns_keys      = ["order_events", "customer_events"]
+      description     = "Match FreshMart payment domain events."
+      sources         = ["freshmart.payment-service"]
+      detail_types    = ["PaymentSucceeded.v1"]
+      target_sns_keys = ["order_events", "customer_events"]
     }
   }
 
