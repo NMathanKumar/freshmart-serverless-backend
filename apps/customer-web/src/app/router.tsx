@@ -2,7 +2,10 @@ import { lazy, Suspense, useEffect } from 'react';
 
 const RedirectToAdmin = ({ path }: { path: string }) => {
   useEffect(() => {
-    window.location.assign(path);
+    const currentPath = window.location.pathname;
+    const currentSearch = window.location.search;
+    const targetPath = currentPath.startsWith('/admin') ? `${currentPath}${currentSearch}` : `${path}${currentSearch}`;
+    window.location.assign(targetPath);
   }, [path]);
   return null;
 };
@@ -200,13 +203,8 @@ export const AppRouter = () => (
           <Route path={authPaths.forgotPassword} element={<ForgotPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/analytics" element={<RedirectToAdmin path="/admin/analytics" />} />
-          <Route path="/admin/analytics" element={<RedirectToAdmin path="/admin/analytics" />} />
           <Route path="/dashboard" element={<RedirectToAdmin path="/admin/dashboard" />} />
-          <Route path="/admin/dashboard" element={<RedirectToAdmin path="/admin/dashboard" />} />
-          <Route path="/admin/products" element={<RedirectToAdmin path="/admin/products" />} />
-          <Route path="/admin/orders" element={<RedirectToAdmin path="/admin/orders" />} />
-          <Route path="/admin/inventory" element={<RedirectToAdmin path="/admin/inventory" />} />
-          <Route path="/admin/login" element={<RedirectToAdmin path="/admin/login" />} />
+          <Route path="/admin/*" element={<RedirectToAdmin path="/admin/dashboard" />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppErrorBoundary>
