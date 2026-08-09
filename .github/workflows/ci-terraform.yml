@@ -10,6 +10,7 @@ on:
     branches: [main, develop]
     paths:
       - 'terraform/**'
+      - '.github/workflows/ci-terraform.yml'
 
 permissions:
   id-token: write
@@ -51,9 +52,14 @@ jobs:
       - name: Terraform Validate
         run: terraform -chdir=terraform/environments/${{ matrix.environment }} validate
 
-      - name: Terraform Plan (Read-Only OIDC)
+      - name: Terraform Plan & Destroy Guard (Read-Only OIDC)
         id: plan
         run: |
-          terraform -chdir=terraform/environments/${{ matrix.environment }} plan -no-color -input=false
+          OUTPUT=$(terraform -chdir=terraform/environments/${{ matrix.environment }} plan -no-color -input=false)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -E "Plan:.*[1-9][0-9]* to destroy"; then
+            echo "ERROR: Destruction detected in Terraform plan for ${{ matrix.environment }}!"
+            exit 1
+          fi
         env:
           TF_VAR_internal_service_token: ${{ secrets.TF_VAR_INTERNAL_SERVICE_TOKEN }}

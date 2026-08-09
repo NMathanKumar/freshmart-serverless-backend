@@ -1,8 +1,9 @@
 import { createFreshMartSdk } from '@freshmart/api-sdk';
 
-const customerUrl = 'https://d31qw4onrc3pj5.cloudfront.net';
-const adminUrl = 'https://d3gpcz4ghmzx4n.cloudfront.net';
-const apiBaseUrl = 'https://98fyk75ya9.execute-api.ap-southeast-1.amazonaws.com';
+const env = process.argv[2] || process.env.ENVIRONMENT || process.env.TF_VAR_environment || 'dev';
+const customerUrl = env === 'prod' ? 'https://dhkfhsoof2qzg.cloudfront.net' : 'https://d31qw4onrc3pj5.cloudfront.net';
+const adminUrl = env === 'prod' ? 'https://dknugho6omqc7.cloudfront.net' : 'https://d3gpcz4ghmzx4n.cloudfront.net';
+const apiBaseUrl = process.env.API_BASE_URL || 'https://98fyk75ya9.execute-api.ap-southeast-1.amazonaws.com';
 
 const testEndpoint = async (url, expectedStatus = 200, headers = {}) => {
   try {
@@ -20,7 +21,7 @@ const testEndpoint = async (url, expectedStatus = 200, headers = {}) => {
 };
 
 const run = async () => {
-  console.log('=== STARTING POST-DEPLOYMENT SMOKE TESTS ===');
+  console.log(`=== STARTING POST-DEPLOYMENT SMOKE TESTS (${env.toUpperCase()}) ===`);
   let success = true;
 
   // 1. Verify CloudFront Frontend URL access
@@ -65,13 +66,17 @@ const run = async () => {
   }
 
   // 3. Verify API gateway connectivity
-  // Public endpoint
+  // Public catalog endpoint
   success = (await testEndpoint(`${apiBaseUrl}/v1/products`, 200)) && success;
 
-  // Authenticated endpoints
+  // Protected admin endpoint expecting 401 without authentication
+  success = (await testEndpoint(`${apiBaseUrl}/v1/admin/dashboard`, 401)) && success;
+
+  // Authenticated endpoints (when token is available)
   if (token) {
     const headers = { Authorization: `Bearer ${token}` };
     success = (await testEndpoint(`${apiBaseUrl}/v1/menu`, 200, headers)) && success;
+    success = (await testEndpoint(`${apiBaseUrl}/v1/admin/dashboard`, 200, headers)) && success;
   } else {
     console.warn('Skipping authenticated API endpoints checks.');
   }

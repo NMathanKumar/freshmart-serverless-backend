@@ -1,7 +1,9 @@
 import https from 'https';
 
-const CUSTOMER_URL = 'https://d31qw4onrc3pj5.cloudfront.net';
-const ADMIN_URL = 'https://d3gpcz4ghmzx4n.cloudfront.net';
+const env = process.argv[2] || process.env.ENVIRONMENT || process.env.TF_VAR_environment || 'dev';
+
+const CUSTOMER_URL = env === 'prod' ? 'https://dhkfhsoof2qzg.cloudfront.net' : 'https://d31qw4onrc3pj5.cloudfront.net';
+const ADMIN_URL = env === 'prod' ? 'https://dknugho6omqc7.cloudfront.net' : 'https://d3gpcz4ghmzx4n.cloudfront.net';
 
 const pathsToVerify = {
   customer: [

@@ -167,13 +167,9 @@ module "cloudwatch" {
   api_id                = local.cloudwatch_api_id
   api_stage_name        = local.cloudwatch_api_stage_name
   dynamodb_tables       = local.cloudwatch_dynamodb_tables
-  log_retention_in_days = 30
-  alarm_sns_topics = {
-    critical = module.sns.topic_arns["notification"]
-    warning  = module.sns.topic_arns["notification"]
-    info     = module.sns.topic_arns["notification"]
-  }
-  tags = local.common_tags
+  alarm_actions         = [module.sns.topic_arns["notification"]]
+  ok_actions            = [module.sns.topic_arns["notification"]]
+  tags                  = local.common_tags
 }
 
 module "eventbridge" {

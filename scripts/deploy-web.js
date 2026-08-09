@@ -93,7 +93,7 @@ const invalidateDistribution = async (distributionId) => {
 const run = async () => {
   const args = process.argv.slice(2);
   const target = args[0] || 'customer';
-  const env = args[1] || 'prod';
+  const env = args[1] || process.env.ENVIRONMENT || process.env.TF_VAR_environment || 'dev';
 
   const customerBucket = env === 'prod' 
     ? 'freshmart-prod-customer-web-769044546162' 

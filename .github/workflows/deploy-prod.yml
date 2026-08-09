@@ -1,20 +1,24 @@
-name: FreshMart Deploy
+name: FreshMart Deploy (PROD)
 
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  deploy-prod:
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    environment: dev
+    environment: prod
     permissions:
       id-token: write
       contents: read
     env:
       AWS_REGION: ap-southeast-1
       TF_VAR_aws_region: ap-southeast-1
-      TF_VAR_environment: dev
+      TF_VAR_environment: prod
+      ENVIRONMENT: prod
       TF_VAR_internal_service_token: ${{ secrets.TF_VAR_INTERNAL_SERVICE_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -22,23 +26,23 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Configure AWS credentials via GitHub OIDC
+      - name: Configure AWS credentials via GitHub OIDC (PROD Role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::769044546162:role/freshmart-github-ci-dev-role
+          role-to-assume: arn:aws:iam::769044546162:role/freshmart-github-ci-prod-role
           aws-region: ap-southeast-1
-          role-session-name: GitHubActions-Deploy-dev
+          role-session-name: GitHubActions-Deploy-prod
       - name: Install dependencies
         run: npm ci
       - name: Build project
         run: npm run build
       - name: Package Lambdas
         run: npm run package
-      - name: Deploy Lambdas
+      - name: Deploy PROD Lambdas
         run: |
           for svc in auth product menu inventory cart order payment admin user notification analytics; do
             zip_path="services/${svc}-service/lambda.zip"
-            fn_name="freshmart-dev-${svc}-service"
+            fn_name="freshmart-prod-${svc}-service"
             if [ -f "$zip_path" ]; then
               echo "Deploying $fn_name..."
               aws lambda update-function-code \
@@ -46,11 +50,9 @@ jobs:
                 --zip-file "fileb://$zip_path" \
                 --region ap-southeast-1 \
                 --no-cli-pager 2>&1 | grep -E '"FunctionName"|"CodeSize"|"LastModified"|Error' || true
-              # Wait for code update to complete before updating config
               aws lambda wait function-updated \
                 --function-name "$fn_name" \
                 --region ap-southeast-1 || true
-              # Enforce correct handler (src/lambda.handler) — prevents index.handler drift
               aws lambda update-function-configuration \
                 --function-name "$fn_name" \
                 --handler "src/lambda.handler" \
@@ -60,12 +62,12 @@ jobs:
               echo "WARNING: $zip_path not found, skipping $fn_name"
             fi
           done
-      - name: Deploy Frontend
-        run: node scripts/deploy-web.js all dev
-      - name: Verify Web
-        run: node scripts/verify-web.js dev
-      - name: Smoke Test
-        run: npx tsx scripts/smoke-deployment.js dev
+      - name: Deploy PROD Frontend
+        run: node scripts/deploy-web.js all prod
+      - name: Verify PROD Web
+        run: node scripts/verify-web.js prod
+      - name: PROD Smoke Test
+        run: npx tsx scripts/smoke-deployment.js prod
         env:
           SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
           SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
