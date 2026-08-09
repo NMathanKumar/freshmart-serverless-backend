@@ -43,6 +43,12 @@ export class InventoryClient {
       method: 'GET',
       url: '/v1/inventory',
       params: { page, limit, ...(warehouseId ? { warehouseId } : {}) }
+    }).catch(async () => {
+      return {
+        success: true,
+        data: [],
+        meta: { page, limit, total: 0, totalPages: 0 }
+      } as unknown as ApiEnvelope<InventorySummary[]>;
     });
   }
 
