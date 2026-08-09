@@ -242,6 +242,11 @@ const toTitleCase = (value: string) =>
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
 export default function OrdersPage() {
+  if (typeof window !== 'undefined' && shared.isAdmin()) {
+    window.location.assign('/admin/orders');
+    return null;
+  }
+
   return (
     <Suspense
       fallback={

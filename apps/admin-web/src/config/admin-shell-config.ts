@@ -1,17 +1,3 @@
-/**
- * admin-shell-config.ts
- *
- * Static UI configuration for the Admin Shell.
- * Navigation items and avatar fallbacks are UI configuration, NOT business data.
- * They define icon, label, and path – values that belong to the frontend,
- * not to the backend domain model.
- *
- * Rules:
- *  – Do NOT add business data here (orders, products, customers, etc.)
- *  – Do NOT call APIs from this module
- *  – Adding a new nav item here requires a corresponding route in router.tsx
- */
-
 import {
   Activity,
   Archive,
@@ -32,81 +18,61 @@ import {
 } from 'lucide-react';
 import type { NavItem, TopbarUser } from '../shared/types/admin.js';
 
-// ---------------------------------------------------------------------------
-// Navigation configurations
-// Each variant maps 1:1 to an AdminShell `variant` prop value.
-// ---------------------------------------------------------------------------
-
-/** Full retail/operations-facing navigation. Default shell variant. */
 export const retailNav: NavItem[] = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   {
     label: 'Products',
-    path: '/products',
+    path: '/admin/products',
     icon: Store,
     children: [
-      { label: 'All Products', path: '/products' },
-      { label: 'Add Product', path: '/products?action=new' },
+      { label: 'All Products', path: '/admin/products' },
+      { label: 'Add Product', path: '/admin/products?action=new' },
     ],
   },
-  { label: 'Categories', path: '/categories', icon: Grid2x2 },
-  { label: 'Inventory', path: '/inventory', icon: Box },
-  { label: 'Orders', path: '/orders', icon: ShoppingCart },
-  { label: 'Customers', path: '/customers', icon: Users },
-  { label: 'Analytics', path: '/analytics', icon: ChartNoAxesColumnIncreasing },
-  { label: 'Notifications', path: '/notifications', icon: MessageSquareText },
-  { label: 'Profile', path: '/profile', icon: UserCog }
+  { label: 'Categories', path: '/admin/categories', icon: Grid2x2 },
+  { label: 'Inventory', path: '/admin/inventory', icon: Box },
+  { label: 'Orders', path: '/admin/orders', icon: ShoppingCart },
+  { label: 'Customers', path: '/admin/customers', icon: Users },
+  { label: 'Analytics', path: '/admin/analytics', icon: ChartNoAxesColumnIncreasing },
+  { label: 'Notifications', path: '/admin/notifications', icon: MessageSquareText },
+  { label: 'Profile', path: '/admin/profile', icon: UserCog }
 ];
 
-/** Catalog management navigation (Products + Categories focus). */
 export const catalogNav: NavItem[] = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   {
     label: 'Products',
-    path: '/products',
+    path: '/admin/products',
     icon: Archive,
     children: [
-      { label: 'All Products', path: '/products' },
-      { label: 'Add Product', path: '/products?action=new' },
+      { label: 'All Products', path: '/admin/products' },
+      { label: 'Add Product', path: '/admin/products?action=new' },
     ],
   },
-  { label: 'Categories', path: '/categories', icon: Shapes },
-  { label: 'Orders', path: '/orders', icon: ShoppingCart },
-  { label: 'Analytics', path: '/analytics', icon: ChartNoAxesColumnIncreasing },
-  { label: 'Profile', path: '/profile', icon: UserCog }
+  { label: 'Categories', path: '/admin/categories', icon: Shapes },
+  { label: 'Orders', path: '/admin/orders', icon: ShoppingCart },
+  { label: 'Analytics', path: '/admin/analytics', icon: ChartNoAxesColumnIncreasing },
+  { label: 'Profile', path: '/admin/profile', icon: UserCog }
 ];
 
-/** Operations-focused navigation (Orders + Inventory + Users). */
 export const operationsNav: NavItem[] = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Orders', path: '/orders', icon: ShoppingCart },
-  { label: 'Inventory', path: '/inventory', icon: Box },
-  { label: 'Users', path: '/customers', icon: Users },
-  { label: 'Analytics', path: '/analytics', icon: SquareChartGantt },
-  { label: 'Profile', path: '/profile', icon: UserCog }
+  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'Orders', path: '/admin/orders', icon: ShoppingCart },
+  { label: 'Inventory', path: '/admin/inventory', icon: Box },
+  { label: 'Users', path: '/admin/customers', icon: Users },
+  { label: 'Analytics', path: '/admin/analytics', icon: SquareChartGantt },
+  { label: 'Profile', path: '/admin/profile', icon: UserCog }
 ];
 
-/** Procurement navigation (Purchase Orders + Suppliers + Inventory). */
 export const procurementNav: NavItem[] = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Orders', path: '/purchase-orders', icon: ShoppingCart },
-  { label: 'Inventory', path: '/inventory', icon: Box },
-  { label: 'Users', path: '/suppliers', icon: Users },
-  { label: 'Analytics', path: '/analytics', icon: SquareChartGantt },
-  { label: 'Profile', path: '/profile', icon: UserCog }
+  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'Orders', path: '/admin/purchase-orders', icon: ShoppingCart },
+  { label: 'Inventory', path: '/admin/inventory', icon: Box },
+  { label: 'Users', path: '/admin/suppliers', icon: Users },
+  { label: 'Analytics', path: '/admin/analytics', icon: SquareChartGantt },
+  { label: 'Profile', path: '/admin/profile', icon: UserCog }
 ];
 
-// ---------------------------------------------------------------------------
-// Shell user fallbacks
-// These are UI placeholder values displayed before the auth profile API resolves.
-// The live name and role are always overridden by the authenticated user's profile.
-// ---------------------------------------------------------------------------
-
-/**
- * UI fallback profiles keyed by shell variant.
- * `name` and `role` are overridden at runtime by the authenticated session.
- * `avatar` is a static asset URL used as a fallback before the profile loads.
- */
 export const adminUsers = {
   main: {
     name: 'Admin User',
