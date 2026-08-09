@@ -415,6 +415,15 @@ export class AdminClient {
   updateCoupon(id: string, data: Partial<AdminCoupon>) {
     return this.client.request<AdminCoupon>({ method: 'PUT', url: `/v1/admin/coupons/${encodeURIComponent(id)}`, data });
   }
+  updateCouponStatus(id: string, status: string) {
+    return this.client.request<ApiEnvelope<AdminCoupon>>({ method: 'PATCH', url: `/v1/admin/coupons/${encodeURIComponent(id)}/status`, data: { status } });
+  }
+  deleteCoupon(id: string) {
+    return this.client.request<ApiEnvelope<null>>({ method: 'DELETE', url: `/v1/admin/coupons/${encodeURIComponent(id)}` });
+  }
+  getConfig() {
+    return this.client.request<ApiEnvelope<AdminEntity[]>>({ method: 'GET', url: '/v1/admin/config' });
+  }
 
 
   // --- Purchase Orders ---
