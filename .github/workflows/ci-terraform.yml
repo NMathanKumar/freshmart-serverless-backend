@@ -20,6 +20,7 @@ jobs:
   terraform-plan:
     name: Terraform Format, Validate & OIDC Plan
     runs-on: ubuntu-latest
+    environment: ${{ matrix.environment }}
     strategy:
       fail-fast: false
       matrix:
