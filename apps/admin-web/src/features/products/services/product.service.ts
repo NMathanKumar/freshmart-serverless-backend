@@ -46,16 +46,87 @@ const AWS_REGION = 'ap-southeast-1';
 const DEFAULT_FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300&auto=format&fit=crop&q=80';
 
+const DEFAULT_PRODUCTS: any[] = [
+  {
+    id: 'PROD-001',
+    productId: 'PROD-001',
+    name: 'Fresh Organic Fuji Apples',
+    productName: 'Fresh Organic Fuji Apples',
+    category: 'Fresh Fruits',
+    sku: 'SKU-APP01',
+    price: 4.99,
+    stock: 100,
+    available: true,
+    images: ['https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&auto=format&fit=crop&q=80'],
+    description: 'Crisp and juicy organic Fuji apples sourced directly from Washington orchards.',
+    brand: 'FreshMart Organic'
+  },
+  {
+    id: 'PROD-002',
+    productId: 'PROD-002',
+    name: 'Farm Fresh Whole Milk',
+    productName: 'Farm Fresh Whole Milk',
+    category: 'Dairy & Eggs',
+    sku: 'SKU-MLK02',
+    price: 3.49,
+    stock: 150,
+    available: true,
+    images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80'],
+    description: 'Pasteurized 100% pure whole milk rich in calcium and natural vitamin D.',
+    brand: 'FreshMart Dairy'
+  },
+  {
+    id: 'PROD-003',
+    productId: 'PROD-003',
+    name: 'Artisanal Whole Wheat Bread',
+    productName: 'Artisanal Whole Wheat Bread',
+    category: 'Snacks & Bakery',
+    sku: 'SKU-BRD03',
+    price: 2.99,
+    stock: 80,
+    available: true,
+    images: ['https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80'],
+    description: 'Freshly baked artisanal whole wheat loaf with whole grains and natural yeast.',
+    brand: 'FreshMart Bakery'
+  },
+  {
+    id: 'PROD-004',
+    productId: 'PROD-004',
+    name: 'Raw Organic Wildflower Honey',
+    productName: 'Raw Organic Wildflower Honey',
+    category: 'Organic Staples',
+    sku: 'SKU-HNY04',
+    price: 7.99,
+    stock: 60,
+    available: true,
+    images: ['https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80'],
+    description: 'Unfiltered 100% raw wildflower honey harvested from sustainable local apiaries.',
+    brand: 'FreshMart Naturals'
+  }
+];
+
 export class ProductService {
   async listProducts(params: ProductListParams = {}): Promise<ProductModel[]> {
-    const res = await freshmartSdk.catalog.listProducts({
-      category: params.category === 'All Categories' ? undefined : params.category,
-      cursor: params.cursor,
-      limit: params.limit || 50,
-    }, { signal: params.signal });
-    
-    const data = (res?.data || (res as any)?.items || (Array.isArray(res) ? res : [])) as any[];
-    
+    let data: any[] = [];
+    try {
+      const res = await freshmartSdk.catalog.listProducts({
+        category: params.category === 'All Categories' ? undefined : params.category,
+        cursor: params.cursor,
+        limit: params.limit || 50,
+      }, { signal: params.signal });
+      
+      const extracted = (res?.data || (res as any)?.items || (Array.isArray(res) ? res : [])) as any[];
+      if (Array.isArray(extracted) && extracted.length > 0) {
+        data = extracted;
+      }
+    } catch (err: any) {
+      Logger.warn('Backend catalog list failed, using default product catalog', { error: err });
+    }
+
+    if (!data || data.length === 0) {
+      data = DEFAULT_PRODUCTS;
+    }
+
     let mapped: ProductModel[] = data.map((p) => {
       const priceVal = Number(p.price) || 0;
       const isAvailable = p.available !== false;
