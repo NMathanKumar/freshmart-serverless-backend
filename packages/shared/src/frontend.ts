@@ -1,3 +1,6 @@
+export const formatCurrency = (value: number) =>
+  typeof value === 'number' ? `$${value.toFixed(2)}` : '$0.00';
+
 export * from './routing.js';
 export * from './shared-auth.js';
 export * from './storage.js';
