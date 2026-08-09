@@ -1,72 +1,44 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { CouponService } from '../src/services/index.js';
-import type { DynamoCouponRepository } from '../src/repositories/index.js';
-import type { Coupon } from '../src/entities/index.js';
+import { IamService } from '../src/services/index.js';
+import type { DynamoIamRepository } from '../src/repositories/index.js';
+import type { Role, Permission } from '../src/entities/index.js';
 
-// Mock repository
-const mockCoupons: Coupon[] = [];
+const mockRoles: Role[] = [
+  { roleId: 'role-1', roleName: 'admin', permissions: ['*'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+];
+const mockPermissions: Permission[] = [
+  { permissionId: 'perm-1', action: 'read', resource: '*', description: 'Read all' }
+];
 
 const mockRepo = {
-  getByCode: async (code: string) => mockCoupons.find(c => c.code === code) || null,
-  getById: async (id: string) => mockCoupons.find(c => c.couponId === id) || null,
-  save: async (c: Coupon) => {
-    const idx = mockCoupons.findIndex(x => x.couponId === c.couponId);
-    if (idx >= 0) mockCoupons[idx] = c;
-    else mockCoupons.push(c);
-    return c;
-  },
-  incrementUsage: async (id: string, limit?: number) => {
-    const c = mockCoupons.find(x => x.couponId === id);
-    if (!c) throw new Error('Not found');
-    if (limit && c.currentUsage >= limit) throw { name: 'ConditionalCheckFailedException' };
-    c.currentUsage++;
+  listRoles: async () => mockRoles,
+  listPermissions: async () => mockPermissions,
+  replaceRolePermissions: async (roleName: string, permissions: string[]) => {
+    const role = mockRoles.find(r => r.roleName === roleName);
+    if (role) role.permissions = permissions;
   }
-} as unknown as DynamoCouponRepository;
+} as unknown as DynamoIamRepository;
 
-test('CouponService', async (t) => {
-  const service = new CouponService(mockRepo);
+test('IamService', async (t) => {
+  const service = new IamService(mockRepo);
 
-  await t.test('create coupon', async () => {
-    const coupon = await service.upsert({
-      code: 'TEST20',
-      title: 'Test',
-      description: 'Test coupon',
-      discountType: 'PERCENTAGE',
-      discountValue: 20,
-      usageLimit: 2,
-    });
-    assert.strictEqual(coupon.code, 'TEST20');
-    assert.strictEqual(coupon.currentUsage, 0);
+  await t.test('listRoles', async () => {
+    const roles = await service.listRoles();
+    assert.strictEqual(roles.length, 1);
+    assert.strictEqual(roles[0].roleName, 'admin');
   });
 
-  await t.test('validate coupon success', async () => {
-    const result = await service.validate({
-      code: 'TEST20',
-      customerId: 'user1',
-      orderValue: 100,
-      cartItems: []
-    });
-    assert.strictEqual(result.valid, true);
-    assert.strictEqual(result.discountAmount, 20);
-    assert.strictEqual(result.finalOrderValue, 80);
+  await t.test('listPermissions', async () => {
+    const perms = await service.listPermissions();
+    assert.strictEqual(perms.length, 1);
+    assert.strictEqual(perms[0].action, 'read');
   });
 
-  await t.test('redeem coupon increments usage', async () => {
-    await service.redeem({ code: 'TEST20', customerId: 'user1', orderId: 'ord1' });
-    const coupon = await service.getByCode('TEST20');
-    assert.strictEqual(coupon.currentUsage, 1);
-  });
-
-  await t.test('redeem coupon fails if limit reached', async () => {
-    await service.redeem({ code: 'TEST20', customerId: 'user2', orderId: 'ord2' });
-    // limit is 2, usage is now 2
-    try {
-      await service.redeem({ code: 'TEST20', customerId: 'user3', orderId: 'ord3' });
-      assert.fail('Should have thrown limit reached');
-    } catch (err: any) {
-      assert.strictEqual(err.statusCode, 400);
-      assert.match(err.message, /Coupon usage limit reached/);
-    }
+  await t.test('updateRolePermissions', async () => {
+    const res = await service.updateRolePermissions('admin', { permissions: ['read', 'write'] });
+    assert.strictEqual(res.success, true);
+    assert.deepStrictEqual(mockRoles[0].permissions, ['read', 'write']);
   });
 });
+

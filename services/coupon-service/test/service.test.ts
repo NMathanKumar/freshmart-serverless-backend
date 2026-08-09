@@ -16,10 +16,10 @@ const mockRepo = {
     else mockCoupons.push(c);
     return c;
   },
-  incrementUsage: async (id: string, limit?: number) => {
+  incrementUsage: async (id: string, customerId: string, usageLimit?: number, perUserLimit?: number) => {
     const c = mockCoupons.find(x => x.couponId === id);
     if (!c) throw new Error('Not found');
-    if (limit && c.currentUsage >= limit) throw { name: 'ConditionalCheckFailedException' };
+    if (usageLimit && c.currentUsage >= usageLimit) throw { name: 'ConditionalCheckFailedException' };
     c.currentUsage++;
   }
 } as unknown as DynamoCouponRepository;
