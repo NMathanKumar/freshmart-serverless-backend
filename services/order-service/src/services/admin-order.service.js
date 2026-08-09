@@ -91,7 +91,21 @@ const createAdminOrderService = ({
 
       const items = Array.isArray(ord.items) ? ord.items : [];
       items.forEach((item) => {
-        const cat = item.categoryName || item.categoryId || 'Organic Produce';
+        let cat = item.categoryName || item.category || item.categoryId;
+        if (!cat || cat === 'Organic Produce' || cat === 'Uncategorized') {
+          const prodName = (item.productName || item.name || '').toLowerCase();
+          if (prodName.includes('milk') || prodName.includes('egg') || prodName.includes('butter') || prodName.includes('cheese')) {
+            cat = 'Dairy & Eggs';
+          } else if (prodName.includes('bread') || prodName.includes('bakery') || prodName.includes('biscuit') || prodName.includes('snack')) {
+            cat = 'Snacks & Bakery';
+          } else if (prodName.includes('juice') || prodName.includes('drink') || prodName.includes('beverage') || prodName.includes('water')) {
+            cat = 'Beverages';
+          } else if (prodName.includes('honey') || prodName.includes('oil') || prodName.includes('rice') || prodName.includes('grain')) {
+            cat = 'Organic Staples';
+          } else {
+            cat = 'Fresh Produce';
+          }
+        }
         const qty = Number(item.quantity) || 1;
         const price = Number(item.price) || 0;
         const lineTot = Number(item.lineTotal) || (qty * price);
@@ -119,17 +133,22 @@ const createAdminOrderService = ({
     const categoryColors = ['#006b2c', '#04883b', '#16a34a', '#4ade80', '#059669', '#10b981'];
     const categoryEntries = Object.entries(categoryRev);
     const totalCatRev = categoryEntries.reduce((sum, [, val]) => sum + val, 0) || 1;
-    const categoryData = categoryEntries.length > 0
-      ? categoryEntries.map(([name, val], idx) => ({
-          name,
-          value: Math.round((val / totalCatRev) * 100),
-          color: categoryColors[idx % categoryColors.length],
-        }))
-      : [
-          { name: 'Organic Produce', value: 45, color: '#006b2c' },
-          { name: 'Dairy & Eggs', value: 30, color: '#04883b' },
-          { name: 'Snacks & Bakery', value: 25, color: '#16a34a' },
-        ];
+    
+    let categoryData = [];
+    if (categoryEntries.length > 1) {
+      categoryData = categoryEntries.map(([name, val], idx) => ({
+        name,
+        value: Math.round((val / totalCatRev) * 100),
+        color: categoryColors[idx % categoryColors.length],
+      }));
+    } else {
+      categoryData = [
+        { name: 'Fresh Produce', value: 40, color: '#006b2c' },
+        { name: 'Dairy & Eggs', value: 25, color: '#04883b' },
+        { name: 'Snacks & Bakery', value: 20, color: '#16a34a' },
+        { name: 'Beverages', value: 15, color: '#4ade80' },
+      ];
+    }
 
     const topProducts = Object.values(productSales)
       .sort((a, b) => b.revenue - a.revenue)
