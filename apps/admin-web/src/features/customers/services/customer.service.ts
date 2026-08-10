@@ -3,6 +3,7 @@ import type { AdminCustomer, AdminCustomerStatus } from '@freshmart/api-sdk';
 
 export interface CustomerModel {
   id: string;
+  displayId?: string;
   name: string;
   email: string;
   contact: string;
@@ -41,8 +42,12 @@ export class CustomerService {
         'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80',
       ];
 
+      const realId = c.customerId || `CUST-00${idx + 1}`;
+      const shortDisplay = realId.startsWith('CUST-') ? realId : `CUST-${realId.substring(0, 8)}`;
+
       return {
-        id: c.customerId?.startsWith('CUST-') ? c.customerId : `CUST-${(c.customerId || `00${idx + 1}`).substring(0, 4)}`,
+        id: realId,
+        displayId: shortDisplay,
         name: c.name || 'Customer',
         email: c.email || 'user@example.com',
         contact: c.phone ? `${c.phone} • Austin, TX` : '+1 (555) 234-5678 • Austin, TX',

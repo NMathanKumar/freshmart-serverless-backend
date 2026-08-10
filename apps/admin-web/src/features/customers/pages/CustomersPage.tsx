@@ -420,7 +420,7 @@ export const CustomersPage: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-semibold text-slate-600">{cust.id}</td>
+                  <td className="px-6 py-4 font-semibold text-slate-600">{cust.displayId || cust.id}</td>
                   <td className="px-6 py-4 text-slate-600">{cust.contact}</td>
                   <td className="px-6 py-4 text-slate-600">{cust.regDate}</td>
                   <td className="px-6 py-4 text-center font-bold text-slate-800">{cust.orders}</td>

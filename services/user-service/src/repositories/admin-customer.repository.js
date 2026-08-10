@@ -310,7 +310,13 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
         TableName: tableNames.userProfiles,
         Key: { pk: `USER#${customerId}`, sk: 'PROFILE' },
       })
-    );
+    ).catch(() => {});
+    await client.send(
+      new DeleteCommand({
+        TableName: tableNames.userProfiles,
+        Key: { pk: `USER#${customerId}`, sk: `PROFILE#${customerId}` },
+      })
+    ).catch(() => {});
     return true;
   };
 
