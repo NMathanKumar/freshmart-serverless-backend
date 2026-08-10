@@ -556,13 +556,19 @@ export class HttpCustomerGateway implements DownstreamGateway {
 
   async getProfile(customerId: string, authorization?: string): Promise<ProfileView> {
     const [userRes, ordersRes, wishlist] = await Promise.all([
-      this.request<Record<string, unknown>>(this.config.userBaseUrl, '/api/v1/users/profile', authorization, undefined)
+      this.request<Record<string, unknown>>(this.config.userBaseUrl, '/v1/users/profile', authorization, undefined)
         .catch(() => this.request<Record<string, unknown>>(this.config.userBaseUrl, '/users/profile', authorization, {})),
       this.request<Array<Record<string, unknown>> | Record<string, unknown>>(this.config.orderBaseUrl, '/orders', authorization, []),
       this.request<Array<Record<string, unknown>>>(this.config.wishlistBaseUrl, '/wishlist', authorization, [])
     ]);
 
-    const user = (userRes as { data?: Record<string, unknown> })?.data ?? userRes ?? {};
+    const rawUser = (userRes as { data?: Record<string, unknown> })?.data ?? userRes ?? {};
+    const resolvedName = (rawUser.name as string) || (rawUser.fullName as string) || (rawUser.email ? (rawUser.email as string).split('@')[0] : 'FreshMart Customer');
+    const user = {
+      ...rawUser,
+      name: resolvedName,
+      fullName: resolvedName
+    };
     const orders = Array.isArray(ordersRes)
       ? ordersRes
       : Array.isArray((ordersRes as { data?: unknown[] })?.data)
@@ -662,7 +668,8 @@ export class HttpCustomerGateway implements DownstreamGateway {
   }
 
   async updateProfile(customerId: string, payload: Record<string, unknown>, authorization?: string): Promise<Record<string, unknown>> {
-    return this.request<Record<string, unknown>>(this.config.userBaseUrl, '/users/profile', authorization, {}, 'PUT', payload);
+    return this.request<Record<string, unknown>>(this.config.userBaseUrl, '/v1/users/profile', authorization, undefined, 'PUT', payload)
+      .catch(() => this.request<Record<string, unknown>>(this.config.userBaseUrl, '/users/profile', authorization, {}, 'PUT', payload));
   }
 
   async addToCart(customerId: string, payload: Record<string, unknown>, authorization?: string): Promise<Record<string, unknown>> {

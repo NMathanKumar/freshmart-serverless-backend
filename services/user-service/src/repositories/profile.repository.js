@@ -12,13 +12,16 @@ const key = (userId) => ({
 
 const toDomain = (item) => {
   if (!item) return null;
+  const nameVal = item.name || item.fullName || '';
   return {
     userId: item.userId,
-    email: item.email,
-    fullName: item.fullName || '',
+    email: item.email || '',
+    fullName: nameVal,
+    name: nameVal,
     phone: item.phone || '',
     avatarUrl: item.avatarUrl || null,
-    addresses: item.addresses || [],
+    address: item.address || null,
+    addresses: item.addresses || (item.address ? [item.address] : []),
     role: item.role || 'CUSTOMER',
     status: item.status || 'ACTIVE',
     createdAt: item.createdAt,
@@ -39,16 +42,19 @@ const createProfileRepository = ({ client = documentClient } = {}) => {
 
   const createProfile = async (data) => {
     const now = new Date().toISOString();
+    const nameVal = data.name || data.fullName || '';
     const item = {
       ...key(data.userId),
       userId: data.userId,
-      email: data.email,
-      fullName: data.fullName || '',
+      email: data.email || '',
+      name: nameVal,
+      fullName: nameVal,
       phone: data.phone || '',
       avatarUrl: data.avatarUrl || null,
-      addresses: data.addresses || [],
+      address: data.address || null,
+      addresses: data.addresses || (data.address ? [data.address] : []),
       role: data.role || 'CUSTOMER',
-      status: 'ACTIVE',
+      status: data.status || 'ACTIVE',
       createdAt: now,
       updatedAt: now,
     };
@@ -67,10 +73,19 @@ const createProfileRepository = ({ client = documentClient } = {}) => {
     const expressionAttributeNames = { '#updatedAt': 'updatedAt' };
     const expressionAttributeValues = { ':updatedAt': now };
 
-    if (data.fullName !== undefined) {
-      updateExpressions.push('#fullName = :fullName');
+    if (data.name !== undefined || data.fullName !== undefined) {
+      const nameVal = data.name !== undefined ? data.name : data.fullName;
+      updateExpressions.push('#fullName = :fullName', '#name = :name');
       expressionAttributeNames['#fullName'] = 'fullName';
-      expressionAttributeValues[':fullName'] = data.fullName;
+      expressionAttributeNames['#name'] = 'name';
+      expressionAttributeValues[':fullName'] = nameVal;
+      expressionAttributeValues[':name'] = nameVal;
+    }
+
+    if (data.email !== undefined) {
+      updateExpressions.push('#email = :email');
+      expressionAttributeNames['#email'] = 'email';
+      expressionAttributeValues[':email'] = data.email;
     }
 
     if (data.phone !== undefined) {
@@ -79,10 +94,28 @@ const createProfileRepository = ({ client = documentClient } = {}) => {
       expressionAttributeValues[':phone'] = data.phone;
     }
 
+    if (data.avatarUrl !== undefined) {
+      updateExpressions.push('#avatarUrl = :avatarUrl');
+      expressionAttributeNames['#avatarUrl'] = 'avatarUrl';
+      expressionAttributeValues[':avatarUrl'] = data.avatarUrl;
+    }
+
+    if (data.address !== undefined) {
+      updateExpressions.push('#address = :address');
+      expressionAttributeNames['#address'] = 'address';
+      expressionAttributeValues[':address'] = data.address;
+    }
+
     if (data.addresses !== undefined) {
       updateExpressions.push('#addresses = :addresses');
       expressionAttributeNames['#addresses'] = 'addresses';
       expressionAttributeValues[':addresses'] = data.addresses;
+    }
+
+    if (data.status !== undefined) {
+      updateExpressions.push('#status = :status');
+      expressionAttributeNames['#status'] = 'status';
+      expressionAttributeValues[':status'] = data.status;
     }
 
     const response = await client.send(

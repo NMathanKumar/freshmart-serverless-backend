@@ -6,21 +6,27 @@ const { success, created } = response;
 const { genId } = utils.id;
 const { NotFoundError } = errors;
 
-const buildDefaultProfile = (user, existingProfile = null) => ({
-  userId: user.userId,
-  name: existingProfile?.name || user.username || user.email || 'FreshMart Customer',
-  email: existingProfile?.email || user.email || '',
-  phone: existingProfile?.phone || null,
-  avatarUrl: existingProfile?.avatarUrl || null,
-  address: existingProfile?.address || null,
-  addresses: existingProfile?.addresses || [],
-  preferences: existingProfile?.preferences || {},
-  createdAt: existingProfile?.createdAt || null,
-  updatedAt: existingProfile?.updatedAt || null,
-});
+const buildDefaultProfile = (user, existingProfile = null) => {
+  const userId = user.userId || user.sub || existingProfile?.userId || 'guest';
+  const resolvedName = existingProfile?.name || existingProfile?.fullName || user.fullName || user.username || user.name || (user.email ? user.email.split('@')[0] : 'FreshMart Customer');
+  return {
+    userId,
+    name: resolvedName,
+    fullName: resolvedName,
+    email: existingProfile?.email || user.email || '',
+    phone: existingProfile?.phone || null,
+    avatarUrl: existingProfile?.avatarUrl || null,
+    address: existingProfile?.address || null,
+    addresses: existingProfile?.addresses || (existingProfile?.address ? [existingProfile.address] : []),
+    preferences: existingProfile?.preferences || {},
+    createdAt: existingProfile?.createdAt || null,
+    updatedAt: existingProfile?.updatedAt || null,
+  };
+};
 
 const getProfile = asyncHandler(async (req, res) => {
-  const profile = await profileRepository.findById(req.user.userId);
+  const userId = req.user?.userId || req.user?.sub;
+  const profile = userId ? await profileRepository.findById(userId) : null;
   success(res, {
     message: 'Profile fetched',
     data: buildDefaultProfile(req.user, profile),
@@ -28,11 +34,12 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 const upsertProfile = asyncHandler(async (req, res) => {
-  const current = await profileRepository.findById(req.user.userId);
+  const userId = req.user?.userId || req.user?.sub;
+  const current = userId ? await profileRepository.findById(userId) : null;
   const profile = current
-    ? await profileRepository.update(req.user.userId, req.body)
+    ? await profileRepository.update(userId, req.body)
     : await profileRepository.upsert({
-      userId: req.user.userId,
+      userId,
       ...req.body,
       addresses: [],
     });

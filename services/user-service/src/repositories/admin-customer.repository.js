@@ -266,10 +266,13 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     const names = {};
     const values = { ':updatedAt': now };
 
-    if (data.name !== undefined) {
-      updateExpr.push('#name = :name');
+    if (data.name !== undefined || data.fullName !== undefined) {
+      const nameVal = data.name !== undefined ? data.name : data.fullName;
+      updateExpr.push('#name = :name', '#fullName = :fullName');
       names['#name'] = 'name';
-      values[':name'] = data.name;
+      names['#fullName'] = 'fullName';
+      values[':name'] = nameVal;
+      values[':fullName'] = nameVal;
     }
     if (data.email !== undefined) {
       updateExpr.push('email = :email');
