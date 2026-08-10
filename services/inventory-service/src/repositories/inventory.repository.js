@@ -110,7 +110,7 @@ const loadInventory = async (productId, warehouseId) => {
 
 const findByProductId = async (productId, warehouseId) => loadInventory(productId, warehouseId);
 
-const listAll = async ({ page = 1, limit = 20 } = {}) => {
+const listAll = async ({ page = 1, limit = 20, warehouseId, search, status } = {}) => {
   const result = await documentClient.send(
     new ScanCommand({
       TableName: tableName(),
@@ -119,7 +119,18 @@ const listAll = async ({ page = 1, limit = 20 } = {}) => {
     })
   );
 
-  const items = (result.Items || []).map(toDomain).filter(Boolean);
+  let items = (result.Items || []).map(toDomain).filter(Boolean);
+  if (warehouseId) {
+    items = items.filter((item) => item.warehouseId === warehouseId);
+  }
+  if (status) {
+    items = items.filter((item) => item.status === status);
+  }
+  if (search) {
+    const s = search.toLowerCase();
+    items = items.filter((item) => (item.productName && item.productName.toLowerCase().includes(s)) || (item.productId && item.productId.toLowerCase().includes(s)));
+  }
+
   const deduped = Array.from(new Map(items.map((item) => [`${item.productId}#${item.warehouseId}`, item])).values()).sort(
     (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
   );

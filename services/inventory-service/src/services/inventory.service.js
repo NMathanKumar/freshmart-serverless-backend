@@ -99,7 +99,10 @@ const requireInventory = async (productId, warehouseId) => {
   return inventory;
 };
 
-const listInventory = async ({ page, limit, warehouseId }) => inventoryRepository.listAll({ page, limit, warehouseId });
+const listInventory = async ({ page, limit, warehouseId, warehouse, search, q, status, category }) => {
+  const resolvedWarehouse = warehouseId || (warehouse && warehouse !== 'All Warehouses' && warehouse !== 'all' ? warehouse : undefined);
+  return inventoryRepository.listAll({ page, limit, warehouseId: resolvedWarehouse, search: search || q, status, category });
+};
 
 const getInventoryByProductId = async (productId, warehouseId) => {
   if (!warehouseId) throw new BadRequestError('warehouseId is required');

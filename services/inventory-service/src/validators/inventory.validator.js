@@ -9,10 +9,15 @@ const movementIdParamSchema = Joi.object({
 });
 
 const listQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1),
-  limit: Joi.number().integer().min(1).max(100),
-  warehouseId: Joi.string().optional(),
-});
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+  warehouseId: Joi.string().optional().allow('', null),
+  warehouse: Joi.string().optional().allow('', null),
+  search: Joi.string().optional().allow('', null),
+  q: Joi.string().optional().allow('', null),
+  status: Joi.string().optional().allow('', null),
+  category: Joi.string().optional().allow('', null),
+}).unknown(true);
 
 const movementListQuerySchema = Joi.object({
   page: Joi.number().integer().min(1),

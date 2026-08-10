@@ -1,8 +1,8 @@
-import { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 
-const client = new DynamoDBClient({});
+const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
 const docClient = DynamoDBDocumentClient.from(client);
 const TABLE_NAME = process.env.DDB_TABLE_WAREHOUSES || 'freshmart-dev-warehouses';
 
@@ -161,26 +161,28 @@ export class WarehouseRepository {
   }
 
   async listWarehouses(limit = 100): Promise<WarehouseEntity[]> {
-    // In a real app we would use an index to fetch all WAREHOUSE# entities, or GSI on a fixed partition.
-    // Given the single-table design without a generic "TYPE=WAREHOUSE" partition, we can scan or assume GSI2 is configured.
-    // We'll map GSI2 to all warehouses for easy listing. Let's use `gsi2pk = 'ALL_WAREHOUSES'` in the insert.
-    // For now, let's just do a scan as it's a small master data table.
-    
-    // Actually, I'll update createWarehouse to write `gsi2pk = 'ALL_WAREHOUSES', gsi2sk = WAREHOUSE#<id>`
-    // Wait, let's fix `createWarehouse` and `updateWarehouse` to do this so we can query properly!
-    
-    const res = await docClient.send(
-      new QueryCommand({
-        TableName: TABLE_NAME,
-        IndexName: 'gsi2',
-        KeyConditionExpression: 'gsi2pk = :type',
-        ExpressionAttributeValues: {
-          ':type': 'ALL_WAREHOUSES',
-        },
-        Limit: limit,
-      })
-    );
-    return (res.Items || []) as WarehouseEntity[];
+    try {
+      const res = await docClient.send(
+        new ScanCommand({
+          TableName: TABLE_NAME,
+          FilterExpression: 'begins_with(pk, :pkPrefix) AND (isDeleted = :notDeleted OR attribute_not_exists(isDeleted))',
+          ExpressionAttributeValues: {
+            ':pkPrefix': 'WAREHOUSE#',
+            ':notDeleted': false,
+          },
+          Limit: limit,
+        })
+      );
+      return (res.Items || []) as WarehouseEntity[];
+    } catch {
+      const res = await docClient.send(
+        new ScanCommand({
+          TableName: TABLE_NAME,
+          Limit: limit,
+        })
+      );
+      return (res.Items || []).filter((w: any) => !w.isDeleted) as WarehouseEntity[];
+    }
   }
 }
 

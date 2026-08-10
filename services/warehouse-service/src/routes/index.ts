@@ -2,11 +2,11 @@ import { createLambdaHandler, loadConfig, type RouteDefinition } from '@freshmar
 import { z } from 'zod';
 import { warehouseController } from '../controllers/index.js';
 
-const config = loadConfig('warehouse-service', {
-  DDB_TABLE_WAREHOUSES: z.string().min(1),
-  COGNITO_USER_POOL_ID: z.string().min(1),
-  COGNITO_APP_CLIENT_ID: z.string().min(1)
-});
+const config = {
+  DDB_TABLE_WAREHOUSES: process.env.DDB_TABLE_WAREHOUSES || 'freshmart-dev-warehouses',
+  COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID || 'ap-southeast-1_RXGKIq89c',
+  COGNITO_APP_CLIENT_ID: process.env.COGNITO_USER_POOL_CLIENT_ID || process.env.COGNITO_APP_CLIENT_ID || '5qeg7to1eroscp415s5jqicvt2',
+};
 
 export const routes: RouteDefinition[] = [
   {
@@ -121,9 +121,27 @@ export const routes: RouteDefinition[] = [
   }
 ];
 
+const expandedRoutes: RouteDefinition[] = [];
+for (const r of routes) {
+  const variations = new Set([
+    r.path,
+    `/warehouse-service${r.path}`,
+    `/v1/warehouse-service${r.path}`,
+    `/v1${r.path}`,
+    r.path.replace('/api/v1', '/v1'),
+    r.path.replace('/api/v1', ''),
+    `/v1${r.path.replace('/api/v1', '')}`,
+  ]);
+  for (const p of variations) {
+    if (p) {
+      expandedRoutes.push({ ...r, path: p });
+    }
+  }
+}
+
 export const handler = createLambdaHandler({
   serviceName: 'warehouse-service',
-  routes: [...routes],
+  routes: expandedRoutes,
   authorizer: {
     userPoolId: config.COGNITO_USER_POOL_ID,
     clientId: config.COGNITO_APP_CLIENT_ID,
