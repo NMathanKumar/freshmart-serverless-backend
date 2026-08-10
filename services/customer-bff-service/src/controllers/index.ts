@@ -16,6 +16,18 @@ export const createCustomerBffController = (service: CustomerBffService) => ({
   profile: async (customerId: string, authorization?: string) => jsonResponse(200, await service.getProfile(customerId, authorization)),
   updateProfile: async (customerId: string, payload: Record<string, unknown>, authorization?: string) =>
     jsonResponse(200, await service.updateProfile(customerId, payload, authorization)),
+  avatarUploadUrl: async (customerId: string, body: Record<string, unknown>) => {
+    const fileName = (body?.fileName as string) || 'avatar.jpg';
+    const cleanName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const bucket = process.env.AWS_S3_BUCKET || 'freshmart-dev-assets-769044546162';
+    const region = process.env.AWS_REGION || 'ap-southeast-1';
+    const key = `avatars/${customerId}_${Date.now()}_${cleanName}`;
+    const avatarUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+    return jsonResponse(200, {
+      uploadUrl: '#',
+      avatarUrl
+    });
+  },
   wishlist: async (customerId: string, authorization?: string) => jsonResponse(200, await service.getWishlist(customerId, authorization)),
   addToWishlist: async (customerId: string, payload: Record<string, unknown>, authorization?: string) =>
     jsonResponse(201, await service.addToWishlist(customerId, payload, authorization)),

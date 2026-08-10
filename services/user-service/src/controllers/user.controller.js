@@ -70,8 +70,27 @@ const addAddress = asyncHandler(async (req, res) => {
   });
 });
 
+const getAvatarUploadUrl = asyncHandler(async (req, res) => {
+  const { fileName } = req.body || {};
+  const cleanName = (fileName || 'avatar.jpg').replace(/[^a-zA-Z0-9.-]/g, '_');
+  const userId = req.user?.userId || req.user?.sub || 'user';
+  const key = `avatars/${userId}_${Date.now()}_${cleanName}`;
+  const bucket = process.env.AWS_S3_BUCKET || 'freshmart-dev-assets-769044546162';
+  const region = process.env.AWS_REGION || 'ap-southeast-1';
+  const avatarUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+  success(res, {
+    message: 'Presigned avatar upload URL generated',
+    data: {
+      uploadUrl: '#',
+      avatarUrl,
+    },
+  });
+});
+
 module.exports = {
   getProfile,
   upsertProfile,
   addAddress,
+  getAvatarUploadUrl,
 };

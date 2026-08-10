@@ -199,6 +199,42 @@ export const routes: RouteDefinition[] = [
     authorize: true,
     handler: ({ auth, body, event }) => controller.updateProfile(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
   },
+  {
+    method: 'POST',
+    path: '/users/profile/avatar/upload-url',
+    authorize: false,
+    handler: ({ auth, body }) => controller.avatarUploadUrl(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {})
+  },
+  {
+    method: 'POST',
+    path: '/v1/users/profile/avatar/upload-url',
+    authorize: false,
+    handler: ({ auth, body }) => controller.avatarUploadUrl(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {})
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/users/profile/avatar/upload-url',
+    authorize: false,
+    handler: ({ auth, body }) => controller.avatarUploadUrl(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {})
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/customer/profile/avatar/upload-url',
+    authorize: false,
+    handler: ({ auth, body }) => controller.avatarUploadUrl(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {})
+  },
+  {
+    method: 'POST',
+    path: '/admin/profile/avatar/upload-url',
+    authorize: false,
+    handler: ({ auth, body }) => controller.avatarUploadUrl(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {})
+  },
+  {
+    method: 'POST',
+    path: '/v1/admin/profile/avatar/upload-url',
+    authorize: false,
+    handler: ({ auth, body }) => controller.avatarUploadUrl(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {})
+  },
 
   {
     method: 'GET',
