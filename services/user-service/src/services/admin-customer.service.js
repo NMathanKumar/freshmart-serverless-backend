@@ -50,7 +50,15 @@ const createAdminCustomerService = ({ repository = adminCustomerRepository } = {
     return { ...customer, status: newStatus, updatedAt: updated.updatedAt };
   };
 
-  return { getCustomer, listCustomers, updateStatus };
+  const createCustomer = async (data) => {
+    return repository.createCustomer(data);
+  };
+
+  const updateCustomer = async (customerId, data) => {
+    return repository.updateCustomer(customerId, data);
+  };
+
+  return { createCustomer, getCustomer, listCustomers, updateCustomer, updateStatus };
 };
 
 const service = createAdminCustomerService();

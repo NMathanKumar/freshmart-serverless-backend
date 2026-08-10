@@ -62,6 +62,16 @@ export function useUpdateCustomer() {
   });
 }
 
+export function useCreateCustomer() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AppApiError, Partial<AdminCustomer>>({
+    mutationFn: (data) => customerService.createCustomer(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'customers'] });
+    },
+  });
+}
+
 export function useDeleteCustomer() {
   const queryClient = useQueryClient();
   return useMutation<void, AppApiError, string>({

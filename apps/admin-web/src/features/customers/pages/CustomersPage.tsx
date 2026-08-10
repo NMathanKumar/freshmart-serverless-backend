@@ -3,28 +3,34 @@ import {
   Download,
   Plus,
   Search,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
-  RefreshCw,
   Users,
   BadgeCheck,
   UserPlus,
   Ban,
-  Upload
+  Pencil,
+  Trash2
 } from 'lucide-react';
-import { useCustomers, useUpdateCustomerStatus, useDeleteCustomer } from '../hooks/useCustomers';
+import { useCustomers, useUpdateCustomerStatus, useDeleteCustomer, useCreateCustomer, useUpdateCustomer } from '../hooks/useCustomers';
 import { Skeleton, CardSkeleton, TableSkeleton, ErrorState, EmptyState } from '@/shared/components/ui';
 import { useToast } from '@/shared/components/ui/toast';
 import { isAdmin } from '@freshmart/shared';
 import { AdminShell } from '../../admin/components/admin-shell';
+import { CustomerDialog } from '../../admin/components/customer-dialog';
+import type { CustomerDialogKind, CustomerRecord } from '../../admin/components/customer-dialog';
+import type { AdminCustomerStatus } from '@freshmart/api-sdk';
 
 export const CustomersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTab, setActiveTab] = useState('All Customers');
   const [page, setPage] = useState(1);
+
+  // Dialog State
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | undefined>(undefined);
+  const [dialogKind, setDialogKind] = useState<CustomerDialogKind>('edit');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Debounce search by 300ms
   useEffect(() => {
@@ -44,10 +50,99 @@ export const CustomersPage: React.FC = () => {
 
   const { showToast } = useToast();
 
+  const createCustomerMutation = useCreateCustomer();
+  const updateCustomerMutation = useUpdateCustomer();
   const updateStatusMutation = useUpdateCustomerStatus();
   const deleteCustomerMutation = useDeleteCustomer();
 
   const userIsAdmin = isAdmin();
+
+  const handleOpenAdd = () => {
+    if (!userIsAdmin) {
+      alert('403 Access Denied: Admin authorization required to add customers.');
+      return;
+    }
+    setSelectedCustomer({
+      id: '#CUST-NEW',
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      membership: 'Standard',
+      status: 'Active',
+      orders: 0,
+      spending: '$0.00',
+      joined: 'Just now',
+      lastActive: 'Just now',
+      notes: ''
+    });
+    setDialogKind('edit');
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (cust: any) => {
+    if (!userIsAdmin) {
+      alert('403 Access Denied: Admin authorization required to edit customers.');
+      return;
+    }
+    setSelectedCustomer({
+      id: cust.id,
+      name: cust.name,
+      email: cust.email,
+      phone: cust.contact ? cust.contact.split('•')[0].trim() : '',
+      address: cust.contact ? cust.contact.split('•')[1]?.trim() || '' : '',
+      membership: cust.orders >= 30 || cust.rawSpending >= 2000 ? 'VIP' : cust.orders >= 10 || cust.rawSpending >= 800 ? 'Premium' : 'Standard',
+      status: cust.status === 'ACTIVE' ? 'Active' : 'Blocked',
+      orders: cust.orders || 0,
+      spending: cust.spending || '$0.00',
+      joined: cust.regDate || 'Jan 15, 2023',
+      lastActive: 'Recently',
+      notes: ''
+    });
+    setDialogKind('edit');
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveCustomer = (draft: CustomerRecord) => {
+    if (draft.id === '#CUST-NEW') {
+      createCustomerMutation.mutate({
+        name: draft.name,
+        email: draft.email,
+        phone: draft.phone,
+        addresses: [{ line1: draft.address }] as any,
+        status: (draft.status.toUpperCase() as AdminCustomerStatus) || 'ACTIVE',
+      }, {
+        onSuccess: () => {
+          showToast(`Customer "${draft.name}" created successfully`, 'success');
+          setIsDialogOpen(false);
+          refetch();
+        },
+        onError: (err) => {
+          showToast(`Failed to create customer: ${err.message || 'Error'}`, 'error');
+        }
+      });
+    } else {
+      updateCustomerMutation.mutate({
+        customerId: draft.id,
+        data: {
+          name: draft.name,
+          email: draft.email,
+          phone: draft.phone,
+          addresses: [{ line1: draft.address }] as any,
+          status: (draft.status.toUpperCase() as AdminCustomerStatus) || 'ACTIVE',
+        }
+      }, {
+        onSuccess: () => {
+          showToast(`Customer "${draft.name}" updated successfully`, 'success');
+          setIsDialogOpen(false);
+          refetch();
+        },
+        onError: (err) => {
+          showToast(`Failed to update customer: ${err.message || 'Error'}`, 'error');
+        }
+      });
+    }
+  };
 
   const handleToggleStatus = (customerId: string, currentStatus: string) => {
     if (!userIsAdmin) {
@@ -137,14 +232,8 @@ export const CustomersPage: React.FC = () => {
             <span>Export CSV</span>
           </button>
           <button
-            onClick={() => {
-              if (!userIsAdmin) {
-                alert('403 Access Denied: Admin authorization required to add customers.');
-              } else {
-                alert('Add Customer form ready.');
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-sm font-bold text-white shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors"
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-sm font-bold text-white shadow-md shadow-[#04883b]/20 hover:bg-[#037030] transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Customer</span>
@@ -324,12 +413,22 @@ export const CustomersPage: React.FC = () => {
                     </button>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleDelete(cust.id, cust.name)}
-                      className="p-1 text-slate-400 hover:text-slate-600"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleOpenEdit(cust)}
+                        className="p-1.5 text-slate-500 hover:text-[#04883b] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                        title="Edit Customer"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(cust.id, cust.name)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Customer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -348,13 +447,13 @@ export const CustomersPage: React.FC = () => {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700"
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage(1)}
-              className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center ${
+              className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center cursor-pointer ${
                 page === 1 ? 'bg-[#04883b] text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -362,7 +461,7 @@ export const CustomersPage: React.FC = () => {
             </button>
             <button
               onClick={() => setPage(2)}
-              className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center ${
+              className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center cursor-pointer ${
                 page === 2 ? 'bg-[#04883b] text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -370,13 +469,22 @@ export const CustomersPage: React.FC = () => {
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
+
+      <CustomerDialog
+        open={isDialogOpen}
+        kind={dialogKind}
+        customer={selectedCustomer}
+        onClose={() => setIsDialogOpen(false)}
+        onSave={handleSaveCustomer}
+        onToggleBlock={(c) => handleToggleStatus(c.id, c.status === 'Active' ? 'ACTIVE' : 'BLOCKED')}
+      />
     </div>
     </AdminShell>
   );

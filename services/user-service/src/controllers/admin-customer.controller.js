@@ -16,9 +16,14 @@ const getCustomer = utils.asyncHandler(async (req, res) => {
   response.success(res, { message: 'Customer fetched', data: customer });
 });
 
-const updateStatus = utils.asyncHandler(async (req, res) => {
-  const customer = await adminCustomerService.updateStatus(req.params.customerId, req.body.status);
-  response.success(res, { message: `Customer status updated to '${customer.status}'`, data: customer });
+const createCustomer = utils.asyncHandler(async (req, res) => {
+  const customer = await adminCustomerService.createCustomer(req.body);
+  response.created(res, { message: 'Customer created successfully', data: customer });
 });
 
-module.exports = { getCustomer, listCustomers, updateStatus };
+const updateCustomer = utils.asyncHandler(async (req, res) => {
+  const customer = await adminCustomerService.updateCustomer(req.params.customerId, req.body);
+  response.success(res, { message: 'Customer updated successfully', data: customer });
+});
+
+module.exports = { createCustomer, getCustomer, listCustomers, updateCustomer, updateStatus };

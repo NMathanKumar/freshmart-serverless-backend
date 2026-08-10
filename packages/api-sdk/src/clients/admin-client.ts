@@ -139,6 +139,14 @@ export class AdminClient {
     });
   }
 
+  createCustomer(data: Partial<AdminCustomer>) {
+    return this.client.request<ApiEnvelope<AdminCustomer>>({
+      method: 'POST',
+      url: `/v1/admin/customers`,
+      data
+    });
+  }
+
   getCustomer(customerId: string) {
     return this.client.request<ApiEnvelope<AdminCustomer>>({
       method: 'GET',

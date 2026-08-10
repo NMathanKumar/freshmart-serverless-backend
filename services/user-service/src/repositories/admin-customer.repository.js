@@ -1,4 +1,4 @@
-const { GetCommand, QueryCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { aws, constants } = require('@freshmart/service-shared');
 
 const ORDER_STATUSES = Object.values(constants.ORDER_STATUS);
@@ -233,7 +233,77 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     };
   };
 
-  return { findById, list, updateStatus };
+  const createCustomer = async (data) => {
+    const tableNames = resolveTables(tables);
+    const now = new Date().toISOString();
+    const userId = data.userId || data.customerId || `CUST_${Date.now().toString(36)}`;
+    const item = {
+      pk: `USER#${userId}`,
+      sk: 'PROFILE',
+      userId,
+      name: data.name || '',
+      email: data.email || '',
+      phone: data.phone || '',
+      address: data.address ? (typeof data.address === 'string' ? { line1: data.address } : data.address) : null,
+      status: data.status || 'ACTIVE',
+      createdAt: now,
+      updatedAt: now,
+    };
+    await client.send(
+      new PutCommand({
+        TableName: tableNames.userProfiles,
+        Item: item,
+      })
+    );
+    return normalizeCustomer(item, []);
+  };
+
+  const updateCustomer = async (customerId, data) => {
+    const tableNames = resolveTables(tables);
+    const now = new Date().toISOString();
+    const updateExpr = [];
+    const names = {};
+    const values = { ':updatedAt': now };
+
+    if (data.name !== undefined) {
+      updateExpr.push('#name = :name');
+      names['#name'] = 'name';
+      values[':name'] = data.name;
+    }
+    if (data.email !== undefined) {
+      updateExpr.push('email = :email');
+      values[':email'] = data.email;
+    }
+    if (data.phone !== undefined) {
+      updateExpr.push('phone = :phone');
+      values[':phone'] = data.phone;
+    }
+    if (data.address !== undefined) {
+      updateExpr.push('#address = :address');
+      names['#address'] = 'address';
+      values[':address'] = typeof data.address === 'string' ? { line1: data.address } : data.address;
+    }
+    if (data.status !== undefined) {
+      updateExpr.push('#status = :status');
+      names['#status'] = 'status';
+      values[':status'] = data.status;
+    }
+    updateExpr.push('updatedAt = :updatedAt');
+
+    const result = await client.send(
+      new UpdateCommand({
+        TableName: tableNames.userProfiles,
+        Key: { pk: `USER#${customerId}`, sk: 'PROFILE' },
+        UpdateExpression: `SET ${updateExpr.join(', ')}`,
+        ExpressionAttributeNames: Object.keys(names).length > 0 ? names : undefined,
+        ExpressionAttributeValues: values,
+        ReturnValues: 'ALL_NEW',
+      })
+    );
+    return normalizeCustomer(result.Attributes || {}, []);
+  };
+
+  return { createCustomer, findById, list, updateCustomer, updateStatus };
 };
 
 const repository = createAdminCustomerRepository();

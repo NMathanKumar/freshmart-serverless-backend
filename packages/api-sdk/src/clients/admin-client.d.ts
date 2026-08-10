@@ -13,6 +13,7 @@ export declare class AdminClient {
     getOrder(orderId: string): Promise<ApiEnvelope<AdminOrder>>;
     updateOrderStatus(orderId: string, orderStatus: AdminOrderStatus): Promise<ApiEnvelope<AdminOrder>>;
     listCustomers(params?: AdminCustomerListParams): Promise<AdminCustomerListResponse>;
+    createCustomer(data: Partial<AdminCustomer>): Promise<ApiEnvelope<AdminCustomer>>;
     getCustomer(customerId: string): Promise<ApiEnvelope<AdminCustomer>>;
     updateCustomerStatus(customerId: string, status: AdminCustomerStatus): Promise<ApiEnvelope<AdminCustomer>>;
     getConfig(): Promise<ApiEnvelope<AdminEntity<Record<string, unknown>>[]>>;

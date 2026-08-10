@@ -12,7 +12,9 @@ const router = express.Router();
 router.use(middleware.authenticate);
 router.use(middleware.authorize(constants.ROLES.ADMIN));
 router.get('/', middleware.validate(adminCustomerListSchema, 'query'), controller.listCustomers);
+router.post('/', controller.createCustomer);
 router.get('/:customerId', middleware.validate(adminCustomerIdSchema, 'params'), controller.getCustomer);
+router.put('/:customerId', middleware.validate(adminCustomerIdSchema, 'params'), controller.updateCustomer);
 router.patch(
   '/:customerId/status',
   middleware.validate(adminCustomerIdSchema, 'params'),

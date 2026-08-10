@@ -96,6 +96,10 @@ export class CustomerService {
     };
   }
 
+  async createCustomer(data: Partial<AdminCustomer>): Promise<void> {
+    await freshmartSdk.admin.createCustomer(data);
+  }
+
   async updateCustomer(customerId: string, data: Partial<AdminCustomer>): Promise<void> {
     await freshmartSdk.admin.updateCustomer(customerId, data);
   }
