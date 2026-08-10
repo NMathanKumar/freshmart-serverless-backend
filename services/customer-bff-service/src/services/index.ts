@@ -335,6 +335,8 @@ export class StaticCustomerGateway implements DownstreamGateway {
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
 
 export class HttpCustomerGateway implements DownstreamGateway {
+  private readonly requestCache = new Map<string, { data: unknown; expiresAt: number }>();
+
   constructor(
     private readonly config: {
       catalogBaseUrl: string;
@@ -348,14 +350,41 @@ export class HttpCustomerGateway implements DownstreamGateway {
     }
   ) {}
 
+  private getCached<T>(key: string): T | undefined {
+    const entry = this.requestCache.get(key);
+    if (entry && Date.now() < entry.expiresAt) {
+      return entry.data as T;
+    }
+    if (entry) {
+      this.requestCache.delete(key);
+    }
+    return undefined;
+  }
+
+  private setCache<T>(key: string, data: T, ttlMs: number = 5000): void {
+    if (this.requestCache.size > 200) {
+      this.requestCache.clear();
+    }
+    this.requestCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+  }
+
   private async request<TResponse>(
     baseUrl: string,
     path: string,
     authorization?: string,
     fallbackValue?: TResponse,
     method: string = 'GET',
-    data?: unknown
+    data?: unknown,
+    cacheTtlMs: number = 0
   ): Promise<TResponse> {
+    const cacheKey = `${method}:${baseUrl}:${path}:${authorization || ''}`;
+    if (method === 'GET' && cacheTtlMs > 0) {
+      const cached = this.getCached<TResponse>(cacheKey);
+      if (cached !== undefined) {
+        return cached;
+      }
+    }
+
     try {
       const headers: Record<string, string> = {
         accept: 'application/json'
@@ -385,7 +414,11 @@ export class HttpCustomerGateway implements DownstreamGateway {
         return null as TResponse;
       }
 
-      return (await res.json()) as TResponse;
+      const jsonResult = (await res.json()) as TResponse;
+      if (method === 'GET' && cacheTtlMs > 0 && jsonResult !== null && jsonResult !== undefined) {
+        this.setCache(cacheKey, jsonResult, cacheTtlMs);
+      }
+      return jsonResult;
     } catch (err) {
       if (fallbackValue !== undefined) {
         return fallbackValue;
@@ -397,11 +430,11 @@ export class HttpCustomerGateway implements DownstreamGateway {
   async getHome(customerId: string, authorization?: string): Promise<HomePageView> {
     try {
       const [categories, productsRes, cartRes, promotions] = await Promise.all([
-        this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/api/v1/categories', authorization, undefined)
-          .catch(() => this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/categories', authorization, [])),
-        this.request<Record<string, unknown> | Array<Record<string, unknown>>>(this.config.catalogBaseUrl, '/products', authorization, []),
+        this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/api/v1/categories', authorization, undefined, 'GET', undefined, 10000)
+          .catch(() => this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/categories', authorization, [], 'GET', undefined, 10000)),
+        this.request<Record<string, unknown> | Array<Record<string, unknown>>>(this.config.catalogBaseUrl, '/products', authorization, [], 'GET', undefined, 5000),
         this.request<Record<string, unknown>>(this.config.cartBaseUrl, '/cart', authorization, { items: [], grandTotal: 0 }),
-        this.request<Array<Record<string, unknown>>>(this.config.promotionsBaseUrl, '/promotions', authorization, [])
+        this.request<Array<Record<string, unknown>>>(this.config.promotionsBaseUrl, '/promotions', authorization, [], 'GET', undefined, 10000)
       ]);
 
       const products = Array.isArray(productsRes)

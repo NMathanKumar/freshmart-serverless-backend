@@ -124,6 +124,7 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
           IndexName: 'gsi2',
           KeyConditionExpression: 'gsi2pk = :pk',
           ExpressionAttributeValues: { ':pk': `STATUS#${status}` },
+          ProjectionExpression: 'orderId, userId, totalAmount, paymentStatus, orderStatus, createdAt',
           ScanIndexForward: false,
         })
       )
