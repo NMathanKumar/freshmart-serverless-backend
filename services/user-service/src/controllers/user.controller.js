@@ -95,9 +95,35 @@ const getAvatarUploadUrl = asyncHandler(async (req, res) => {
   });
 });
 
+const getSettings = asyncHandler(async (req, res) => {
+  const userId = req.user?.userId || req.user?.sub;
+  const profile = userId ? await profileRepository.findById(userId) : null;
+  success(res, {
+    message: 'Settings fetched',
+    data: {
+      siteName: 'FreshMart Enterprise',
+      emailNotifications: true,
+      orderAlerts: true,
+      security2FA: false,
+      theme: 'light',
+      ...(profile?.preferences || {})
+    }
+  });
+});
+
+const updateSettings = asyncHandler(async (req, res) => {
+  const userId = req.user?.userId || req.user?.sub;
+  const current = userId ? await profileRepository.findById(userId) : null;
+  const updatedPreferences = { ...(current?.preferences || {}), ...(req.body || {}) };
+  const profile = await profileRepository.update(userId, { preferences: updatedPreferences });
+  success(res, { message: 'Settings updated', data: profile?.preferences || updatedPreferences });
+});
+
 module.exports = {
   getProfile,
   upsertProfile,
   addAddress,
   getAvatarUploadUrl,
+  getSettings,
+  updateSettings,
 };
