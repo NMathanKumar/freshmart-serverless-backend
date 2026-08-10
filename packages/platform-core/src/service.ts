@@ -53,6 +53,24 @@ export const createLambdaHandler = ({ serviceName, routes, authorizer }: Service
       'x-request-id': requestId
     };
 
+    if (method === 'OPTIONS') {
+      const origin = event.headers['origin'] || event.headers['Origin'] || '*';
+      return toLambdaResponse(
+        {
+          statusCode: 204,
+          headers: {
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Amz-Date, X-Api-Key, X-Amz-Security-Token, X-Correlation-Id, X-Request-Id',
+            'Access-Control-Allow-Credentials': 'true',
+            'Access-Control-Max-Age': '86400'
+          },
+          body: ''
+        },
+        responseHeaders
+      );
+    }
+
     if (method === 'GET' && (path === '/health' || path === '/ready')) {
       return toLambdaResponse(
         jsonResponse(200, checkHealth()),
