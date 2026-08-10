@@ -128,7 +128,29 @@ const createProfileRepository = ({ client = documentClient } = {}) => {
         ReturnValues: 'ALL_NEW',
       })
     );
-    return toDomain(response.Attributes);
+    const updatedDomain = toDomain(response.Attributes);
+    if (updatedDomain && updatedDomain.email) {
+      try {
+        const { ScanCommand: LocalScan } = require('@aws-sdk/lib-dynamodb');
+        const scanRes = await client.send(new LocalScan({
+          TableName: tableName(),
+          FilterExpression: 'email = :email AND userId <> :uid',
+          ExpressionAttributeValues: { ':email': updatedDomain.email, ':uid': userId }
+        }));
+        for (const item of (scanRes.Items || [])) {
+          if (item.userId) {
+            await client.send(new UpdateCommand({
+              TableName: tableName(),
+              Key: key(item.userId),
+              UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+              ExpressionAttributeNames: expressionAttributeNames,
+              ExpressionAttributeValues: expressionAttributeValues,
+            })).catch(() => {});
+          }
+        }
+      } catch (_) {}
+    }
+    return updatedDomain;
   };
 
   const findById = getProfile;

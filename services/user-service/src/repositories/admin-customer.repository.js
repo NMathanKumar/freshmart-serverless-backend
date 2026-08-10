@@ -288,15 +288,17 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     const names = {};
     const values = { ':updatedAt': now };
 
-    let targetId = customerId;
-    const targetEmail = data.email;
-    if (targetEmail) {
-      const allProfiles = await loadProfiles(tableNames.userProfiles);
-      const isUUID = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(id);
-      const realCognitoProfile = allProfiles.find(p => (p.email || '').trim().toLowerCase() === targetEmail.trim().toLowerCase() && isUUID(p.userId));
-      if (realCognitoProfile) {
-        targetId = realCognitoProfile.userId;
-      }
+    const allProfiles = await loadProfiles(tableNames.userProfiles);
+    const existingTarget = allProfiles.find((p) => p.userId === customerId);
+    const emailToMatch = (data.email || existingTarget?.email || '').trim().toLowerCase();
+
+    const targetUserIds = new Set([customerId]);
+    if (emailToMatch) {
+      allProfiles.forEach((p) => {
+        if (p.email && p.email.trim().toLowerCase() === emailToMatch) {
+          targetUserIds.add(p.userId);
+        }
+      });
     }
 
     if (data.name !== undefined || data.fullName !== undefined) {
@@ -331,17 +333,28 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     }
     updateExpr.push('updatedAt = :updatedAt');
 
-    const result = await client.send(
-      new UpdateCommand({
-        TableName: tableNames.userProfiles,
-        Key: { pk: `USER#${targetId}`, sk: 'PROFILE' },
-        UpdateExpression: `SET ${updateExpr.join(', ')}`,
-        ExpressionAttributeNames: Object.keys(names).length > 0 ? names : undefined,
-        ExpressionAttributeValues: values,
-        ReturnValues: 'ALL_NEW',
-      })
-    );
-    return normalizeCustomer(result.Attributes || {}, []);
+    let updatedAttributes = null;
+    for (const uid of targetUserIds) {
+      if (!uid) continue;
+      try {
+        const result = await client.send(
+          new UpdateCommand({
+            TableName: tableNames.userProfiles,
+            Key: { pk: `USER#${uid}`, sk: 'PROFILE' },
+            UpdateExpression: `SET ${updateExpr.join(', ')}`,
+            ExpressionAttributeNames: Object.keys(names).length > 0 ? names : undefined,
+            ExpressionAttributeValues: values,
+            ReturnValues: 'ALL_NEW',
+          })
+        );
+        if (result.Attributes) {
+          updatedAttributes = result.Attributes;
+        }
+      } catch (_) {
+        // Ignored
+      }
+    }
+    return normalizeCustomer(updatedAttributes || {}, []);
   };
 
   const deleteCustomer = async (customerId) => {
