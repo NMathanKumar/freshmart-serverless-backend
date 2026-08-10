@@ -17,6 +17,7 @@ import * as shared from '@freshmart/shared';
 
 import { useNotifications } from '../../account/hooks/use-notifications.js';
 import { useGetAccountSettingsQuery } from '../../account/api/account-api.js';
+import { useGetCartQuery } from '../api/commerce-api.js';
 
 const { customerRoutePaths } = shared;
 
@@ -32,7 +33,7 @@ const navItems = [
 export const CommerceHeader = ({
   title,
   showBack = false,
-  cartCount = 3,
+  cartCount: overrideCartCount,
 }: {
   title?: string;
   showBack?: boolean;
@@ -40,9 +41,13 @@ export const CommerceHeader = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: cartItems = [] } = useGetCartQuery();
   const { unreadCount } = useNotifications();
   const { data: accountSettings } = useGetAccountSettingsQuery();
   const userAvatarUrl = accountSettings?.profile?.avatarUrl;
+
+  const liveCartCount = cartItems.reduce((sum, item) => sum + (item.quantityInCart || 1), 0);
+  const cartCount = overrideCartCount !== undefined ? overrideCartCount : liveCartCount;
 
   return (
     <header className="commerce-glass fixed inset-x-0 top-0 z-50 bg-[#f4fcf0]/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
