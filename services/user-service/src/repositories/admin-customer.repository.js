@@ -192,7 +192,27 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
       ordersByCustomer.set(o.userId, current);
     });
 
-    const customers = profiles.map((profile) =>
+    // Deduplicate profiles by normalized email (preferring Cognito UUID IDs)
+    const profilesByEmail = new Map();
+    for (const p of profiles) {
+      const emailKey = p.email ? p.email.trim().toLowerCase() : (p.userId || `id_${Math.random()}`);
+      const existing = profilesByEmail.get(emailKey);
+      const isUUID = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(id);
+      if (!existing) {
+        profilesByEmail.set(emailKey, p);
+      } else {
+        const existingIsUUID = isUUID(existing.userId);
+        const currentIsUUID = isUUID(p.userId);
+        if (currentIsUUID && !existingIsUUID) {
+          profilesByEmail.set(emailKey, { ...existing, ...p });
+        } else {
+          profilesByEmail.set(emailKey, { ...p, ...existing });
+        }
+      }
+    }
+    const deduplicatedProfiles = Array.from(profilesByEmail.values());
+
+    const customers = deduplicatedProfiles.map((profile) =>
       normalizeCustomer(profile, ordersByCustomer.get(profile.userId) || [])
     );
 
@@ -237,11 +257,13 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     const tableNames = resolveTables(tables);
     const now = new Date().toISOString();
     const userId = data.userId || data.customerId || `CUST_${Date.now().toString(36)}`;
+    const nameVal = data.name || data.fullName || '';
     const item = {
       pk: `USER#${userId}`,
       sk: 'PROFILE',
       userId,
-      name: data.name || '',
+      name: nameVal,
+      fullName: nameVal,
       email: data.email || '',
       phone: data.phone || '',
       avatarUrl: data.avatarUrl || null,
@@ -265,6 +287,17 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     const updateExpr = [];
     const names = {};
     const values = { ':updatedAt': now };
+
+    let targetId = customerId;
+    const targetEmail = data.email;
+    if (targetEmail) {
+      const allProfiles = await loadProfiles(tableNames.userProfiles);
+      const isUUID = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(id);
+      const realCognitoProfile = allProfiles.find(p => (p.email || '').trim().toLowerCase() === targetEmail.trim().toLowerCase() && isUUID(p.userId));
+      if (realCognitoProfile) {
+        targetId = realCognitoProfile.userId;
+      }
+    }
 
     if (data.name !== undefined || data.fullName !== undefined) {
       const nameVal = data.name !== undefined ? data.name : data.fullName;
@@ -301,7 +334,7 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     const result = await client.send(
       new UpdateCommand({
         TableName: tableNames.userProfiles,
-        Key: { pk: `USER#${customerId}`, sk: 'PROFILE' },
+        Key: { pk: `USER#${targetId}`, sk: 'PROFILE' },
         UpdateExpression: `SET ${updateExpr.join(', ')}`,
         ExpressionAttributeNames: Object.keys(names).length > 0 ? names : undefined,
         ExpressionAttributeValues: values,
