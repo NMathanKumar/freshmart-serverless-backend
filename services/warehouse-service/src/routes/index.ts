@@ -145,6 +145,6 @@ export const handler = createLambdaHandler({
   authorizer: {
     userPoolId: config.COGNITO_USER_POOL_ID,
     clientId: config.COGNITO_APP_CLIENT_ID,
-    tokenUse: null
+    tokenUse: 'access'
   }
 });

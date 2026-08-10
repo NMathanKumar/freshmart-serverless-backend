@@ -3,7 +3,7 @@ name: FreshMart CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop, 'sonar/**', 'feat/**', 'fix/**']
 
 jobs:
   ci-pipeline:
