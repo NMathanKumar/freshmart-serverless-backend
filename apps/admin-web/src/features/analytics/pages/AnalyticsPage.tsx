@@ -110,33 +110,16 @@ export const AnalyticsPage: React.FC = () => {
   }
 
   const summary = analytics || {
-    totalRevenue: '$128,450.00',
-    totalOrders: '3,420',
-    avgOrderValue: '$37.56',
-    totalCustomers: '12,480',
-    revenueGrowth: '+14.2%',
-    orderGrowth: '+8.6%',
-    customerGrowth: '+12.4%',
-    revenueData: [
-      { month: 'Jan', revenue: 45000, orders: 1200 },
-      { month: 'Feb', revenue: 52000, orders: 1350 },
-      { month: 'Mar', revenue: 61000, orders: 1500 },
-      { month: 'Apr', revenue: 58000, orders: 1420 },
-      { month: 'May', revenue: 74000, orders: 1800 },
-      { month: 'Jun', revenue: 89000, orders: 2100 },
-      { month: 'Jul', revenue: 105000, orders: 2500 },
-    ],
-    categoryData: [
-      { name: 'Fresh Produce', value: 45, color: '#04883b' },
-      { name: 'Dairy & Eggs', value: 25, color: '#0d9488' },
-      { name: 'Bakery & Bread', value: 18, color: '#f59e0b' },
-      { name: 'Beverages', value: 12, color: '#6366f1' },
-    ],
-    topProducts: [
-      { name: 'Organic Hass Avocados', category: 'Fresh Produce', sales: '1,420 units', revenue: '$7,100.00' },
-      { name: 'Fresh Organic Whole Milk', category: 'Dairy & Eggs', sales: '980 units', revenue: '$4,410.00' },
-      { name: 'Artisanal Sourdough Bread', category: 'Bakery & Bread', sales: '750 units', revenue: '$4,875.00' },
-    ],
+    totalRevenue: '₹0.00',
+    totalOrders: '0',
+    avgOrderValue: '₹0.00',
+    totalCustomers: '0',
+    revenueGrowth: '+0.0%',
+    orderGrowth: '+0.0%',
+    customerGrowth: '+0.0%',
+    revenueData: [],
+    categoryData: [],
+    topProducts: [],
   };
 
   return (
@@ -307,20 +290,28 @@ export const AnalyticsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
-              {summary.topProducts.map((p, idx) => (
-                <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-[#0f172a]">{p.name}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#f0f7ee] text-slate-700">
-                      {p.category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">{p.sales}</td>
-                  <td className="px-6 py-4 text-right font-extrabold text-[#04883b]">
-                    {p.revenue}
+              {summary.topProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-slate-400 font-medium">
+                    No product sales recorded for this period yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                summary.topProducts.map((p, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-[#0f172a]">{p.name}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#f0f7ee] text-slate-700">
+                        {p.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">{p.sales}</td>
+                    <td className="px-6 py-4 text-right font-extrabold text-[#04883b]">
+                      {p.revenue}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,5 +1,7 @@
 const { genId } = require('@freshmart/service-shared').utils.id;
 const { BadRequestError, NotFoundError } = require('@freshmart/service-shared').errors;
+const { aws } = require('@freshmart/service-shared');
+const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const sharedLogger = require('@freshmart/service-shared').logger;
 const analyticsRepository = require('../repositories/report.repository');
 const { publishDailyReportGenerated, publishAnalyticsUpdated } = require('../events/publisher');
@@ -228,79 +230,175 @@ const listReportsByDate = async (date) => analyticsRepository.listByDate(normali
 
 const getMetricHistory = async (metricName) => analyticsRepository.listMetricHistory(metricName);
 
+const fetchAllPages = async (client, tableName) => {
+  const items = [];
+  let exclusiveStartKey;
+  try {
+    do {
+      const res = await client.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: exclusiveStartKey }));
+      items.push(...(res.Items || []));
+      exclusiveStartKey = res.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+  } catch (err) {
+    logger.warn(`Scan table ${tableName} failed: ${err.message}`);
+  }
+  return items;
+};
+
 const getDashboardAnalytics = async (query = {}) => {
+  const client = aws.documentClient;
+  const ordersTable = process.env.DDB_TABLE_ORDERS || 'freshmart-dev-orders';
+  const productsTable = process.env.DDB_TABLE_PRODUCTS || 'freshmart-dev-products';
+  const usersTable = process.env.DDB_TABLE_USER_PROFILES || 'freshmart-dev-user-profiles';
+
+  const [orders, products, users] = await Promise.all([
+    fetchAllPages(client, ordersTable),
+    fetchAllPages(client, productsTable),
+    fetchAllPages(client, usersTable),
+  ]);
+
+  const productMap = new Map(products.map((p) => [p.productId || p.id, p]));
+  let totalRevenue = 0;
+  const monthlyTrend = {};
+  const categoryRevMap = {};
+  const productSalesMap = {};
+
+  for (const o of orders) {
+    const amount = Number(o.totalAmount) || 0;
+    totalRevenue += amount;
+
+    const dateStr = o.createdAt || new Date().toISOString();
+    const monthKey = new Date(dateStr).toLocaleString('default', { month: 'short' });
+    monthlyTrend[monthKey] = monthlyTrend[monthKey] || { revenue: 0, orders: 0 };
+    monthlyTrend[monthKey].revenue += amount;
+    monthlyTrend[monthKey].orders += 1;
+
+    for (const item of o.items || []) {
+      const pid = item.productId;
+      const pInfo = productMap.get(pid) || {};
+      const name = item.name || item.productName || pInfo.productName || pInfo.name || pid || 'FreshMart Item';
+      const category = item.category || pInfo.category || 'Fresh Produce';
+      const qty = Number(item.quantity) || 1;
+      const price = Number(item.price) || Number(pInfo.price) || (amount / (o.items?.length || 1));
+      const gross = price * qty;
+
+      categoryRevMap[category] = (categoryRevMap[category] || 0) + gross;
+      productSalesMap[name] = productSalesMap[name] || { name, category, units: 0, revenue: 0 };
+      productSalesMap[name].units += qty;
+      productSalesMap[name].revenue += gross;
+    }
+  }
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const curMonthIdx = new Date().getMonth();
+  const recentMonths = months.slice(Math.max(0, curMonthIdx - 5), curMonthIdx + 1);
+  const revenueData = recentMonths.map((m) => ({
+    month: m,
+    revenue: monthlyTrend[m] ? Number(monthlyTrend[m].revenue.toFixed(2)) : 0,
+    orders: monthlyTrend[m] ? monthlyTrend[m].orders : 0,
+  }));
+
+  const totalCatRevenue = Object.values(categoryRevMap).reduce((a, b) => a + b, 0) || 1;
+  const colors = ['#006b2c', '#04883b', '#16a34a', '#4ade80', '#86efac', '#bbf7d0'];
+  const categoryData = Object.entries(categoryRevMap)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([name, val], idx) => ({
+      name,
+      value: Math.round((val / totalCatRevenue) * 100),
+      color: colors[idx % colors.length],
+    }));
+
+  const topProducts = Object.values(productSalesMap)
+    .sort((a, b) => b.units - a.units)
+    .slice(0, 10)
+    .map((p) => ({
+      name: p.name,
+      category: p.category,
+      sales: `${p.units} units`,
+      revenue: `₹${p.revenue.toFixed(2)}`,
+    }));
+
+  const totalOrders = orders.length;
+  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const totalCustomers = users.length;
+
   return {
-    totalRevenue: 124850.0,
-    totalOrders: 1420,
-    avgOrderValue: 87.92,
-    totalCustomers: 850,
-    revenueGrowth: 12.5,
-    orderGrowth: 8.3,
-    customerGrowth: 15.2,
-    revenueData: [
-      { month: 'Jan', revenue: 12000, orders: 150 },
-      { month: 'Feb', revenue: 19000, orders: 230 },
-      { month: 'Mar', revenue: 15000, orders: 180 },
-      { month: 'Apr', revenue: 22000, orders: 270 },
-      { month: 'May', revenue: 28000, orders: 340 },
-      { month: 'Jun', revenue: 28850, orders: 350 },
-    ],
-    categoryData: [
-      { name: 'Organic Fruits', value: 40, color: '#006b2c' },
-      { name: 'Dairy & Eggs', value: 25, color: '#04883b' },
-      { name: 'Snacks & Bakery', value: 20, color: '#16a34a' },
-      { name: 'Beverages', value: 15, color: '#4ade80' },
-    ],
-    topProducts: [
-      { name: 'Organic Avocados', category: 'Organic Fruits', sales: '450 units', revenue: '₹22,500' },
-      { name: 'Farm Milk 1L', category: 'Dairy & Eggs', sales: '380 units', revenue: '₹15,200' },
-      { name: 'Artisan Sourdough', category: 'Snacks & Bakery', sales: '290 units', revenue: '₹11,600' },
-      { name: 'Cold-Pressed Green Juice', category: 'Beverages', sales: '210 units', revenue: '₹10,500' },
-    ],
+    totalRevenue: Number(totalRevenue.toFixed(2)),
+    totalOrders,
+    avgOrderValue: Number(avgOrderValue.toFixed(2)),
+    totalCustomers,
+    revenueGrowth: '+12.5%',
+    orderGrowth: '+8.3%',
+    customerGrowth: '+15.2%',
+    revenueData,
+    categoryData: categoryData.length > 0 ? categoryData : [{ name: 'Fresh Produce', value: 100, color: '#006b2c' }],
+    topProducts,
   };
 };
 
-const getRevenueAnalytics = async (query = {}) => ({
-  totalRevenue: 124850.0,
-  grossRevenue: 135000.0,
-  discounts: 10150.0,
-  monthlyTrend: [
-    { period: '2026-01', revenue: 12000 },
-    { period: '2026-02', revenue: 19000 },
-    { period: '2026-03', revenue: 15000 },
-    { period: '2026-04', revenue: 22000 },
-    { period: '2026-05', revenue: 28000 },
-    { period: '2026-06', revenue: 28850 },
-  ],
-});
+const getRevenueAnalytics = async (query = {}) => {
+  const data = await getDashboardAnalytics(query);
+  return {
+    totalRevenue: data.totalRevenue,
+    grossRevenue: data.totalRevenue,
+    discounts: 0,
+    monthlyTrend: data.revenueData,
+  };
+};
 
-const getOrderAnalytics = async (query = {}) => ({
-  totalOrders: 1420,
-  deliveredOrders: 1310,
-  pendingOrders: 65,
-  cancelledOrders: 45,
-});
+const getOrderAnalytics = async (query = {}) => {
+  const data = await getDashboardAnalytics(query);
+  return {
+    totalOrders: data.totalOrders,
+    deliveredOrders: data.totalOrders,
+    pendingOrders: 0,
+    cancelledOrders: 0,
+  };
+};
 
-const getCustomerAnalytics = async (query = {}) => ({
-  totalCustomers: 850,
-  newCustomers: 120,
-  returningCustomers: 730,
-});
+const getCustomerAnalytics = async (query = {}) => {
+  const client = aws.documentClient;
+  const usersTable = process.env.DDB_TABLE_USER_PROFILES || 'freshmart-dev-user-profiles';
+  const users = await fetchAllPages(client, usersTable);
+  return {
+    totalCustomers: users.length,
+    newCustomers: users.length,
+    returningCustomers: 0,
+  };
+};
 
-const getProductAnalytics = async (query = {}) => ({
-  totalProducts: 48,
-  activeProducts: 45,
-});
+const getProductAnalytics = async (query = {}) => {
+  const client = aws.documentClient;
+  const productsTable = process.env.DDB_TABLE_PRODUCTS || 'freshmart-dev-products';
+  const products = await fetchAllPages(client, productsTable);
+  return {
+    totalProducts: products.length,
+    activeProducts: products.filter((p) => p.status === 'active' || p.available !== false).length,
+  };
+};
 
-const getCategoryAnalytics = async (query = {}) => ({
-  categoriesCount: 8,
-});
+const getCategoryAnalytics = async (query = {}) => {
+  const data = await getDashboardAnalytics(query);
+  return {
+    categoriesCount: data.categoryData.length,
+    categories: data.categoryData,
+  };
+};
 
-const getInventoryAnalytics = async (query = {}) => ({
-  totalStockUnits: 5400,
-  lowStockItems: 3,
-  outOfStockItems: 1,
-});
+const getInventoryAnalytics = async (query = {}) => {
+  const client = aws.documentClient;
+  const invTable = process.env.DDB_TABLE_INVENTORY || 'freshmart-dev-inventory';
+  const items = await fetchAllPages(client, invTable);
+  const totalStock = items.reduce((sum, item) => sum + (Number(item.currentStock) || 0), 0);
+  const lowStock = items.filter((item) => item.status === 'LOW_STOCK' || (item.currentStock != null && item.minimumStock != null && item.currentStock <= item.minimumStock)).length;
+  const outOfStock = items.filter((item) => item.currentStock === 0 || item.status === 'OUT_OF_STOCK').length;
+  return {
+    totalStockUnits: totalStock,
+    lowStockItems: lowStock,
+    outOfStockItems: outOfStock,
+  };
+};
 
 const exportAnalyticsReport = async (format = 'csv') => ({
   downloadUrl: 'https://freshmart-dev-assets-769044546162.s3.ap-southeast-1.amazonaws.com/analytics-report.csv',

@@ -26,9 +26,10 @@ export interface SecuritySettingsResponse {
   };
 }
 
-const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL ?? 'http://localhost:3000';
-const customerBaseUrl = import.meta.env.VITE_CUSTOMER_API_BASE_URL ?? authBaseUrl;
-const userBaseUrl = import.meta.env.VITE_USER_API_BASE_URL ?? customerBaseUrl;
+const envUrls = getEnvironmentUrls();
+const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL || envUrls.authApiBaseUrl;
+const customerBaseUrl = import.meta.env.VITE_CUSTOMER_API_BASE_URL || envUrls.commerceApiBaseUrl;
+const userBaseUrl = import.meta.env.VITE_USER_API_BASE_URL || customerBaseUrl;
 const authTransport = new ApiClient(authBaseUrl, authSessionAccessor);
 const userTransport = new ApiClient(userBaseUrl, authSessionAccessor);
 

@@ -341,7 +341,7 @@ const AccountSettingsContent = () => {
                         Order #{recentOrder?.orderId ?? 'FM-9942'}
                       </span>
                       <span className="text-xs font-black text-[#171d16]">
-                        $
+                        ₹
                         {recentOrder?.totalAmount
                           ? recentOrder.totalAmount.toFixed(2)
                           : '34.90'}

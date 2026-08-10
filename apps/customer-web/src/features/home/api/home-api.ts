@@ -1,9 +1,10 @@
 import { ApiError, createFreshMartSdk, type CustomerHomeResponse } from '@freshmart/api-sdk';
 import { authApi } from '../../auth/api/auth-api.js';
-import { sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
+import { getEnvironmentUrls, sharedSessionAccessor as authSessionAccessor } from '@freshmart/shared';
 
-const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL ?? 'http://localhost:3000';
-const customerBaseUrl = import.meta.env.VITE_CUSTOMER_API_BASE_URL ?? authBaseUrl;
+const envUrls = getEnvironmentUrls();
+const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL || envUrls.authApiBaseUrl;
+const customerBaseUrl = import.meta.env.VITE_CUSTOMER_API_BASE_URL || envUrls.commerceApiBaseUrl;
 const sdk = createFreshMartSdk({ authBaseUrl, customerBaseUrl, commerceBaseUrl: customerBaseUrl, sessionAccessor: authSessionAccessor });
 
 const unwrap = <T,>(value: T | { data: T }): T =>
@@ -172,9 +173,9 @@ export const homeApi = authApi.injectEndpoints({
               ],
               categories,
               featuredProducts,
-              trendingProducts: featuredProducts.slice(0, 4),
+              trendingProducts: featuredProducts,
               offers: [],
-              recommendedProducts: featuredProducts.slice(0, 4),
+              recommendedProducts: featuredProducts,
               recentlyViewed: [],
               cartSummary: {
                 itemCount: Array.isArray((cartResponse as { data?: { items?: unknown[] } })?.data?.items)
