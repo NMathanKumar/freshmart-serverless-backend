@@ -195,10 +195,82 @@ export const routes: RouteDefinition[] = [
     handler: ({ auth, event }) => controller.wishlist(auth.subject ?? 'guest', getAuth(event))
   },
   {
+    method: 'GET',
+    path: '/wishlist',
+    authorize: true,
+    handler: ({ auth, event }) => controller.wishlist(auth.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/v1/wishlist',
+    authorize: true,
+    handler: ({ auth, event }) => controller.wishlist(auth.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/wishlist',
+    authorize: true,
+    handler: ({ auth, event }) => controller.wishlist(auth.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/wishlist/:customerId',
+    authorize: false,
+    handler: ({ auth, params, event }) => controller.wishlist(params?.customerId || auth.subject || 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/v1/wishlist/:customerId',
+    authorize: false,
+    handler: ({ auth, params, event }) => controller.wishlist(params?.customerId || auth.subject || 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/wishlist/:customerId',
+    authorize: false,
+    handler: ({ auth, params, event }) => controller.wishlist(params?.customerId || auth.subject || 'guest', getAuth(event))
+  },
+  {
+    method: 'POST',
+    path: '/wishlist/items',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.addToWishlist(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+  },
+  {
+    method: 'POST',
+    path: '/v1/wishlist/items',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.addToWishlist(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/wishlist/items',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.addToWishlist(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+  },
+  {
     method: 'POST',
     path: '/api/v1/customer/wishlist/items',
     authorize: true,
     handler: ({ auth, body, event }) => controller.addToWishlist(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+  },
+  {
+    method: 'DELETE',
+    path: '/wishlist/items',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.removeFromWishlist(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+  },
+  {
+    method: 'DELETE',
+    path: '/v1/wishlist/items',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.removeFromWishlist(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/wishlist/items',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.removeFromWishlist(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
   },
   {
     method: 'DELETE',
