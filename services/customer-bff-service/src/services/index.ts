@@ -596,7 +596,7 @@ export class HttpCustomerGateway implements DownstreamGateway {
 
   async getProfile(customerId: string, authorization?: string): Promise<ProfileView> {
     const [userRes, ordersRes, wishlist] = await Promise.all([
-      this.request<Record<string, unknown>>(this.config.userBaseUrl, '/v1/users/profile', authorization, undefined)
+      this.request<Record<string, unknown>>(this.config.userBaseUrl, '/api/v1/users/profile', authorization, undefined)
         .catch(() => this.request<Record<string, unknown>>(this.config.userBaseUrl, '/users/profile', authorization, {})),
       this.request<Array<Record<string, unknown>> | Record<string, unknown>>(this.config.orderBaseUrl, '/orders', authorization, []),
       this.request<Array<Record<string, unknown>>>(this.config.wishlistBaseUrl, '/wishlist', authorization, [])
