@@ -4,11 +4,11 @@ import { createUserController } from '../controllers/index.js';
 import { DynamoUserRepository } from '../repositories/index.js';
 import { UserService } from '../services/index.js';
 
-const config = loadConfig('user-service', {
-  USER_TABLE_NAME: z.string().min(1),
-  COGNITO_USER_POOL_ID: z.string().min(1),
-  COGNITO_APP_CLIENT_ID: z.string().min(1)
-});
+const config = {
+  USER_TABLE_NAME: process.env.DDB_TABLE_USER_PROFILES || process.env.USER_TABLE_NAME || 'freshmart-dev-user-profiles',
+  COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID || 'ap-southeast-1_RXGKIq89c',
+  COGNITO_APP_CLIENT_ID: process.env.COGNITO_USER_POOL_CLIENT_ID || process.env.COGNITO_APP_CLIENT_ID || '5qeg7to1eroscp415s5jqicvt2',
+};
 
 const controller = createUserController(new UserService(new DynamoUserRepository(config.USER_TABLE_NAME)));
 
