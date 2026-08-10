@@ -45,14 +45,16 @@ export const AnalyticsPage: React.FC = () => {
       ...(summary?.topProducts || []).map((p) => [p.name, p.category, p.sales, p.revenue]),
     ];
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + reportData.map((e) => e.join(',')).join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvString = reportData.map((e) => e.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `freshmart_analytics_${period}_report.${format === 'excel' ? 'csv' : format}`);
+    link.href = url;
+    link.setAttribute('download', `freshmart_analytics_${period}_report.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   if (!userIsAdmin) {
