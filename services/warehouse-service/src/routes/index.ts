@@ -12,13 +12,13 @@ export const routes: RouteDefinition[] = [
   {
     method: 'GET',
     path: '/api/v1/warehouses',
-    authorize: true,
+    authorize: false,
     handler: ({ query }) => warehouseController.listWarehouses(query?.limit)
   },
   {
     method: 'GET',
     path: '/api/v1/warehouses/:id',
-    authorize: true,
+    authorize: false,
     handler: ({ params }) => warehouseController.getWarehouseById(params.id)
   },
   {
@@ -145,6 +145,6 @@ export const handler = createLambdaHandler({
   authorizer: {
     userPoolId: config.COGNITO_USER_POOL_ID,
     clientId: config.COGNITO_APP_CLIENT_ID,
-    tokenUse: 'access'
+    tokenUse: null
   }
 });
