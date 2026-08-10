@@ -26,4 +26,9 @@ const updateCustomer = utils.asyncHandler(async (req, res) => {
   response.success(res, { message: 'Customer updated successfully', data: customer });
 });
 
+const updateStatus = utils.asyncHandler(async (req, res) => {
+  const customer = await adminCustomerService.updateStatus(req.params.customerId, req.body.status);
+  response.success(res, { message: `Customer status updated to '${customer.status}'`, data: customer });
+});
+
 module.exports = { createCustomer, getCustomer, listCustomers, updateCustomer, updateStatus };
