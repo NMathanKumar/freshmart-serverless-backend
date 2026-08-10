@@ -10,7 +10,7 @@ import {
   ShoppingCart,
   XCircle
 } from 'lucide-react';
-import { AdminShell } from '../components/admin-shell.js';
+import { AdminShell } from '../components/admin-shell';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { PurchaseOrderDialog } from '../components/purchase-order-dialog.js';
 import type { PurchaseOrderDialogKind, PurchaseOrderRecord, PurchaseOrderStatus, PurchasePaymentStatus } from '../components/purchase-order-dialog.js';

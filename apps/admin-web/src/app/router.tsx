@@ -2,22 +2,31 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Skeleton, AppErrorBoundary } from '@freshmart/design-system';
 import { adminRoutePaths } from './admin-route-paths.js';
-import { initializeSession, requireAdmin } from '@freshmart/shared';
-const DashboardPage = lazy(() => import('../features/admin/pages/dashboard-page.js'));
-const ProductsPage = lazy(() => import('../features/admin/pages/products-page.js'));
-const CategoriesPage = lazy(() => import('../features/admin/pages/categories-page.js'));
-const OrdersPage = lazy(() => import('../features/admin/pages/orders-page.js'));
-const InventoryPage = lazy(() => import('../features/admin/pages/inventory-page.js'));
-const CustomersPage = lazy(() => import('../features/admin/pages/customers-page.js'));
-const DeliveryPage = lazy(() => import('../features/admin/pages/delivery-page.js'));
-const CouponsPage = lazy(() => import('../features/admin/pages/coupons-page.js'));
-const ReviewsPage = lazy(() => import('../features/admin/pages/reviews-page.js'));
-const SuppliersPage = lazy(() => import('../features/admin/pages/suppliers-page.js'));
-const PurchaseOrdersPage = lazy(() => import('../features/admin/pages/purchase-orders-page.js'));
-const AnalyticsPage = lazy(() => import('../features/admin/pages/analytics-page.js'));
-const ActivityPage = lazy(() => import('../features/admin/pages/activity-page.js'));
-const RolesPage = lazy(() => import('../features/admin/pages/roles-page.js'));
-const SettingsPage = lazy(() => import('../features/admin/pages/settings-page.js'));
+import { useAuth } from '../context/AuthContext.js';
+import { isAdmin, isAuthenticated as isSharedAuth } from '@freshmart/shared';
+import { ToastProvider } from '@/shared/components/ui/toast';
+
+const DashboardPage = lazy(() => import('@/features/admin/pages/dashboard-page.js'));
+const CategoriesPage = lazy(() => import('@/features/admin/pages/categories-page.js'));
+const OrdersPage = lazy(() => import('@/features/orders').then(m => ({ default: m.OrdersPage })));
+const InventoryPage = lazy(() => import('@/features/inventory').then(m => ({ default: m.InventoryPage })));
+const CustomersPage = lazy(() => import('@/features/customers').then(m => ({ default: m.CustomersPage })));
+const DeliveryPage = lazy(() => import('@/features/admin/pages/delivery-page.js'));
+const CouponsPage = lazy(() => import('@/features/admin/pages/coupons-page.js'));
+const ReviewsPage = lazy(() => import('@/features/admin/pages/reviews-page.js'));
+const SuppliersPage = lazy(() => import('@/features/admin/pages/suppliers-page.js'));
+const PurchaseOrdersPage = lazy(() => import('@/features/admin/pages/purchase-orders-page.js'));
+const AnalyticsPage = lazy(() => import('@/features/analytics').then(m => ({ default: m.AnalyticsPage })));
+const NotificationsPage = lazy(() => import('@/features/notifications').then(m => ({ default: m.NotificationsPage })));
+const ActivityPage = lazy(() => import('@/features/admin/pages/activity-page.js'));
+const ProductsPage = lazy(() => import('@/features/products').then(m => ({ default: m.ProductsPage })));
+const RolesPage = lazy(() => import('@/features/admin/pages/roles-page.js'));
+const SettingsPage = lazy(() => import('@/features/settings').then(m => ({ default: m.SettingsPage })));
+const LoginPage = lazy(() => import('../pages/Login.js').then(m => ({ default: m.Login })));
+const AuthCallbackPage = lazy(() => import('../pages/AuthCallback.js').then(m => ({ default: m.AuthCallback })));
+
+const NotFoundPage = lazy(() => import('@/shared/components/ui/not-found-page').then(m => ({ default: m.NotFoundPage })));
+const UnauthorizedPage = lazy(() => import('@/shared/components/ui/unauthorized-page').then(m => ({ default: m.UnauthorizedPage })));
 
 const RouteSkeleton = () => (
   <main className="admin-page flex min-h-screen bg-[var(--admin-bg)] p-4" aria-busy="true" aria-label="Loading FreshMart admin page">
@@ -35,43 +44,54 @@ const RouteSkeleton = () => (
 );
 
 const RequireAdminSession = () => {
-  initializeSession();
+  const { isAuthenticated } = useAuth();
   
-  if (requireAdmin()) {
-    return <Outlet />;
+  if (!isAuthenticated && !isSharedAuth()) {
+    return <Navigate replace to="/login" />;
   }
   
-  return null;
+  if (!isAdmin()) {
+    return <Navigate replace to="/unauthorized" />;
+  }
+  
+  return <Outlet />;
 };
 
-const basename = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') ? '/admin' : undefined;
-
 export const AppRouter = () => (
-  <BrowserRouter basename={basename}>
+  <BrowserRouter basename="/admin">
     <Suspense fallback={<RouteSkeleton />}>
       <AppErrorBoundary>
-        <Routes>
-        <Route element={<RequireAdminSession />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path={adminRoutePaths.dashboard} element={<DashboardPage />} />
-        <Route path={adminRoutePaths.products} element={<ProductsPage />} />
-        <Route path={adminRoutePaths.categories} element={<CategoriesPage />} />
-        <Route path={adminRoutePaths.orders} element={<OrdersPage />} />
-        <Route path={adminRoutePaths.inventory} element={<InventoryPage />} />
-        <Route path={adminRoutePaths.customers} element={<CustomersPage />} />
-        <Route path="/delivery" element={<DeliveryPage />} />
-        <Route path="/coupons" element={<CouponsPage />} />
-        <Route path="/reviews" element={<ReviewsPage />} />
-        <Route path="/suppliers" element={<SuppliersPage />} />
-        <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
-        <Route path={adminRoutePaths.analytics} element={<AnalyticsPage />} />
-        <Route path={adminRoutePaths.activity} element={<ActivityPage />} />
-        <Route path={adminRoutePaths.roles} element={<RolesPage />} />
-        <Route path={adminRoutePaths.settings} element={<SettingsPage />} />
-        </Route>
-        <Route path="*" element={<Navigate replace to="/" />} />
-        </Routes>
+        <ToastProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/sign-in" element={<LoginPage />} />
+            <Route path="/auth/sign-in" element={<LoginPage />} />
+            <Route path={adminRoutePaths.signIn} element={<LoginPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route element={<RequireAdminSession />}>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/inventory" element={<InventoryPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/delivery" element={<DeliveryPage />} />
+              <Route path="/coupons" element={<CouponsPage />} />
+              <Route path="/reviews" element={<ReviewsPage />} />
+              <Route path="/suppliers" element={<SuppliersPage />} />
+              <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/activity" element={<Navigate replace to="/dashboard" />} />
+              <Route path="/roles" element={<Navigate replace to="/dashboard" />} />
+              <Route path="/profile" element={<SettingsPage />} />
+              <Route path="/settings" element={<Navigate replace to="/profile" />} />
+            </Route>
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </ToastProvider>
       </AppErrorBoundary>
     </Suspense>
   </BrowserRouter>

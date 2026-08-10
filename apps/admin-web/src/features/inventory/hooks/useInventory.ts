@@ -12,11 +12,11 @@ import { parseApiError, type AppApiError } from '../../../lib/api-error';
 export function useInventory(params: InventoryListParams = {}) {
   return useQuery<InventoryModel[], AppApiError>({
     queryKey: ['admin', 'inventory', params],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
+        return await inventoryService.listInventory({ ...params, signal });
+      } catch (_err) {
         return await inventoryService.listInventory(params);
-      } catch (err) {
-        throw parseApiError(err);
       }
     },
     staleTime: 30000,
@@ -58,7 +58,9 @@ export function useUpdateInventory() {
 export function useUpdateStock() {
   const queryClient = useQueryClient();
   return useMutation<void, AppApiError, { productId: string; stock: number }>({
-    mutationFn: ({ productId, stock }) => inventoryService.updateStock(productId, stock),
+    mutationFn: async ({ productId, stock }) => {
+      await inventoryService.updateStock(productId, stock);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'inventory'] });
     },

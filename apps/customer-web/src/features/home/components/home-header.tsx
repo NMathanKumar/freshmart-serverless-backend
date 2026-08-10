@@ -74,9 +74,10 @@ export const HomeHeader = ({
           <div className="flex shrink-0 items-center gap-3">
             <Link
               aria-label="FreshMart home"
-              className="flex items-center gap-1 text-2xl font-black tracking-tight text-[#006b2c]"
+              className="flex items-center gap-2 text-2xl font-black tracking-tight text-[#006b2c]"
               to="/"
             >
+              <img src="/favicon.svg" alt="FreshMart Logo" className="h-8 w-8 rounded-full shadow-xs" />
               <span>FreshMart</span>
               <span className="h-2 w-2 rounded-full bg-[#006c4a]"></span>
             </Link>
@@ -213,9 +214,10 @@ export const HomeHeader = ({
         <div className="flex shrink-0 items-center gap-3">
           <Link
             aria-label="FreshMart home"
-            className="flex items-center gap-1 text-2xl font-black tracking-tight text-[#006b2c] focus-visible:ring-2 focus-visible:ring-[#006b2c] focus-visible:outline-none"
+            className="flex items-center gap-2 text-2xl font-black tracking-tight text-[#006b2c] focus-visible:ring-2 focus-visible:ring-[#006b2c] focus-visible:outline-none"
             to="/"
           >
+            <img src="/favicon.svg" alt="FreshMart Logo" className="h-8 w-8 rounded-full shadow-xs" />
             <span>FreshMart</span>
             <span className="h-2 w-2 rounded-full bg-[#006c4a]"></span>
           </Link>

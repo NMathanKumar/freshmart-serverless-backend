@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Bike, CheckCircle2, Clock3, MoreVertical, Search, TrendingUp, Truck, UserPlus } from 'lucide-react';
-import { AdminShell } from '../components/admin-shell.js';
+import { AdminShell } from '../components/admin-shell';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { DeliveryDialog } from '../components/delivery-dialog.js';
 import type { DeliveryDialogKind, DeliveryRecord, DeliveryStatus } from '../components/delivery-dialog.js';

@@ -8,7 +8,7 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-import { AdminShell } from '../components/admin-shell.js';
+import { AdminShell } from '../components/admin-shell';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { useApiResource } from '../hooks/use-api-resource.js';
 import { deleteReview as apiDeleteReview, fetchAdminReviews, moderateReview } from '../api/admin-api.js';
@@ -25,7 +25,7 @@ interface ReviewRecord {
 
 const ReviewsPage = () => {
   const { data: reviewData, retry, state } = useApiResource(fetchAdminReviews);
-  const reviewsList = reviewData?.data ?? [];
+  const reviewsList = (reviewData as any)?.data ?? [];
 
   const reviews: ReviewRecord[] = useMemo(() => {
     return reviewsList.map((item: any) => {

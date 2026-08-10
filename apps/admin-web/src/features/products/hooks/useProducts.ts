@@ -10,9 +10,9 @@ import { parseApiError, type AppApiError } from '../../../lib/api-error';
 export function useProducts(params: ProductListParams = {}) {
   return useQuery<ProductModel[], AppApiError>({
     queryKey: ['admin', 'products', params],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
-        return await productService.listProducts(params);
+        return await productService.listProducts({ ...params, signal });
       } catch (err) {
         throw parseApiError(err);
       }

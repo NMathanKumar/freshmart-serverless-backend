@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BadgePercent, CheckCircle2, CircleDollarSign, Clock3, History, MoreVertical, PlusCircle, Search, Ticket, TrendingUp, UsersRound } from 'lucide-react';
-import { AdminShell } from '../components/admin-shell.js';
+import { AdminShell } from '../components/admin-shell';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { CouponDialog } from '../components/coupon-dialog.js';
 import type { CouponDialogKind, CouponRecord, CouponStatus } from '../components/coupon-dialog.js';
@@ -9,7 +9,7 @@ import { createCoupon, deleteCoupon as apiDeleteCoupon, fetchAdminCoupons, updat
 
 const CouponsPage = () => {
   const { data: couponData, retry, state } = useApiResource(fetchAdminCoupons);
-  const couponList = couponData?.data ?? [];
+  const couponList = (couponData as any)?.data ?? [];
 
   const coupons: CouponRecord[] = useMemo(() => {
     return couponList.map((item: any) => {

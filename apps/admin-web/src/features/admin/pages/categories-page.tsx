@@ -11,7 +11,7 @@ import {
   Plus,
   Search
 } from 'lucide-react';
-import { AdminShell } from '../components/admin-shell.js';
+import { AdminShell } from '../components/admin-shell';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { CategoryDialog } from '../components/category-dialog.js';
 import type { CategoryDialogKind, CategoryRecord } from '../components/category-dialog.js';
@@ -28,7 +28,7 @@ type CategoryStat = {
 
 const CategoriesPage = () => {
   const { data: categoryData, retry, state } = useApiResource(fetchAdminCategories);
-  const categoriesList = categoryData?.data ?? [];
+  const categoriesList = (categoryData as any)?.data ?? [];
 
   const categories: CategoryRecord[] = useMemo(() => {
     return categoriesList.map((item: any) => {

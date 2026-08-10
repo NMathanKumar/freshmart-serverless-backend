@@ -22,7 +22,7 @@ import {
   Cell,
 } from 'recharts';
 import { useDashboardData } from '../hooks/useDashboard';
-import { Skeleton } from '../../../components/ui/skeleton';
+import { Skeleton, EmptyState, ErrorState } from '@/shared/components/ui';
 
 export const DashboardPage: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useDashboardData();
@@ -62,19 +62,14 @@ export const DashboardPage: React.FC = () => {
 
   if (isError || !data) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#0f172a]">Failed to load dashboard data</h3>
-        <p className="text-xs text-slate-500">{error?.message || 'Server error occurred'}</p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-white font-bold text-xs hover:bg-[#037030] transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Retry Loading</span>
-        </button>
+      <div className="my-12 max-w-lg mx-auto">
+        <ErrorState
+          title="Failed to load dashboard data"
+          description={error?.message || 'Server error occurred'}
+          onRetry={() => refetch()}
+          errorCode={error?.code}
+          correlationId={error?.correlationId}
+        />
       </div>
     );
   }
@@ -293,8 +288,8 @@ export const DashboardPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
                 {recentOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-xs">
-                      No recent orders found.
+                    <td colSpan={5} className="p-0">
+                      <EmptyState title="No recent orders" description="No orders have been placed recently." />
                     </td>
                   </tr>
                 ) : (
@@ -341,9 +336,7 @@ export const DashboardPage: React.FC = () => {
 
           <div className="space-y-3">
             {lowStockItems.length === 0 ? (
-              <div className="py-6 text-center text-slate-500 text-xs">
-                Inventory is optimal.
-              </div>
+              <EmptyState title="Inventory is optimal" description="No items are currently low in stock." />
             ) : (
               lowStockItems.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">

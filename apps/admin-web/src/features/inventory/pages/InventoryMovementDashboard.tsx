@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { RefreshCw, AlertCircle, Search, ArrowRightLeft, PackageMinus, PackagePlus, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { useMovements, useApproveAdjustment, useRejectAdjustment } from '../hooks/useInventory';
-import { Skeleton, TableSkeleton } from '../../../components/ui/skeleton';
-import { Select } from '../../../components/ui/select';
-import { useToast } from '../../../components/ui/toast';
+import { Skeleton, TableSkeleton } from '@/shared/components/ui/skeleton';
+import { Select } from '@/shared/components/ui/select';
+import { useToast } from '@/shared/components/ui/toast';
 
 export const InventoryMovementDashboard: React.FC = () => {
   const [page, setPage] = useState(1);

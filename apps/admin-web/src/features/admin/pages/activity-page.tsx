@@ -21,7 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { AdminPageHeader, AvatarBadge } from '../components/admin-components.js';
-import { AdminShell } from '../components/admin-shell.js';
+import { AdminShell } from '../components/admin-shell';
 import { ComingSoon } from '../components/coming-soon.js';
 import { useDialogAccessibility } from '../hooks/use-dialog-accessibility.js';
 

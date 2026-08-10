@@ -29,23 +29,15 @@ export interface NavItem {
 
 export const navigationItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { id: 'orders', label: 'Orders', path: '/orders', icon: ShoppingCart },
-  { id: 'fulfillment', label: 'Fulfillment', path: '/fulfillment', icon: Package },
-  { id: 'inventory', label: 'Inventory', path: '/inventory', icon: Package },
-  { id: 'forecast', label: 'Forecasting & Replenishment', path: '/inventory/forecast', icon: BarChart3 },
-  { id: 'transfers', label: 'Transfers', path: '/transfers', icon: ArrowRightLeft },
-  { id: 'vendor-invoices', label: 'Vendor Invoices', path: '/vendor-invoices', icon: FileText },
-  { id: 'vendor-returns', label: 'Vendor Returns', path: '/vendor-returns', icon: RotateCcw },
-  { id: 'warehouses', label: 'Warehouses', path: '/warehouses', icon: Building2 },
-  { id: 'movements', label: 'Ledger', path: '/inventory/movements', icon: RefreshCw },
   { id: 'products', label: 'Products', path: '/products', icon: Package },
   { id: 'categories', label: 'Categories', path: '/categories', icon: Tags },
-  { id: 'users', label: 'Users', path: '/customers', icon: Users },
-  { id: 'delivery', label: 'Delivery', path: '/delivery', icon: Truck },
-  { id: 'coupons', label: 'Coupons', path: '/coupons', icon: Ticket },
-  { id: 'reviews', label: 'Reviews', path: '/reviews', icon: Star },
+  { id: 'inventory', label: 'Inventory', path: '/inventory', icon: Package },
+  { id: 'orders', label: 'Orders', path: '/orders', icon: ShoppingCart },
+  { id: 'customers', label: 'Customers', path: '/customers', icon: Users },
   { id: 'analytics', label: 'Analytics', path: '/analytics', icon: BarChart3 },
-  { id: 'procurement-analytics', label: 'Procurement Analytics', path: '/procurement-analytics', icon: BarChart3 },
+  { id: 'notifications', label: 'Notifications', path: '/notifications', icon: RefreshCw },
+  { id: 'activity', label: 'Activity Logs', path: '/activity', icon: RotateCcw },
+  { id: 'settings', label: 'Settings', path: '/settings', icon: Building2 },
 ];
 
 export interface SidebarProps {

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="freshBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#047857" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Base Circle -->
+  <circle cx="256" cy="256" r="236" fill="url(#freshBg)" filter="url(#shadow)"/>
+  
+  <!-- Outer Accent Ring -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#6EE7B7" stroke-width="6" stroke-opacity="0.4"/>
+
+  <!-- Shopping Basket / Bag Container -->
+  <g transform="translate(0, 8)">
+    <!-- Bag Handle -->
+    <path d="M192 200 C192 144 212 116 256 116 C300 116 320 144 320 200" 
+          fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round"/>
+    
+    <!-- Bag Body -->
+    <path d="M148 200 L364 200 C378 200 388 212 386 226 L368 370 C365 390 348 404 328 404 L184 404 C164 404 147 390 144 370 L126 226 C124 212 134 200 148 200 Z" 
+          fill="#FFFFFF"/>
+
+    <!-- Fresh Leaf Cutout inside Bag -->
+    <path d="M256 230 C200 250 190 320 240 370 C290 370 320 310 295 260 C280 235 265 230 256 230 Z" 
+          fill="url(#leafGrad)"/>
+    
+    <!-- Leaf Center Vein -->
+    <path d="M256 230 C250 280 235 320 215 350" 
+          fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-opacity="0.9"/>
+          
+    <!-- Sparkle / Fresh Accent -->
+    <circle cx="340" cy="180" r="14" fill="#FDE047"/>
+    <path d="M340 156 L340 204 M316 180 L364 180" stroke="#FDE047" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

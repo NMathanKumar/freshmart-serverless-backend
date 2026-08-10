@@ -12,10 +12,10 @@ import {
   FolderTree,
 } from 'lucide-react';
 import { useCategories, useDeleteCategory, useUpdateCategory } from '../hooks/useCategories';
-import { Switch } from '../../../components/ui/switch';
-import { Skeleton, CardSkeleton, TableSkeleton } from '../../../components/ui/skeleton';
-import { useToast } from '../../../components/ui/toast';
-import { EmptyState } from '../../../components/ui/empty-state';
+import { Switch } from '@/shared/components/ui/switch';
+import { Skeleton, CardSkeleton, TableSkeleton } from '@/shared/components/ui/skeleton';
+import { useToast } from '@/shared/components/ui/toast';
+import { ErrorState, EmptyState } from '@/shared/components/ui';
 import { isAdmin } from '@freshmart/shared';
 import { CategoryModal } from '../components/CategoryModal';
 import { CategoryModel } from '../services/category.service';
@@ -99,19 +99,14 @@ export const CategoriesPage: React.FC = () => {
 
   if (isError) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#0f172a]">Failed to load category taxonomy</h3>
-        <p className="text-xs text-slate-500">{error?.message || 'Server connection error'}</p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#04883b] text-white font-bold text-xs hover:bg-[#037030] transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Retry</span>
-        </button>
+      <div className="my-12 max-w-lg mx-auto">
+        <ErrorState
+          title="Failed to load category taxonomy"
+          description={error?.message || 'Server connection error'}
+          onRetry={() => refetch()}
+          errorCode={error?.code}
+          correlationId={error?.correlationId}
+        />
       </div>
     );
   }
@@ -156,9 +151,9 @@ export const CategoriesPage: React.FC = () => {
             TOTAL CATEGORIES
           </span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-[#0f172a]">24</span>
+            <span className="text-2xl font-extrabold text-[#0f172a]">{displayCategories.length}</span>
             <span className="text-[11px] font-bold text-[#04883b] bg-[#e6f7ec] px-2 py-0.5 rounded-full">
-              +4 New
+              Taxonomy
             </span>
           </div>
         </div>
@@ -168,9 +163,11 @@ export const CategoriesPage: React.FC = () => {
             CATEGORIZED PRODUCTS
           </span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-[#0f172a]">1,842</span>
+            <span className="text-2xl font-extrabold text-[#0f172a]">
+              {displayCategories.reduce((acc, c) => acc + (c.productCount || 0), 0).toLocaleString()}
+            </span>
             <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
-              100% Assigned
+              Assigned
             </span>
           </div>
         </div>
@@ -180,7 +177,9 @@ export const CategoriesPage: React.FC = () => {
             ACTIVE STATUS
           </span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-[#0f172a]">22</span>
+            <span className="text-2xl font-extrabold text-[#0f172a]">
+              {displayCategories.filter((c) => c.status === 'ACTIVE').length}
+            </span>
             <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
               Live
             </span>
@@ -189,12 +188,14 @@ export const CategoriesPage: React.FC = () => {
 
         <div className="bg-white p-5 rounded-2xl border border-[#e9f2e7] shadow-sm">
           <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-            AVG. DEPTH
+            INACTIVE / DRAFT
           </span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-extrabold text-[#0f172a]">3.2</span>
+            <span className="text-2xl font-extrabold text-[#0f172a]">
+              {displayCategories.filter((c) => c.status !== 'ACTIVE').length}
+            </span>
             <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-              Levels
+              Hidden
             </span>
           </div>
         </div>
@@ -234,7 +235,11 @@ export const CategoriesPage: React.FC = () => {
               {displayCategories.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-0">
-                    <EmptyState title="No categories found" description="Create a new category to organize your products." />
+                    <EmptyState 
+                      title="No categories found" 
+                      description="Create a new category to organize your products." 
+                      icon={<FolderTree className="w-8 h-8 text-slate-300 mx-auto" />} 
+                    />
                   </td>
                 </tr>
               ) : (
@@ -246,13 +251,13 @@ export const CategoriesPage: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={c.image}
+                        src={c.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=80'}
                         alt={c.name}
                         className="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0"
                       />
                       <div>
                         <p className="font-bold text-[#0f172a]">{c.name}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold">{c.description}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold">{c.description || 'No description'}</p>
                       </div>
                     </div>
                   </td>
@@ -301,44 +306,25 @@ export const CategoriesPage: React.FC = () => {
         {/* Pagination Footer */}
         <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-[#f4fcf0]/50">
           <span>
-            {(categories || []).length === 0
+            {displayCategories.length === 0
               ? 'Showing 0 categories'
-              : `Showing ${ (page - 1) * 10 + 1 } to ${Math.min(page * 10, (categories || []).length)} of ${(categories || []).length} categories`}
+              : `Showing ${ (page - 1) * 10 + 1 } to ${Math.min(page * 10, displayCategories.length)} of ${displayCategories.length} categories`}
           </span>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700"
+              disabled={page === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => setPage(1)}
-              className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center ${
-                page === 1 ? 'bg-[#04883b] text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              1
-            </button>
-            <button
-              onClick={() => setPage(2)}
-              className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center ${
-                page === 2 ? 'bg-[#04883b] text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              2
-            </button>
-            <button
-              onClick={() => setPage(3)}
-              className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center ${
-                page === 3 ? 'bg-[#04883b] text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              3
-            </button>
+            <span className="px-3 py-1 font-bold text-[#04883b] bg-[#e6f7ec] rounded-lg">
+              Page {page}
+            </span>
             <button
               onClick={() => setPage((p) => p + 1)}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"
+              disabled={displayCategories.length < 10}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

@@ -12,7 +12,7 @@ import {
   Star,
   UsersRound
 } from 'lucide-react';
-import { AdminShell } from '../components/admin-shell.js';
+import { AdminShell } from '../components/admin-shell';
 import { AdminResourceState } from '../components/admin-resource-state.js';
 import { SupplierDialog } from '../components/supplier-dialog.js';
 import type { SupplierDialogKind, SupplierRecord, SupplierStatus } from '../components/supplier-dialog.js';
