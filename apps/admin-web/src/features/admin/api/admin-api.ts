@@ -19,10 +19,11 @@ import {
   type InventoryUpdateRequest,
   type ProductSummary
 } from '@freshmart/api-sdk';
-import { sharedSessionAccessor as adminSessionAccessor } from '@freshmart/shared';
+import { getEnvironmentUrls, sharedSessionAccessor as adminSessionAccessor } from '@freshmart/shared';
 
+const envUrls = getEnvironmentUrls();
 const environment = import.meta.env as Record<string, string | undefined>;
-const configuredBaseUrl = environment.VITE_ADMIN_API_BASE_URL ?? environment.VITE_AUTH_API_BASE_URL ?? 'http://localhost:3000';
+const configuredBaseUrl = environment.VITE_ADMIN_API_BASE_URL ?? environment.VITE_AUTH_API_BASE_URL ?? envUrls.adminApiBaseUrl;
 
 // In development, use Vite's proxy to bypass CORS on AWS API Gateway
 // Must include /v1 so the SDK interceptor deduplicates /v1 path prefixes correctly
