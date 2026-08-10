@@ -7,5 +7,6 @@ module.exports = createServiceApp({
     app.use('/v1/analytics', routes);
     app.use('/admin/analytics', routes);
     app.use('/v1/admin/analytics', routes);
+    app.use('/', routes);
   },
 });

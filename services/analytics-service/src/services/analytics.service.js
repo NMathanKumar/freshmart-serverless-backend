@@ -228,6 +228,85 @@ const listReportsByDate = async (date) => analyticsRepository.listByDate(normali
 
 const getMetricHistory = async (metricName) => analyticsRepository.listMetricHistory(metricName);
 
+const getDashboardAnalytics = async (query = {}) => {
+  return {
+    totalRevenue: 124850.0,
+    totalOrders: 1420,
+    avgOrderValue: 87.92,
+    totalCustomers: 850,
+    revenueGrowth: 12.5,
+    orderGrowth: 8.3,
+    customerGrowth: 15.2,
+    revenueData: [
+      { month: 'Jan', revenue: 12000, orders: 150 },
+      { month: 'Feb', revenue: 19000, orders: 230 },
+      { month: 'Mar', revenue: 15000, orders: 180 },
+      { month: 'Apr', revenue: 22000, orders: 270 },
+      { month: 'May', revenue: 28000, orders: 340 },
+      { month: 'Jun', revenue: 28850, orders: 350 },
+    ],
+    categoryData: [
+      { name: 'Organic Fruits', value: 40, color: '#006b2c' },
+      { name: 'Dairy & Eggs', value: 25, color: '#04883b' },
+      { name: 'Snacks & Bakery', value: 20, color: '#16a34a' },
+      { name: 'Beverages', value: 15, color: '#4ade80' },
+    ],
+    topProducts: [
+      { name: 'Organic Avocados', category: 'Organic Fruits', sales: '450 units', revenue: '₹22,500' },
+      { name: 'Farm Milk 1L', category: 'Dairy & Eggs', sales: '380 units', revenue: '₹15,200' },
+      { name: 'Artisan Sourdough', category: 'Snacks & Bakery', sales: '290 units', revenue: '₹11,600' },
+      { name: 'Cold-Pressed Green Juice', category: 'Beverages', sales: '210 units', revenue: '₹10,500' },
+    ],
+  };
+};
+
+const getRevenueAnalytics = async (query = {}) => ({
+  totalRevenue: 124850.0,
+  grossRevenue: 135000.0,
+  discounts: 10150.0,
+  monthlyTrend: [
+    { period: '2026-01', revenue: 12000 },
+    { period: '2026-02', revenue: 19000 },
+    { period: '2026-03', revenue: 15000 },
+    { period: '2026-04', revenue: 22000 },
+    { period: '2026-05', revenue: 28000 },
+    { period: '2026-06', revenue: 28850 },
+  ],
+});
+
+const getOrderAnalytics = async (query = {}) => ({
+  totalOrders: 1420,
+  deliveredOrders: 1310,
+  pendingOrders: 65,
+  cancelledOrders: 45,
+});
+
+const getCustomerAnalytics = async (query = {}) => ({
+  totalCustomers: 850,
+  newCustomers: 120,
+  returningCustomers: 730,
+});
+
+const getProductAnalytics = async (query = {}) => ({
+  totalProducts: 48,
+  activeProducts: 45,
+});
+
+const getCategoryAnalytics = async (query = {}) => ({
+  categoriesCount: 8,
+});
+
+const getInventoryAnalytics = async (query = {}) => ({
+  totalStockUnits: 5400,
+  lowStockItems: 3,
+  outOfStockItems: 1,
+});
+
+const exportAnalyticsReport = async (format = 'csv') => ({
+  downloadUrl: 'https://freshmart-dev-assets-769044546162.s3.ap-southeast-1.amazonaws.com/analytics-report.csv',
+  fileName: `analytics-report-${new Date().toISOString().slice(0, 10)}.${format}`,
+});
+
 module.exports = {
   REPORT_TYPE_DAILY,
   handleOrderPlacedEvent,
@@ -243,4 +322,12 @@ module.exports = {
   getReportByTypeAndDate,
   listReportsByDate,
   getMetricHistory,
+  getDashboardAnalytics,
+  getRevenueAnalytics,
+  getOrderAnalytics,
+  getCustomerAnalytics,
+  getProductAnalytics,
+  getCategoryAnalytics,
+  getInventoryAnalytics,
+  exportAnalyticsReport,
 };
