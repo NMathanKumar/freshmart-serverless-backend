@@ -100,7 +100,7 @@ export const ProductsPage: React.FC = () => {
       try {
         const { freshmartSdk } = await import('../../../lib/sdk');
         const res = await freshmartSdk.category.listCategories();
-        const raw = (res as any)?.data || (res as any)?.items || (Array.isArray(res) ? res : []);
+        const raw = (res as any)?.data || (res as any)?.categories || (res as any)?.items || (Array.isArray(res) ? res : []);
         if (Array.isArray(raw) && raw.length > 0) {
           const apiCats = raw.map((c: any) => ({
             value: c.name || c.title || c.categoryName || 'Category',
