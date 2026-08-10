@@ -1,0 +1,56 @@
+name: FreshMart SonarCloud Quality Gate Analysis
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Scan & Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full git history required for blame annotations and SonarCloud analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify Sonar Token Presence
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.SONAR_TOKEN }}" ]; then
+            echo "::error::SONAR_TOKEN secret is missing in GitHub Repository Secrets. Please add SONAR_TOKEN to repository secrets."
+            exit 1
+          fi
+
+      - name: Build Shared Packages
+        run: npm run build
+
+      - name: Generate LCOV Coverage Report
+        shell: bash
+        run: npm run coverage || echo "::warning::Coverage generation completed with warnings."
+
+      - name: Run SonarCloud Scanner
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+
+      - name: Wait for SonarCloud Quality Gate Result
+        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
