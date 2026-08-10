@@ -45,12 +45,32 @@ export class CustomerService {
       const realId = c.customerId || `CUST-00${idx + 1}`;
       const shortDisplay = realId.startsWith('CUST-') ? realId : `CUST-${realId.substring(0, 8)}`;
 
+      const formatAddress = (addr: any) => {
+        if (!addr) return '';
+        if (typeof addr === 'string') return addr;
+        const parts = [
+          addr.line1 || addr.street,
+          addr.line2,
+          addr.city,
+          addr.state,
+          addr.postalCode
+        ].filter(Boolean);
+        return parts.join(', ');
+      };
+
+      const defaultAddr = c.defaultAddress || (Array.isArray(c.addresses) ? c.addresses[0] : null);
+      const formattedAddress = formatAddress(defaultAddr);
+      const phoneDisplay = c.phone ? c.phone : '';
+      const contactDisplay = phoneDisplay && formattedAddress
+        ? `${phoneDisplay} • ${formattedAddress}`
+        : phoneDisplay || formattedAddress || 'No contact details';
+
       return {
         id: realId,
         displayId: shortDisplay,
         name: c.name || 'Customer',
         email: c.email || 'user@example.com',
-        contact: c.phone ? `${c.phone} • Austin, TX` : '+1 (555) 234-5678 • Austin, TX',
+        contact: contactDisplay,
         regDate: c.registrationDate
           ? new Date(c.registrationDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
           : 'Jan 15, 2023',
