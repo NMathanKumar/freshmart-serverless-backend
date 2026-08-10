@@ -18,6 +18,7 @@ import { ErrorState } from '@/shared/components/ui/error-state';
 import { Logger } from '@/shared/utils/logger';
 import { AdjustmentModal } from '../components/AdjustmentModal';
 import { Select } from '@/shared/components/ui/select';
+import { useToast } from '@/shared/components/ui/toast';
 import { isAdmin } from '@freshmart/shared';
 
 import { AdminShell } from '../../admin/components/admin-shell';
@@ -110,6 +111,7 @@ const fallbackInventory: InventoryModel[] = [
 ];
 
 export const InventoryPage: React.FC = () => {
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('All Warehouses');
@@ -169,6 +171,36 @@ export const InventoryPage: React.FC = () => {
 
 
   const displayInventory = (inventoryData && inventoryData.length > 0) ? inventoryData : fallbackInventory;
+
+  const handleExportCSV = () => {
+    if (!displayInventory || displayInventory.length === 0) {
+      showToast('No inventory data available to export.', 'error');
+      return;
+    }
+
+    const headers = ['Product Name', 'SKU', 'Warehouse', 'Current Stock', 'Reorder Point', 'Status'];
+    const rows = displayInventory.map((i: any) => [
+      `"${(i.name || i.productName || '').replace(/"/g, '""')}"`,
+      `"${(i.sku || '').replace(/"/g, '""')}"`,
+      `"${(i.warehouseName || i.warehouse || '').replace(/"/g, '""')}"`,
+      `"${i.stock ?? 0}"`,
+      `"${i.reorderPoint ?? 0}"`,
+      `"${(i.status || 'IN_STOCK').replace(/"/g, '""')}"`
+    ]);
+
+    const csvString = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `freshmart_inventory_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast('Inventory stock exported successfully!', 'success');
+  };
 
   const totalProducts = displayInventory.length;
   const inStockCount = displayInventory.filter((i) => i.status === 'IN_STOCK').length;
@@ -299,7 +331,10 @@ export const InventoryPage: React.FC = () => {
             />
           </div>
 
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+          <button 
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+          >
             <Download className="w-4 h-4 text-slate-500" />
             <span>Export Stock</span>
           </button>

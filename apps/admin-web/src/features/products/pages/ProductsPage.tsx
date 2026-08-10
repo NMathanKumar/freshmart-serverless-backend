@@ -147,6 +147,37 @@ export const ProductsPage: React.FC = () => {
   // Pure Database Items minus Optimistically Removed Items — Zero Mock Data Fallbacks
   const displayProducts = (products || []).filter((p) => !removedProductIds.includes(p.id));
 
+  const handleExportCSV = () => {
+    if (!displayProducts || displayProducts.length === 0) {
+      showToast('No products available to export.', 'error');
+      return;
+    }
+
+    const headers = ['Product ID', 'SKU', 'Product Name', 'Category', 'Price ($)', 'Stock Level', 'Status'];
+    const rows = displayProducts.map((p) => [
+      `"${(p.id || '').replace(/"/g, '""')}"`,
+      `"${(p.sku || '').replace(/"/g, '""')}"`,
+      `"${(p.name || '').replace(/"/g, '""')}"`,
+      `"${(p.category || '').replace(/"/g, '""')}"`,
+      `"${p.price ?? 0}"`,
+      `"${p.stock ?? 0}"`,
+      `"${(p.status || 'Active').replace(/"/g, '""')}"`
+    ]);
+
+    const csvString = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `freshmart_products_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast('Product catalog exported successfully!', 'success');
+  };
+
   // Toggle Select All
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -877,7 +908,10 @@ export const ProductsPage: React.FC = () => {
                 </button>
               )}
 
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+              <button 
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
                 <Download className="w-4 h-4 text-slate-500" />
                 <span>Export</span>
               </button>
