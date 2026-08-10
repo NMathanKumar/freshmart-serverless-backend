@@ -79,6 +79,19 @@ export const CustomerDialog = ({ customer, kind, onClose, onSave, onToggleBlock,
         </div> : null}
 
         {kind === 'edit' ? <form className="customer-dialog-form" onSubmit={(event) => { event.preventDefault(); canSave && onSave(draft); }}>
+          <label className="wide">
+            <span>Profile Picture URL</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {draft.image ? (
+                <img src={draft.image} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '14px', flexShrink: 0 }}>
+                  {draft.name ? draft.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
+              <input type="url" placeholder="https://example.com/avatar.jpg" value={draft.image || ''} onChange={(event) => update('image', event.target.value)} style={{ flex: 1 }} />
+            </div>
+          </label>
           <label><span>Full Name</span><input ref={firstInput} value={draft.name} onChange={(event) => update('name', event.target.value)} /></label>
           <label><span>Email Address</span><input type="email" value={draft.email} onChange={(event) => update('email', event.target.value)} /></label>
           <label><span>Phone Number</span><input value={draft.phone} onChange={(event) => update('phone', event.target.value)} /></label>

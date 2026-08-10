@@ -83,6 +83,7 @@ export const CustomersPage: React.FC = () => {
       email: '',
       phone: '',
       address: '',
+      image: '',
       membership: 'Standard',
       status: 'Active',
       orders: 0,
@@ -106,6 +107,7 @@ export const CustomersPage: React.FC = () => {
       email: cust.email,
       phone: cust.contact ? cust.contact.split('•')[0].trim() : '',
       address: cust.contact ? cust.contact.split('•')[1]?.trim() || '' : '',
+      image: cust.avatar || '',
       membership: cust.orders >= 30 || cust.rawSpending >= 2000 ? 'VIP' : cust.orders >= 10 || cust.rawSpending >= 800 ? 'Premium' : 'Standard',
       status: cust.status === 'ACTIVE' ? 'Active' : 'Blocked',
       orders: cust.orders || 0,
@@ -124,6 +126,7 @@ export const CustomersPage: React.FC = () => {
         name: draft.name,
         email: draft.email,
         phone: draft.phone,
+        avatarUrl: draft.image || undefined,
         addresses: [{ line1: draft.address }] as any,
         status: (draft.status.toUpperCase() as AdminCustomerStatus) || 'ACTIVE',
       }, {
@@ -143,6 +146,7 @@ export const CustomersPage: React.FC = () => {
           name: draft.name,
           email: draft.email,
           phone: draft.phone,
+          avatarUrl: draft.image || undefined,
           addresses: [{ line1: draft.address }] as any,
           status: (draft.status.toUpperCase() as AdminCustomerStatus) || 'ACTIVE',
         }

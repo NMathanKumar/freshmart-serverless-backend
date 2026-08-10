@@ -244,6 +244,7 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
       name: data.name || '',
       email: data.email || '',
       phone: data.phone || '',
+      avatarUrl: data.avatarUrl || null,
       address: data.address ? (typeof data.address === 'string' ? { line1: data.address } : data.address) : null,
       status: data.status || 'ACTIVE',
       createdAt: now,
@@ -277,6 +278,10 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     if (data.phone !== undefined) {
       updateExpr.push('phone = :phone');
       values[':phone'] = data.phone;
+    }
+    if (data.avatarUrl !== undefined) {
+      updateExpr.push('avatarUrl = :avatarUrl');
+      values[':avatarUrl'] = data.avatarUrl;
     }
     if (data.address !== undefined) {
       updateExpr.push('#address = :address');
