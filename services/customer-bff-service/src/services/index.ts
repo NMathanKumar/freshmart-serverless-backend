@@ -375,7 +375,8 @@ export class HttpCustomerGateway implements DownstreamGateway {
     fallbackValue?: TResponse,
     method: string = 'GET',
     data?: unknown,
-    cacheTtlMs: number = 0
+    cacheTtlMs: number = 0,
+    timeoutMs: number = 2500
   ): Promise<TResponse> {
     const cacheKey = `${method}:${baseUrl}:${path}:${authorization || ''}`;
     if (method === 'GET' && cacheTtlMs > 0) {
@@ -384,6 +385,9 @@ export class HttpCustomerGateway implements DownstreamGateway {
         return cached;
       }
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const headers: Record<string, string> = {
@@ -398,8 +402,10 @@ export class HttpCustomerGateway implements DownstreamGateway {
       const res = await fetch(`${trimTrailingSlash(baseUrl)}${path}`, {
         method,
         headers,
-        body: data !== undefined ? JSON.stringify(data) : undefined
+        body: data !== undefined ? JSON.stringify(data) : undefined,
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if ((res.status === 404 || res.status === 401 || res.status === 403) && fallbackValue !== undefined) {
         return fallbackValue;
@@ -420,6 +426,7 @@ export class HttpCustomerGateway implements DownstreamGateway {
       }
       return jsonResult;
     } catch (err) {
+      clearTimeout(timeoutId);
       if (fallbackValue !== undefined) {
         return fallbackValue;
       }
@@ -430,11 +437,11 @@ export class HttpCustomerGateway implements DownstreamGateway {
   async getHome(customerId: string, authorization?: string): Promise<HomePageView> {
     try {
       const [categories, productsRes, cartRes, promotions] = await Promise.all([
-        this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/api/v1/categories', authorization, undefined, 'GET', undefined, 10000)
-          .catch(() => this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/categories', authorization, [], 'GET', undefined, 10000)),
-        this.request<Record<string, unknown> | Array<Record<string, unknown>>>(this.config.catalogBaseUrl, '/products', authorization, [], 'GET', undefined, 5000),
-        this.request<Record<string, unknown>>(this.config.cartBaseUrl, '/cart', authorization, { items: [], grandTotal: 0 }),
-        this.request<Array<Record<string, unknown>>>(this.config.promotionsBaseUrl, '/promotions', authorization, [], 'GET', undefined, 10000)
+        this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/api/v1/categories', authorization, undefined, 'GET', undefined, 60000, 2000)
+          .catch(() => this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/categories', authorization, [], 'GET', undefined, 60000, 2000)),
+        this.request<Record<string, unknown> | Array<Record<string, unknown>>>(this.config.catalogBaseUrl, '/products', authorization, [], 'GET', undefined, 60000, 2000),
+        this.request<Record<string, unknown>>(this.config.cartBaseUrl, '/cart', authorization, { items: [], grandTotal: 0 }, 'GET', undefined, 0, 2000),
+        this.request<Array<Record<string, unknown>>>(this.config.promotionsBaseUrl, '/promotions', authorization, [], 'GET', undefined, 60000, 2000)
       ]);
 
       const products = Array.isArray(productsRes)
