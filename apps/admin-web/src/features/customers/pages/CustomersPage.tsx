@@ -20,6 +20,7 @@ import { AdminShell } from '../../admin/components/admin-shell';
 import { CustomerDialog } from '../../admin/components/customer-dialog';
 import type { CustomerDialogKind, CustomerRecord } from '../../admin/components/customer-dialog';
 import type { AdminCustomerStatus } from '@freshmart/api-sdk';
+import { DeleteConfirmationModal } from '@/shared/components/ui/delete-modal';
 
 export const CustomersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +32,20 @@ export const CustomersPage: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | undefined>(undefined);
   const [dialogKind, setDialogKind] = useState<CustomerDialogKind>('edit');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Custom Delete Modal State
+  const [deleteTarget, setDeleteTarget] = useState<{
+    isOpen: boolean;
+    customerId: string;
+    customerName: string;
+    customerEmail: string;
+    avatarUrl?: string;
+  }>({
+    isOpen: false,
+    customerId: '',
+    customerName: '',
+    customerEmail: '',
+  });
 
   // Debounce search by 300ms
   useEffect(() => {
@@ -159,17 +174,31 @@ export const CustomersPage: React.FC = () => {
     });
   };
 
-  const handleDelete = (customerId: string, name: string) => {
+  const handleDeleteClick = (cust: any) => {
     if (!userIsAdmin) {
       alert('403 Access Denied: Admin authorization required.');
       return;
     }
-    if (confirm(`Are you sure you want to delete customer "${name}"?`)) {
-      deleteCustomerMutation.mutate(customerId, {
-        onSuccess: () => showToast(`Customer "${name}" deleted successfully`, 'success'),
-        onError: () => showToast('Failed to delete customer', 'error')
-      });
-    }
+    setDeleteTarget({
+      isOpen: true,
+      customerId: cust.id,
+      customerName: cust.name,
+      customerEmail: cust.email,
+      avatarUrl: cust.avatar,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    deleteCustomerMutation.mutate(deleteTarget.customerId, {
+      onSuccess: () => {
+        showToast(`Customer "${deleteTarget.customerName}" deleted successfully`, 'success');
+        setDeleteTarget((prev) => ({ ...prev, isOpen: false }));
+        refetch();
+      },
+      onError: (err) => {
+        showToast(`Failed to delete customer: ${err.message || 'Error'}`, 'error');
+      },
+    });
   };
 
   const displayCustomers = customers || [];
@@ -422,7 +451,7 @@ export const CustomersPage: React.FC = () => {
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(cust.id, cust.name)}
+                        onClick={() => handleDeleteClick(cust)}
                         className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete Customer"
                       >
@@ -484,6 +513,18 @@ export const CustomersPage: React.FC = () => {
         onClose={() => setIsDialogOpen(false)}
         onSave={handleSaveCustomer}
         onToggleBlock={(c) => handleToggleStatus(c.id, c.status === 'Active' ? 'ACTIVE' : 'BLOCKED')}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={deleteTarget.isOpen}
+        onClose={() => setDeleteTarget((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmDelete}
+        title="Delete Customer Profile"
+        description="Are you sure you want to delete this customer? This action will permanently remove their profile and records."
+        itemTitle={deleteTarget.customerName}
+        itemSubtitle={deleteTarget.customerEmail}
+        itemImage={deleteTarget.avatarUrl}
+        isDeleting={deleteCustomerMutation.isPending}
       />
     </div>
     </AdminShell>
