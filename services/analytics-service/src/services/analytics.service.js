@@ -1,7 +1,8 @@
 const { genId } = require('@freshmart/service-shared').utils.id;
 const { BadRequestError, NotFoundError } = require('@freshmart/service-shared').errors;
-const { aws } = require('@freshmart/service-shared');
-const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const ddbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-southeast-1' }));
 const sharedLogger = require('@freshmart/service-shared').logger;
 const analyticsRepository = require('../repositories/report.repository');
 const { publishDailyReportGenerated, publishAnalyticsUpdated } = require('../events/publisher');
@@ -246,7 +247,7 @@ const fetchAllPages = async (client, tableName) => {
 };
 
 const getDashboardAnalytics = async (query = {}) => {
-  const client = aws.documentClient;
+  const client = ddbDocClient;
   const ordersTable = process.env.DDB_TABLE_ORDERS || 'freshmart-dev-orders';
   const productsTable = process.env.DDB_TABLE_PRODUCTS || 'freshmart-dev-products';
   const usersTable = process.env.DDB_TABLE_USER_PROFILES || 'freshmart-dev-user-profiles';
@@ -358,7 +359,7 @@ const getOrderAnalytics = async (query = {}) => {
 };
 
 const getCustomerAnalytics = async (query = {}) => {
-  const client = aws.documentClient;
+  const client = ddbDocClient;
   const usersTable = process.env.DDB_TABLE_USER_PROFILES || 'freshmart-dev-user-profiles';
   const users = await fetchAllPages(client, usersTable);
   return {
@@ -369,7 +370,7 @@ const getCustomerAnalytics = async (query = {}) => {
 };
 
 const getProductAnalytics = async (query = {}) => {
-  const client = aws.documentClient;
+  const client = ddbDocClient;
   const productsTable = process.env.DDB_TABLE_PRODUCTS || 'freshmart-dev-products';
   const products = await fetchAllPages(client, productsTable);
   return {
@@ -387,7 +388,7 @@ const getCategoryAnalytics = async (query = {}) => {
 };
 
 const getInventoryAnalytics = async (query = {}) => {
-  const client = aws.documentClient;
+  const client = ddbDocClient;
   const invTable = process.env.DDB_TABLE_INVENTORY || 'freshmart-dev-inventory';
   const items = await fetchAllPages(client, invTable);
   const totalStock = items.reduce((sum, item) => sum + (Number(item.currentStock) || 0), 0);
