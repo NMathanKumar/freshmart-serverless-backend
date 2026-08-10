@@ -14,6 +14,7 @@ export interface RegisterInput {
   email: string;
   phone: string;
   password: string;
+  avatarUrl?: string;
 }
 
 export interface EmailInput {
@@ -58,14 +59,25 @@ export const authApi = createApi({
       }
     }),
     register: builder.mutation<Record<string, unknown>, RegisterInput>({
-      queryFn: async ({ fullName, email, phone, password }) => {
+      queryFn: async ({ fullName, email, phone, password, avatarUrl }) => {
         try {
+          if (avatarUrl) {
+            try {
+              localStorage.setItem('freshmart_user_avatar', avatarUrl);
+            } catch (_) {}
+          }
+          if (phone) {
+            try {
+              localStorage.setItem('freshmart_user_phone', phone);
+            } catch (_) {}
+          }
           const response = await sdk.auth.register({
             name: fullName.trim(),
             email,
             password,
-            phone
-          });
+            phone,
+            avatarUrl,
+          } as any);
           const data = unwrap(response as ApiEnvelope<Record<string, unknown>>);
           try {
             const loginResponse = await sdk.auth.login({ email, password });

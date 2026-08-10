@@ -11,6 +11,7 @@ export const registerSchema = z
     fullName: z.string().trim().min(2, 'Please enter your full name.'),
     email: z.string().trim().email('Please enter a valid email address.'),
     phone: z.string().trim().min(7, 'Please enter a valid phone number.'),
+    avatarUrl: z.string().optional(),
     password: z.string().min(8, 'Password must be at least 8 characters.').regex(/[A-Z]/, 'Add one uppercase letter.').regex(/[0-9]|[^A-Za-z0-9]/, 'Add one number or symbol.'),
     confirmPassword: z.string(),
     terms: z.boolean().refine((value) => value, 'You must accept the terms to continue.')

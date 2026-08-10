@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  Camera,
   CheckCircle2,
   Leaf,
   LockKeyhole,
@@ -33,10 +35,12 @@ const highlights = [
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [createAccount, request] = useRegisterMutation();
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -44,11 +48,29 @@ const RegisterPage = () => {
       fullName: '',
       email: '',
       phone: '',
+      avatarUrl: '',
       password: '',
       confirmPassword: '',
       terms: false,
     },
   });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Please choose an image under 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        setAvatarPreview(result);
+        setValue('avatarUrl', result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   const password = watch('password');
   const rules = [
     password.length >= 8,
@@ -124,6 +146,37 @@ const RegisterPage = () => {
             </header>
             <form className="space-y-4" noValidate onSubmit={submit}>
               <ApiErrorMessage message={getApiErrorMessage(request.error)} />
+
+              {/* Profile Photo Upload */}
+              <div className="flex flex-col items-center justify-center mb-2">
+                <div className="relative group">
+                  <div className="h-20 w-20 rounded-full border-2 border-[#16a34a] overflow-hidden bg-[#e9f0e5] flex items-center justify-center shadow-xs">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Profile preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <UserRound className="h-10 w-10 text-[#6e7b6c]" />
+                    )}
+                  </div>
+                  <label
+                    htmlFor="signup-avatar-input"
+                    className="absolute bottom-0 right-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-[#16a34a] text-white shadow-md hover:bg-[#006c4a] transition-colors"
+                    title="Upload profile picture"
+                  >
+                    <Camera className="h-4 w-4" />
+                    <input
+                      id="signup-avatar-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
+                </div>
+                <span className="mt-1.5 text-xs font-semibold text-[#6e7b6c]">
+                  {avatarPreview ? 'Photo selected' : 'Upload Profile Picture (Optional)'}
+                </span>
+              </div>
+
               <FormField
                 autoComplete="name"
                 autoFocus

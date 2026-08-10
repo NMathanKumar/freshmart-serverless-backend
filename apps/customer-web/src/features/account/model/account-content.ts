@@ -31,9 +31,9 @@ export interface LoginActivity {
 }
 
 export const accountProfile: AccountProfile = {
-  avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBlifnxAGfHukI5klS6odpwT1JrtKCsNO2xqItDaT9bkeS6gae127EmbK2_wG1wNayN6F_j21H-_Owg1olb8Wdn1DFl4S0jaLedLPrPMJDg03hf8Ve6EMqIJeIYYJ0xJLTc-XwQLx1CfLEVYbLLfrCZOqkAOSUSUu2ozWugiMwx6xGLSxSpVgOgaRCQO9Z-IX_A7o-m3L-6aFkCpA9BTkjxQfZKjsK1vGDv3U7vNrxOc58-SLezfhlmr5rLIQF2iuaDFRKYmsiDqSSN',
-  email: 'julian.a@freshmarket.com',
-  fullName: 'Julian Alexander',
+  avatarUrl: '',
+  email: 'customer@freshmart.com',
+  fullName: 'FreshMart Customer',
   phone: '',
   storeLocation: 'San Francisco Main'
 };
@@ -66,6 +66,13 @@ export const mergeProfile = (remote: unknown): AccountProfile => {
   const record = isRecord(remote) && isRecord(remote.data) ? (remote.data as Record<string, unknown>) : remote;
   const user = isRecord(record) && isRecord(record.user) ? record.user : record;
 
+  let cachedPhone = '';
+  let cachedAvatar = '';
+  try {
+    cachedPhone = localStorage.getItem('freshmart_user_phone') || '';
+    cachedAvatar = localStorage.getItem('freshmart_user_avatar') || '';
+  } catch (_) {}
+
   const sessionUser = getCurrentUser() || {};
   const emailVal = isRecord(user) ? text(user, ['email'], sessionUser.email || accountProfile.email) : (sessionUser.email || accountProfile.email);
   const emailFallbackName = emailVal && emailVal.includes('@') ? emailVal.split('@')[0] : accountProfile.fullName;
@@ -74,9 +81,10 @@ export const mergeProfile = (remote: unknown): AccountProfile => {
     const rawFallback = sessionUser.fullName || sessionUser.name || '';
     const safeFallback = isUuid(rawFallback) ? emailFallbackName : (rawFallback || emailFallbackName);
     const sessionObj = sessionUser as Record<string, any>;
-    const phoneVal = sessionObj.phone || sessionObj.phoneNumber || 'Not provided';
+    const phoneVal = cachedPhone || sessionObj.phone || sessionObj.phoneNumber || 'Not provided';
     return {
       ...accountProfile,
+      avatarUrl: cachedAvatar || '',
       email: emailVal,
       fullName: safeFallback,
       phone: phoneVal
@@ -97,19 +105,13 @@ export const mergeProfile = (remote: unknown): AccountProfile => {
   const fallbackName = safeSessionFallback || emailFallbackName;
   const fullName = generatedFullName || rawName || fallbackName;
 
-  let cachedPhone = '';
-  let cachedAvatar = '';
-  try {
-    cachedPhone = localStorage.getItem('freshmart_user_phone') || '';
-    cachedAvatar = localStorage.getItem('freshmart_user_avatar') || '';
-  } catch (_) {}
-
   const sessionObj = sessionUser as Record<string, any>;
   const rawPhone = text(user, ['phone', 'phoneNumber', 'phone_number'], cachedPhone || sessionObj.phone || sessionObj.phoneNumber || '');
   const phone = rawPhone || 'Not provided';
+  const avatarUrl = text(user, ['avatarUrl', 'avatar'], '') || cachedAvatar || '';
 
   return {
-    avatarUrl: text(user, ['avatarUrl', 'avatar'], cachedAvatar || accountProfile.avatarUrl),
+    avatarUrl,
     email: emailVal,
     fullName,
     phone,

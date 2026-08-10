@@ -101,9 +101,11 @@ const buildProfilePayload = ({ claims = {}, fallback = {}, role = null }) => {
     cognitoSub: cognitoUser.userId || userId,
     username: cognitoUser.username || fallback.username || email,
     name: claims.name || fallback.name || null,
+    fullName: claims.name || fallback.name || null,
     email,
     role: role || cognitoUser.role || fallback.role || ROLES.CUSTOMER,
     phone: claims.phone_number || fallback.phone || null,
+    avatarUrl: claims.picture || fallback.avatarUrl || null,
     status: fallback.status || 'ACTIVE',
     provider: 'COGNITO',
     groups,
@@ -248,6 +250,7 @@ const createAuthService = ({
           name,
           email: normalizedEmail,
           phone,
+          avatarUrl,
           role,
           groups: userGroups,
         },
@@ -268,7 +271,7 @@ const createAuthService = ({
     }
   };
 
-  const register = async ({ name, firstName, lastName, email, password, phone }, context = {}) => {
+  const register = async ({ name, firstName, lastName, email, password, phone, avatarUrl }, context = {}) => {
     const requestId = context.requestId || null;
     const computedName = name || [firstName, lastName].filter(Boolean).join(' ') || email;
     logStep('Auth register start', { requestId, email });
@@ -278,6 +281,7 @@ const createAuthService = ({
       email,
       password,
       phone,
+      avatarUrl,
       role: ROLES.CUSTOMER,
       groups: [config.auth.cognito.groups.customers],
       signInAfterCreate: true,
