@@ -2,32 +2,12 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  CheckCircle2,
-  Leaf,
-  LockKeyhole,
-  ShoppingBasket,
-  Zap,
-} from 'lucide-react';
-import { getEnvironmentUrls } from '@freshmart/shared';
-import {
-  ApiErrorMessage,
-  AuthBrand,
-  FormField,
-  PasswordField,
-  SocialButtons,
-  SubmitContent,
-} from '../components/auth-ui.js';
+import { CheckCircle2 } from 'lucide-react';
+import { ApiErrorMessage, FormField, PasswordField, SubmitContent } from '../components/auth-ui.js';
 import { useLoginMutation } from '../api/auth-api.js';
 import { authPaths } from '../../../app/auth-paths.js';
 import { getApiErrorMessage } from '../lib/api-error.js';
 import { loginSchema, type LoginValues } from '../lib/validation.js';
-
-const highlights = [
-  [Leaf, 'Fresh Products Source Directly'],
-  [Zap, 'Fast 15-Minute Delivery'],
-  [LockKeyhole, '100% Secure Encrypted Payment'],
-] as const;
 
 const LoginPage = () => {
   const [login, loginState] = useLoginMutation();
@@ -70,7 +50,7 @@ const LoginPage = () => {
         userProfile === 'admin' ||
         userProfile === 'admins' ||
         email === 'nmadhankumar597@gmail.com' ||
-        cognitoGroups.some(g => {
+        cognitoGroups.some((g) => {
           const ug = String(g).toUpperCase();
           return ug === 'ADMIN' || ug === 'ADMINS' || ug === 'SUPER_ADMIN' || ug === 'SUPER ADMIN';
         });
@@ -98,25 +78,25 @@ const LoginPage = () => {
         let adminTarget = isLocalhost
           ? 'http://localhost:5173/admin/dashboard'
           : `${window.location.origin}/admin/dashboard`;
-          
+
         if (result && result.accessToken) {
           const tokenParams = new URLSearchParams({
-             access_token: result.accessToken,
-             id_token: result.idToken || '',
-             refresh_token: result.refreshToken || '',
-             role: userRole || 'ADMIN',
-             profile: 'admin'
+            access_token: result.accessToken,
+            id_token: result.idToken || '',
+            refresh_token: result.refreshToken || '',
+            role: userRole || 'ADMIN',
+            profile: 'admin',
           });
           const keysForDel: string[] = [];
           tokenParams.forEach((value, key) => {
             if (!value) keysForDel.push(key);
           });
-          keysForDel.forEach(key => tokenParams.delete(key));
+          keysForDel.forEach((key) => tokenParams.delete(key));
 
           const tokenString = tokenParams.toString();
           adminTarget = `${adminTarget}?${tokenString}`;
         }
-          
+
         window.location.href = adminTarget;
       } else {
         setTimeout(() => {
@@ -124,157 +104,104 @@ const LoginPage = () => {
         }, 300);
       }
     } catch {
-      // RTK Query exposes the API error through loginState for the form alert.
+      // Errors exposed through loginState
     }
   });
 
   return (
-    <div className="auth-page flex min-h-[100dvh] items-center justify-center bg-[#f4fcf0] p-4 text-[#171d16]">
-      <main className="flex w-full max-w-[1000px] overflow-hidden rounded-3xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] md:h-[600px]">
-        <section
-          className="login-marketing relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#16a34a] to-[#006c4a] p-8 md:flex"
-          aria-label="FreshMart benefits"
-        >
-          <div className="login-grid" />
-          <div className="relative z-10">
-            <div className="mb-8 flex items-center gap-3 text-white">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-[#16a34a]">
-                <ShoppingBasket aria-hidden="true" className="h-6 w-6" />
-              </span>
-              <span className="text-xl font-extrabold tracking-tight">
-                FreshMart
-              </span>
-            </div>
-            <h1 className="mb-4 text-[32px] leading-10 font-normal text-white">
-              Freshness delivered in minutes
-            </h1>
-            <p className="max-w-md text-lg leading-7 text-white/90">
-              Experience the future of grocery shopping with our curated
-              selection of farm-fresh produce and premium essentials.
-            </p>
+    <div className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-slate-950 text-slate-900 select-none">
+      {/* Background Photography Image */}
+      <img
+        src="/login-bg.jpg"
+        alt="Fresh Produce Background"
+        className="absolute inset-0 h-full w-full object-cover object-center brightness-[0.55] contrast-[1.15] scale-105"
+      />
+
+      {/* Cinematic Dark Emerald Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/80 via-slate-950/75 to-slate-950/90 backdrop-blur-[2px]" />
+
+      {/* Floating Glassmorphic Login Card */}
+      <main className="relative z-10 w-full max-w-[420px] rounded-3xl border border-white/30 bg-white/95 p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] backdrop-blur-2xl transition-all duration-300">
+        {/* Brand Header */}
+        <div className="mb-6 text-center">
+          <Link to="/" className="group inline-flex items-center gap-2.5 mb-2 focus:outline-none">
+            <img
+              src="/favicon.svg"
+              alt="FreshMart Logo"
+              className="h-10 w-10 rounded-full shadow-md transition-transform duration-300 group-hover:scale-105"
+            />
+            <span className="text-2xl font-black tracking-tight text-[#006b2c]">FreshMart</span>
+            <span className="h-2 w-2 rounded-full bg-[#006c4a]"></span>
+          </Link>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 leading-tight">Welcome Back</h1>
+          <p className="mt-1 text-xs font-semibold text-slate-600">Sign in to continue your shopping journey.</p>
+        </div>
+
+        {success ? (
+          <div className="rounded-2xl bg-emerald-50 p-6 text-center border border-emerald-200" role="status">
+            <CheckCircle2 aria-hidden="true" className="mx-auto mb-3 h-10 w-10 text-[#006b2c]" />
+            <h3 className="text-lg font-extrabold text-slate-900">Sign in successful</h3>
+            <p className="mt-1 text-xs font-semibold text-slate-600">Welcome back to FreshMart.</p>
           </div>
-          <div className="relative z-10 flex flex-grow items-center justify-center py-8">
-            <div className="aspect-square w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl transition-transform duration-500 hover:scale-105">
-              <img
-                alt="A wooden crate filled with fresh vegetables in a bright kitchen"
-                className="h-full w-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbwOitHwfznWD3fqE9QjizeMVOBjiNdFFBVxClzMU_r2dzIu_hGxZ5mKOemN7_1pizhJ5mI4LUfkBQc_WqQDjdArcPW2EsZuFzNs6gWeD7alQqA0wvjpz4i5Erw1saagybNZW0EtluVbs3ArrWu9NTLqIbsahXqG_uI8HsKZVaaVyPHzSZmyJyKbWEoqmqJnAjLFg7RI11bwLyULiVWVEz1pYOSdwKxLs9jgLH2on82PkedOBiS0cN44WvX7fkg8M57Dw2aXjmuJvy"
+        ) : (
+          <form className="space-y-4" noValidate onSubmit={submit}>
+            <ApiErrorMessage message={getApiErrorMessage(loginState.error)} />
+
+            <FormField
+              autoComplete="email"
+              autoFocus
+              error={errors.email?.message}
+              label="Email Address"
+              placeholder="name@freshmart.com"
+              type="email"
+              {...register('email')}
+            />
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">Password</span>
+                <Link
+                  className="text-xs font-extrabold text-[#16a34a] hover:text-[#006b2c] hover:underline"
+                  to={authPaths.forgotPassword}
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+              <PasswordField
+                aria-label="Password"
+                autoComplete="current-password"
+                error={errors.password?.message}
+                label=""
+                placeholder="••••••••"
+                {...register('password')}
               />
             </div>
-          </div>
-          <div className="relative z-10 grid gap-4">
-            {highlights.map(([Icon, label]) => (
-              <div
-                className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 text-white backdrop-blur-md"
-                key={label}
-              >
-                <Icon aria-hidden="true" className="h-5 w-5" />
-                <span className="text-sm font-semibold">{label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-        <section className="flex w-full items-center justify-center overflow-y-auto bg-white p-6 md:w-1/2 md:p-10">
-          <div className="w-full max-w-[360px]">
-            <div className="mb-6 flex justify-center md:hidden">
-              <AuthBrand />
-            </div>
-            <header className="mb-6 text-center md:text-left">
-              <h2 className="mb-1 text-2xl leading-tight font-semibold">
-                Welcome Back
-              </h2>
-              <p className="text-sm text-[#3e4a3d]">
-                Sign in to continue your shopping journey.
-              </p>
-            </header>
-            <SocialButtons />
-            <div className="relative my-6 flex items-center justify-center">
-              <div className="absolute w-full border-t border-[#bdcaba]" />
-              <span className="relative bg-white px-4 text-xs font-medium text-[#3e4a3d]">
-                or use email
-              </span>
-            </div>
-            {success ? (
-              <div
-                className="rounded-2xl bg-[#e9f0e5] p-6 text-center"
-                role="status"
-              >
-                <CheckCircle2
-                  aria-hidden="true"
-                  className="mx-auto mb-3 h-10 w-10 text-[#006b2c]"
-                />
-                <h3 className="text-xl font-semibold">Sign in successful</h3>
-                <p className="mt-1 text-[#3e4a3d]">
-                  Welcome back to FreshMart.
-                </p>
-              </div>
-            ) : (
-              <form className="space-y-4" noValidate onSubmit={submit}>
-                <ApiErrorMessage
-                  message={getApiErrorMessage(loginState.error)}
-                />
-                <FormField
-                  autoComplete="email"
-                  autoFocus
-                  error={errors.email?.message}
-                  label="Email Address"
-                  placeholder="name@freshmart.com"
-                  type="email"
-                  {...register('email')}
-                />
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[#3e4a3d]">
-                      Password
-                    </span>
-                    <Link
-                      className="text-sm font-medium text-[#16a34a] hover:underline"
-                      to={authPaths.forgotPassword}
-                    >
-                      Forgot Password?
-                    </Link>
-                  </div>
-                  <PasswordField
-                    aria-label="Password"
-                    autoComplete="current-password"
-                    error={errors.password?.message}
-                    label=""
-                    placeholder="••••••••"
-                    {...register('password')}
-                  />
-                </div>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-[#3e4a3d]">
-                  <input
-                    className="h-4 w-4 rounded border-[#bdcaba] accent-[#16a34a] focus-visible:ring-2 focus-visible:ring-[#006b2c]"
-                    type="checkbox"
-                    {...register('remember')}
-                  />{' '}
-                  Remember me for 30 days
-                </label>
-                <button
-                  className="auth-primary-button mt-2 h-[48px] w-full rounded-xl bg-[#16a34a]"
-                  disabled={loginState.isLoading}
-                  type="submit"
-                >
-                  <SubmitContent
-                    label="Sign In"
-                    loading={loginState.isLoading}
-                    loadingLabel="Signing In..."
-                  />
-                </button>
-              </form>
-            )}
-            <p className="mt-6 text-center text-sm text-[#3e4a3d]">
-              Don't have an account?{' '}
-              <Link
-                className="font-bold text-[#16a34a] hover:underline"
-                to={authPaths.register}
-              >
-                Create Account
-              </Link>
-            </p>
-          </div>
-        </section>
+
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-700 pt-1">
+              <input
+                className="h-4 w-4 rounded border-slate-300 accent-[#16a34a] focus-visible:ring-2 focus-visible:ring-[#006b2c]"
+                type="checkbox"
+                {...register('remember')}
+              />
+              Remember me for 30 days
+            </label>
+
+            <button
+              className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#16a34a] to-[#047857] text-sm font-extrabold text-white shadow-lg shadow-emerald-700/25 transition-all duration-200 hover:from-[#15803d] hover:to-[#065f46] active:scale-[0.99] disabled:opacity-70"
+              disabled={loginState.isLoading}
+              type="submit"
+            >
+              <SubmitContent label="Sign In" loading={loginState.isLoading} loadingLabel="Signing In..." />
+            </button>
+          </form>
+        )}
+
+        <p className="mt-6 text-center text-xs font-semibold text-slate-600">
+          Don't have an account?{' '}
+          <Link className="font-extrabold text-[#16a34a] hover:text-[#006b2c] hover:underline" to={authPaths.register}>
+            Create Account
+          </Link>
+        </p>
       </main>
     </div>
   );
