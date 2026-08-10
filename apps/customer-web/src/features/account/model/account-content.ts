@@ -4,6 +4,7 @@ export interface AccountProfile {
   fullName: string;
   phone: string;
   storeLocation: string;
+  totalSaved?: string;
 }
 
 export interface ConnectedAccount {

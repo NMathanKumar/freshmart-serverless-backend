@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import {
   ChevronRight,
   Heart,
@@ -44,8 +44,8 @@ const SAMPLE_PROFILE = {
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
   memberSince: '2025',
   tier: 'Gold Member',
-  creditBalance: '₹42.50',
-  totalSaved: '₹128.40',
+  creditBalance: '₹0.00',
+  totalSaved: '₹0.00',
 };
 
 const AccountSettingsContent = () => {
@@ -63,15 +63,28 @@ const AccountSettingsContent = () => {
     cachedPhone = localStorage.getItem('freshmart_user_phone') || '';
   } catch (_) {}
 
+  const liveTotalSaved = useMemo(() => {
+    let savings = orders.reduce((sum, order) => {
+      const orderDiscount = typeof order.discount === 'number' ? order.discount : 0;
+      const itemSavings = (order.items || []).reduce((itemSum, item) => {
+        const itemDiff = (item as any).originalPrice ? ((item as any).originalPrice - item.unitPrice) * item.quantity : 0;
+        return itemSum + Math.max(0, itemDiff);
+      }, 0);
+      return sum + orderDiscount + itemSavings;
+    }, 0);
+    return `₹${savings.toFixed(2)}`;
+  }, [orders]);
+
   const fallbackProfile = {
     ...SAMPLE_PROFILE,
     fullName: sessionUser.fullName || sessionUser.name || (sessionUser.email ? sessionUser.email.split('@')[0] : SAMPLE_PROFILE.fullName),
     email: sessionUser.email || SAMPLE_PROFILE.email,
     phone: cachedPhone || (sessionUser as Record<string, any>).phone || (sessionUser as Record<string, any>).phoneNumber || 'Not provided',
+    totalSaved: liveTotalSaved,
   };
 
   const profile = accountData?.profile
-    ? { ...fallbackProfile, ...accountData.profile }
+    ? { ...fallbackProfile, ...accountData.profile, totalSaved: accountData.profile.totalSaved || liveTotalSaved }
     : fallbackProfile;
   const recentOrder = orders.length > 0 ? orders[0] : null;
   const liveWishlistCount = wishlist.length;
