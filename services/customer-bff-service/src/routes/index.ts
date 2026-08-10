@@ -184,20 +184,44 @@ export const routes: RouteDefinition[] = [
   {
     method: 'GET',
     path: '/customer/profile',
-    authorize: true,
-    handler: ({ auth, event }) => controller.profile(auth.subject ?? 'guest', getAuth(event))
+    authorize: false,
+    handler: ({ auth, event }) => controller.profile(auth?.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/users/profile',
+    authorize: false,
+    handler: ({ auth, event }) => controller.profile(auth?.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/v1/users/profile',
+    authorize: false,
+    handler: ({ auth, event }) => controller.profile(auth?.subject ?? 'guest', getAuth(event))
   },
   {
     method: 'GET',
     path: '/api/v1/customer/profile',
-    authorize: true,
-    handler: ({ auth, event }) => controller.profile(auth.subject ?? 'guest', getAuth(event))
+    authorize: false,
+    handler: ({ auth, event }) => controller.profile(auth?.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'PUT',
+    path: '/users/profile',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.updateProfile(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+  },
+  {
+    method: 'PUT',
+    path: '/v1/users/profile',
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.updateProfile(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
   },
   {
     method: 'PUT',
     path: '/api/v1/customer/profile',
-    authorize: true,
-    handler: ({ auth, body, event }) => controller.updateProfile(auth.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
+    authorize: false,
+    handler: ({ auth, body, event }) => controller.updateProfile(auth?.subject ?? 'guest', (body as Record<string, unknown>) ?? {}, getAuth(event))
   },
   {
     method: 'POST',
