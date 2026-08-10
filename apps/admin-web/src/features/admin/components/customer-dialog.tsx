@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Home, Mail, MapPin, Package, Phone, ShoppingBag, StickyNote, X } from 'lucide-react';
+import { AlertTriangle, Home, Mail, MapPin, Package, Phone, ShoppingBag, StickyNote, Upload, X } from 'lucide-react';
 import { useDialogAccessibility } from '../hooks/use-dialog-accessibility.js';
 
 export type CustomerStatus = 'Active' | 'Blocked';
@@ -62,6 +62,45 @@ export const CustomerDialog = ({ customer, kind, onClose, onSave, onToggleBlock,
   const update = (field: keyof CustomerRecord, value: string) => setDraft((current) => current ? { ...current, [field]: value } : current);
   const canSave = draft.name.trim() !== '' && draft.email.trim() !== '' && draft.phone.trim() !== '';
 
+  const handleImageFileChange = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (!dataUrl) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 250;
+        const MAX_HEIGHT = 250;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        update('image', resizedDataUrl);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="category-dialog-backdrop customer-dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="category-dialog customer-dialog" role="dialog" aria-modal="true" aria-labelledby="customer-dialog-title">
@@ -80,16 +119,57 @@ export const CustomerDialog = ({ customer, kind, onClose, onSave, onToggleBlock,
 
         {kind === 'edit' ? <form className="customer-dialog-form" onSubmit={(event) => { event.preventDefault(); canSave && onSave(draft); }}>
           <label className="wide">
-            <span>Profile Picture URL</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span>Profile Photo</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.35rem' }}>
               {draft.image ? (
-                <img src={draft.image} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }} />
+                <img src={draft.image} alt="Avatar" style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #22c55e', flexShrink: 0 }} />
               ) : (
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '14px', flexShrink: 0 }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '2px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '18px', flexShrink: 0 }}>
                   {draft.name ? draft.name.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
-              <input type="url" placeholder="https://example.com/avatar.jpg" value={draft.image || ''} onChange={(event) => update('image', event.target.value)} style={{ flex: 1 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="customer-avatar-upload"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImageFileChange(file);
+                  }}
+                />
+                <label
+                  htmlFor="customer-avatar-upload"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.9rem',
+                    backgroundColor: '#16a34a',
+                    color: '#ffffff',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    width: 'fit-content',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  <Upload size={16} />
+                  {draft.image ? 'Change Image' : 'Upload Image'}
+                </label>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>PNG, JPG or WEBP from your device</span>
+              </div>
+              {draft.image ? (
+                <button
+                  type="button"
+                  onClick={() => update('image', '')}
+                  style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Remove
+                </button>
+              ) : null}
             </div>
           </label>
           <label><span>Full Name</span><input ref={firstInput} value={draft.name} onChange={(event) => update('name', event.target.value)} /></label>
