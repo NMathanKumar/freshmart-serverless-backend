@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Button } from '@freshmart/design-system';
 import { ArrowRight, Clock, ShieldCheck, Zap } from 'lucide-react';
 import type { CustomerHomeResponse } from '@freshmart/api-sdk';
-import { SectionEmpty, SectionError, SectionSkeleton } from './section-state.js';
+import {
+  SectionEmpty,
+  SectionError,
+  SectionSkeleton,
+} from './section-state.js';
 
 type Banner = CustomerHomeResponse['heroBanners'][number];
 
-interface SlideData {
+export interface SlideData {
   id: string;
   badge: string;
   badgeIcon: typeof Zap;
@@ -15,6 +18,7 @@ interface SlideData {
   ctaText: string;
   imageUrl: string;
   accentBg: string;
+  categoryKey?: string;
 }
 
 const DEFAULT_SLIDES: SlideData[] = [
@@ -23,118 +27,175 @@ const DEFAULT_SLIDES: SlideData[] = [
     badge: '⚡ 15 MINS FAST DELIVERY',
     badgeIcon: Zap,
     title: 'Express Grocery Delivery Right to Your Door',
-    description: 'Daily essentials, fresh milk, artisanal bread & farm vegetables delivered in under 15 minutes.',
-    ctaText: 'Order Express Now',
-    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD-adUk9ZXoP0nwAjwNtfGOr5P5qjDPIVpu8m4Vdaa6rmvZfYCO8DrhUiWkCkEnkpBPf1hfACU0i6X4MHnjn7tn-qBqG7UElO4IZ5vYD0IWUdFEAe2ip_JZ7Yp1O9uS8XCIqy2c7zeTw-OaD5NBWTNh6gpnJ6MRMmOsn5Xp4t19iMDNLrTPk3eGmAMwiXK6Cn7VNBFe7yb3RUV4_NhlxvGXwNZ1vgb3V8NLRbAsu8FSsIwEUkSt1lvC2fVszOZFfpGkbLz5-M5Xbopo',
-    accentBg: 'bg-[#006c4a]'
+    description:
+      'Daily essentials, fresh milk, artisanal bread & farm vegetables delivered in under 15 minutes.',
+    ctaText: 'View Express Deals',
+    imageUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuD-adUk9ZXoP0nwAjwNtfGOr5P5qjDPIVpu8m4Vdaa6rmvZfYCO8DrhUiWkCkEnkpBPf1hfACU0i6X4MHnjn7tn-qBqG7UElO4IZ5vYD0IWUdFEAe2ip_JZ7Yp1O9uS8XCIqy2c7zeTw-OaD5NBWTNh6gpnJ6MRMmOsn5Xp4t19iMDNLrTPk3eGmAMwiXK6Cn7VNBFe7yb3RUV4_NhlxvGXwNZ1vgb3V8NLRbAsu8FSsIwEUkSt1lvC2fVszOZFfpGkbLz5-M5Xbopo',
+    accentBg: 'bg-[#006c4a]',
+    categoryKey: 'all',
   },
   {
     id: 'slide-organic',
     badge: '🥬 UP TO 40% OFF ORGANIC',
     badgeIcon: Clock,
     title: 'Hand-Picked Organic Produce & Fresh Daily Fruits',
-    description: 'Directly sourced from verified local organic farms. Guaranteed 100% crisp, pure & pesticide-free.',
+    description:
+      'Directly sourced from verified local organic farms. Guaranteed 100% crisp, pure & pesticide-free.',
     ctaText: 'Shop Fresh Produce',
-    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
-    accentBg: 'bg-[#005422]'
+    imageUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCSHaELNOhgX7mXWpkTZoBd8EkjiC2gtiPjn00f0mfjjc35_Do4_8Cy5vfaZ00jCjl_LWa_yqs1YWNNxfKG-47zOk6_uc4o68CzFG_6qcXMcdsDVDl_SyzMzXoPgwzJXcSlEVxzUTctK3lNfyPPIhPNxdF9p3-VLXrfZOpRAlbQ8V_eSjtPAmHqEI4QEygGblDnpdLD1BIr84P3DEYq4457nmGfVawMGFAmdA0Sx86DswR32pk7VCPiD5p8M9i4wnqts7_21AyM6I6S',
+    accentBg: 'bg-[#005422]',
+    categoryKey: 'fruits-vegetables',
   },
   {
     id: 'slide-bakery',
     badge: '🥛 MORNING FRESH DAIRY & BAKERY',
     badgeIcon: ShieldCheck,
     title: 'Pure Farm Milk, Whole Breads & Artisanal Dairy',
-    description: 'Start your morning right with freshly baked whole wheat breads, organic milk & farm butter.',
+    description:
+      'Start your morning right with freshly baked whole wheat breads, organic milk & farm butter.',
     ctaText: 'Explore Dairy & Bakery',
-    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAocIVc-EoYCbFmS10USZQHrW2cBY3jC44RL3aegAleg9zH39V0IHSWwM6MIKPQO6ifSz4gqZNGdwbezCWTwpjY26PgUPmNirsv572TsUAyQLu6A8XrYc_0UG8v0nwTw-VYaT0SMJPhU_zb_d9e0nSrxGxXQbl6Lx_YXZsdI0Y_-NYBK5I62D_ProCKkx-hG1xm3k6nMB89NGrtr-8Z1cQoVuXM7LxVdoQLwhsZlw2KSjnxaqws6Q_tmOCTfNEAnRlce3LxYTMFdXYO',
-    accentBg: 'bg-[#00714e]'
+    imageUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAocIVc-EoYCbFmS10USZQHrW2cBY3jC44RL3aegAleg9zH39V0IHSWwM6MIKPQO6ifSz4gqZNGdwbezCWTwpjY26PgUPmNirsv572TsUAyQLu6A8XrYc_0UG8v0nwTw-VYaT0SMJPhU_zb_d9e0nSrxGxXQbl6Lx_YXZsdI0Y_-NYBK5I62D_ProCKkx-hG1xm3k6nMB89NGrtr-8Z1cQoVuXM7LxVdoQLwhsZlw2KSjnxaqws6Q_tmOCTfNEAnRlce3LxYTMFdXYO',
+    accentBg: 'bg-[#00714e]',
+    categoryKey: 'dairy-bakery',
   },
   {
     id: 'slide-bundle',
     badge: '🏷️ SMART BUNDLE SAVINGS',
     badgeIcon: Zap,
     title: 'Super Savings On Weekly Pantry & Kitchen Staples',
-    description: 'Save big with weekly bulk discount bundles on organic rice, pulses, cold-pressed oils & spices.',
+    description:
+      'Save big with weekly bulk discount bundles on organic rice, pulses, cold-pressed oils & spices.',
     ctaText: 'Claim Savings Deals',
-    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
-    accentBg: 'bg-[#a72d51]'
-  }
+    imageUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-8ZKxMuvb9QVdjRnKXyn-bmUF69PYQ5gWY2M8ofX8H15-hmkg8-Gy-qHR61k7JtnnVXh0JF7KRg0XbNdLeLtRYR0G-xZpY9RiUPqL8qFvdL9Sp-Axe1JpioUqZnCOyw_xkiBbtnq4PKTIO-9B6bZ_Muj4HirdjRXta4ycEsR1xOPMARFTJ4AC5WVY5yZbXglG-7V9upqCvyqtUT3kFfCrcwaLkmpmB1REpl05m6AtigOrnjL4cpAY8P4SDTpYFsOlnJyXkgQpo17u',
+    accentBg: 'bg-[#a72d51]',
+    categoryKey: 'organic-produce',
+  },
 ];
 
-export const HeroCarousel = ({ banners, loading, error, retry }: { banners?: Banner[]; loading: boolean; error: boolean; retry: () => void }) => {
+export const HeroCarousel = ({
+  banners,
+  loading,
+  error,
+  retry,
+  onBannerClick,
+}: {
+  banners?: Banner[];
+  loading: boolean;
+  error: boolean;
+  retry: () => void;
+  onBannerClick?: (slide: SlideData) => void;
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const slides: SlideData[] = DEFAULT_SLIDES.map((slide, i) => {
     const apiBanner = banners?.[i];
     return apiBanner
-      ? { ...slide, title: apiBanner.title || slide.title, imageUrl: apiBanner.imageUrl || slide.imageUrl }
+      ? {
+          ...slide,
+          title: apiBanner.title || slide.title,
+          imageUrl: apiBanner.imageUrl || slide.imageUrl,
+        }
       : slide;
   });
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % slides.length);
-    }, 3000);
+    }, 3500);
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  if (loading) return <SectionSkeleton cards={1} className="grid [&>*]:h-[360px]" />;
+  if (loading)
+    return <SectionSkeleton cards={1} className="grid [&>*]:h-[280px] sm:[&>*]:h-[320px] md:[&>*]:h-[360px]" />;
   if (error) return <SectionError retry={retry} />;
-  if (!slides.length) return <SectionEmpty message="No promotions are available right now." />;
+  if (!slides.length)
+    return <SectionEmpty message="No promotions are available right now." />;
 
   return (
-    <div aria-roledescription="carousel" aria-label="Featured promotions" className="relative group overflow-hidden rounded-[28px] shadow-md border border-[#e2ebdE] bg-[#f4fcf0]">
-      <div className="relative h-[360px] overflow-hidden">
+    <div
+      aria-roledescription="carousel"
+      aria-label="Featured promotions"
+      className="group relative overflow-hidden rounded-[28px] border border-[#e2ebdE] bg-[#f4fcf0] shadow-md max-w-full"
+    >
+      <div className="relative h-[300px] sm:h-[340px] md:h-[380px] overflow-hidden">
         {slides.map((slide, index) => {
           const isActive = index === currentIndex;
+          const BadgeIcon = slide.badgeIcon;
           return (
             <article
               key={slide.id}
               className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-                isActive ? 'opacity-100 translate-x-0 z-10 pointer-events-auto' : 'opacity-0 translate-x-8 z-0 pointer-events-none'
+                isActive
+                  ? 'pointer-events-auto z-10 translate-x-0 opacity-100'
+                  : 'pointer-events-none z-0 translate-x-8 opacity-0'
               }`}
             >
-              <div className="absolute inset-0 z-10 flex flex-col justify-center px-10 md:px-14 pb-8">
-                <div className="max-w-xl space-y-4">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-widest text-white ${slide.accentBg} shadow-sm`}>
-                    {slide.badge}
-                  </span>
-                  <h1 className="text-3xl md:text-4xl font-black leading-tight tracking-[-0.02em] text-white drop-shadow-md">
-                    {slide.title}
-                  </h1>
-                  <p className="max-w-md text-sm md:text-base leading-relaxed text-white/95 drop-shadow">
-                    {slide.description}
-                  </p>
-                  <div className="pt-1">
-                    <Button className="h-12 rounded-full bg-[#006b2c] px-7 text-sm font-bold text-white shadow-[0_6px_16px_rgba(0,107,44,0.35)] transition-all hover:bg-[#00873a] hover:scale-105 active:scale-95 flex items-center w-fit">
-                      {slide.ctaText} <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
-                    </Button>
+              <button
+                className="block h-full w-full relative text-left cursor-pointer focus:outline-none"
+                onClick={() => onBannerClick?.(slide)}
+                type="button"
+              >
+                {/* Content Overlay Container with Professional Spacing & Breathing Room */}
+                <div className="absolute inset-0 z-10 flex flex-col justify-center px-6 sm:px-12 md:px-16 pt-4 pb-12">
+                  <div className="max-w-xl space-y-3.5 sm:space-y-4">
+                    {/* Badge */}
+                    <div className="flex items-center">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[11px] font-black tracking-wider text-white uppercase ${slide.accentBg} shadow-sm backdrop-blur-md border border-white/20`}
+                      >
+                        <BadgeIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                        <span>{slide.badge.replace(/^[\u2600-\u27BF\u1F300-\u1F9FF]\s*/, '')}</span>
+                      </span>
+                    </div>
+
+                    {/* Headline */}
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] leading-[1.15] font-black tracking-tight text-white drop-shadow-md line-clamp-2">
+                      {slide.title}
+                    </h1>
+
+                    {/* Description */}
+                    <p className="max-w-lg text-xs sm:text-sm md:text-base leading-relaxed font-medium text-white/90 drop-shadow-xs line-clamp-2">
+                      {slide.description}
+                    </p>
+
+                    {/* CTA Button */}
+                    <div className="pt-2">
+                      <span className="inline-flex h-11 sm:h-12 items-center gap-2 rounded-full bg-[#006b2c] px-6 sm:px-8 text-xs sm:text-sm font-extrabold text-white shadow-[0_6px_20px_rgba(0,107,44,0.4)] transition-all duration-300 hover:scale-105 hover:bg-[#005422] active:scale-95">
+                        <span>{slide.ctaText}</span>
+                        <ArrowRight aria-hidden="true" className="h-4 w-4 stroke-[2.5]" />
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Gradient Overlay for Readable Contrast */}
-              <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
-              
-              {/* Slide Background Image */}
-              <img
-                alt={slide.title}
-                className="h-full w-full object-cover object-center"
-                decoding="async"
-                fetchPriority={index === 0 ? 'high' : 'low'}
-                src={slide.imageUrl}
-              />
+                {/* Rich Gradient Overlay for High Readability & Image Vibrancy */}
+                <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black/85 via-black/50 to-black/10 md:from-black/80 md:via-black/40 md:to-transparent" />
+
+                {/* Background Image */}
+                <img
+                  alt={slide.title}
+                  className="h-full w-full object-cover object-center transition-transform duration-1000 group-hover:scale-105"
+                  decoding="async"
+                  fetchPriority={index === 0 ? 'high' : 'low'}
+                  src={slide.imageUrl}
+                />
+              </button>
             </article>
           );
         })}
       </div>
 
-      {/* Slide Navigation Dots */}
-      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 bg-black/35 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20">
+      {/* Sleek Pagination Dots */}
+      <div className="absolute bottom-4 right-6 sm:right-8 z-20 flex items-center gap-2 rounded-full border border-white/20 bg-black/40 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
         {slides.map((slide, index) => (
           <button
             key={slide.id}
             aria-label={`Go to slide ${index + 1}`}
-            className={`h-2.5 rounded-full transition-all duration-500 ${index === currentIndex ? 'w-7 bg-white shadow-sm' : 'w-2.5 bg-white/40 hover:bg-white/70'}`}
+            className={`h-2 rounded-full transition-all duration-500 ${index === currentIndex ? 'w-7 bg-white shadow-xs' : 'w-2 bg-white/40 hover:bg-white/70'}`}
             onClick={() => setCurrentIndex(index)}
             type="button"
           />

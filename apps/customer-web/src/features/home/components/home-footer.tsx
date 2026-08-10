@@ -1,15 +1,40 @@
-import { AppWindow, CreditCard, Globe2, Nfc, Play, Share2, WalletCards } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const FooterLink = ({ children }: { children: string }) => <li><a className="text-[13px] text-[#3e4a3d] transition-colors hover:text-[#006b2c]" href={`#${children.toLowerCase().replaceAll(' ', '-')}`}>{children}</a></li>;
+const FooterLink = ({ children, to }: { children: string; to: string }) => (
+  <li>
+    <Link
+      className="text-[13px] text-[#3e4a3d] transition-colors hover:text-[#006b2c]"
+      to={to}
+    >
+      {children}
+    </Link>
+  </li>
+);
 
 export const HomeFooter = () => (
   <footer className="border-t border-[#e2ebdE] bg-white">
-    <div className="mx-auto grid max-w-7xl grid-cols-4 gap-12 px-10 py-16">
-      <div className="space-y-4"><strong className="text-xl font-bold tracking-tight text-[#006b2c]">FreshMart</strong><p className="text-[13px] leading-relaxed text-[#3e4a3d] max-w-[280px]">Experience the next generation of quick commerce. Premium quality, delivered in minutes.</p><div className="flex gap-3"><a aria-label="FreshMart website" className="footer-social" href="#website"><Globe2 aria-hidden="true" className="h-4 w-4" /></a><a aria-label="Share FreshMart" className="footer-social" href="#share"><Share2 aria-hidden="true" className="h-4 w-4" /></a></div></div>
-      <div className="space-y-4 pl-8"><h2 className="text-sm font-extrabold text-[#171d16]">Company</h2><ul className="space-y-2.5"><FooterLink>About Us</FooterLink><FooterLink>Sustainability</FooterLink><FooterLink>Careers</FooterLink><FooterLink>Newsroom</FooterLink></ul></div>
-      <div className="space-y-4"><h2 className="text-sm font-extrabold text-[#171d16]">Support</h2><ul className="space-y-2.5"><FooterLink>Help Center</FooterLink><FooterLink>Privacy Policy</FooterLink><FooterLink>Partner with Us</FooterLink><FooterLink>Terms of Service</FooterLink></ul></div>
-      <div className="space-y-4"><h2 className="text-sm font-extrabold text-[#171d16]">Download App</h2><div className="space-y-3"><a className="app-store-button" href="#app-store"><AppWindow aria-hidden="true" className="h-5 w-5" /><span><small>Download on the</small><strong className="text-sm">App Store</strong></span></a><a className="app-store-button" href="#google-play"><Play aria-hidden="true" className="h-5 w-5" /><span><small>Get it on</small><strong className="text-sm">Google Play</strong></span></a></div></div>
+    <div className="mx-auto grid max-w-[1600px] grid-cols-3 gap-12 px-6 py-12 md:px-10">
+      <div className="space-y-4">
+        <strong className="text-xl font-bold tracking-tight text-[#006b2c]">
+          FreshMart
+        </strong>
+        <p className="max-w-[280px] text-[13px] leading-relaxed text-[#3e4a3d]">
+          Experience the next generation of quick commerce. Premium quality,
+          delivered in minutes.
+        </p>
+      </div>
+      <div className="space-y-4 pl-8">
+        <h2 className="text-sm font-extrabold text-[#171d16]">Company</h2>
+        <ul className="space-y-2.5">
+          <FooterLink to="/about">About Us</FooterLink>
+        </ul>
+      </div>
+      <div className="space-y-4">
+        <h2 className="text-sm font-extrabold text-[#171d16]">Support</h2>
+        <ul className="space-y-2.5">
+          <FooterLink to="/help">Help Center</FooterLink>
+        </ul>
+      </div>
     </div>
-    <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 border-t border-[#e2ebdE] px-10 py-6"><span className="text-[11px] font-medium text-[#8b9888]">© 2024 FreshMart Inc. Premium Quick Commerce.</span><div className="flex gap-5 text-[#bdcaba]"><WalletCards aria-label="Digital payments accepted" className="h-5 w-5" /><CreditCard aria-label="Credit cards accepted" className="h-5 w-5" /><Nfc aria-label="Contactless payments accepted" className="h-5 w-5" /></div></div>
   </footer>
 );
