@@ -64,6 +64,24 @@ export const routes: RouteDefinition[] = [
     authorize: false,
     handler: ({ event }) => controller.categories(getAuth(event))
   },
+  {
+    method: 'GET',
+    path: '/categories',
+    authorize: false,
+    handler: ({ event }) => controller.categories(getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/v1/categories',
+    authorize: false,
+    handler: ({ event }) => controller.categories(getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/categories',
+    authorize: false,
+    handler: ({ event }) => controller.categories(getAuth(event))
+  },
 
   // /customer/products/:productId
   {
@@ -282,20 +300,38 @@ export const routes: RouteDefinition[] = [
   {
     method: 'GET',
     path: '/customer/notifications',
-    authorize: true,
-    handler: ({ auth, event }) => controller.notifications(auth.subject ?? 'guest', getAuth(event))
+    authorize: false,
+    handler: ({ auth, event }) => controller.notifications(auth?.subject ?? 'guest', getAuth(event))
   },
   {
     method: 'GET',
     path: '/api/v1/customer/notifications',
-    authorize: true,
-    handler: ({ auth, event }) => controller.notifications(auth.subject ?? 'guest', getAuth(event))
+    authorize: false,
+    handler: ({ auth, event }) => controller.notifications(auth?.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/v1/customer/notifications',
+    authorize: false,
+    handler: ({ auth, event }) => controller.notifications(auth?.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/notifications',
+    authorize: false,
+    handler: ({ auth, event }) => controller.notifications(auth?.subject ?? 'guest', getAuth(event))
+  },
+  {
+    method: 'GET',
+    path: '/v1/notifications',
+    authorize: false,
+    handler: ({ auth, event }) => controller.notifications(auth?.subject ?? 'guest', getAuth(event))
   },
   {
     method: 'PATCH',
     path: '/api/v1/customer/notifications/:notificationId/read',
-    authorize: true,
-    handler: ({ auth, params, event }) => controller.markNotificationRead(auth.subject ?? 'guest', params.notificationId, getAuth(event))
+    authorize: false,
+    handler: ({ auth, params, event }) => controller.markNotificationRead(auth?.subject ?? 'guest', params.notificationId, getAuth(event))
   },
 
   {

@@ -480,8 +480,56 @@ export class HttpCustomerGateway implements DownstreamGateway {
   }
 
   async getCategories(authorization?: string): Promise<CategoriesView> {
-    const categories = await this.request<Array<Record<string, unknown>>>(this.config.categoryBaseUrl, '/products', authorization, []);
-    return { categories: Array.isArray(categories) ? categories : [] };
+    try {
+      const productsRes = await this.request<Record<string, unknown> | Array<Record<string, unknown>>>(
+        this.config.catalogBaseUrl,
+        '/products',
+        authorization,
+        []
+      );
+      const products = Array.isArray(productsRes)
+        ? productsRes
+        : Array.isArray((productsRes as { data?: unknown[] })?.data)
+        ? ((productsRes as { data: Record<string, unknown>[] }).data)
+        : [];
+
+      const categorySet = new Map<string, { categoryId: string; name: string; icon?: string; productCount?: number }>();
+      
+      const defaultCategories = [
+        { categoryId: 'fresh-produce', name: 'Fresh Produce', icon: 'Apple' },
+        { categoryId: 'organic-staples', name: 'Organic Staples', icon: 'Wheat' },
+        { categoryId: 'dairy-eggs', name: 'Dairy & Eggs', icon: 'Milk' },
+        { categoryId: 'snacks-bakery', name: 'Snacks & Bakery', icon: 'Cookie' },
+        { categoryId: 'beverages', name: 'Beverages', icon: 'Coffee' },
+      ];
+      for (const def of defaultCategories) {
+        categorySet.set(def.name.toLowerCase(), { ...def, productCount: 0 });
+      }
+
+      for (const p of products) {
+        const catName = String(p.category || 'Fresh Produce');
+        const key = catName.toLowerCase();
+        const existing = categorySet.get(key);
+        if (existing) {
+          existing.productCount = (existing.productCount || 0) + 1;
+        } else {
+          const slug = catName.toLowerCase().replace(/\s+/g, '-');
+          categorySet.set(key, { categoryId: slug, name: catName, productCount: 1 });
+        }
+      }
+
+      return { categories: Array.from(categorySet.values()) as any };
+    } catch {
+      return {
+        categories: [
+          { categoryId: 'fresh-produce', name: 'Fresh Produce' },
+          { categoryId: 'organic-staples', name: 'Organic Staples' },
+          { categoryId: 'dairy-eggs', name: 'Dairy & Eggs' },
+          { categoryId: 'snacks-bakery', name: 'Snacks & Bakery' },
+          { categoryId: 'beverages', name: 'Beverages' },
+        ] as any
+      };
+    }
   }
 
   async getProductDetails(customerId: string, productId: string, authorization?: string): Promise<ProductDetailsView> {
