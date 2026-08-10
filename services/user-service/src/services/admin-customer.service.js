@@ -58,7 +58,11 @@ const createAdminCustomerService = ({ repository = adminCustomerRepository } = {
     return repository.updateCustomer(customerId, data);
   };
 
-  return { createCustomer, getCustomer, listCustomers, updateCustomer, updateStatus };
+  const deleteCustomer = async (customerId) => {
+    return repository.deleteCustomer(customerId);
+  };
+
+  return { createCustomer, deleteCustomer, getCustomer, listCustomers, updateCustomer, updateStatus };
 };
 
 const service = createAdminCustomerService();

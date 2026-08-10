@@ -15,6 +15,7 @@ router.get('/', middleware.validate(adminCustomerListSchema, 'query'), controlle
 router.post('/', controller.createCustomer);
 router.get('/:customerId', middleware.validate(adminCustomerIdSchema, 'params'), controller.getCustomer);
 router.put('/:customerId', middleware.validate(adminCustomerIdSchema, 'params'), controller.updateCustomer);
+router.delete('/:customerId', middleware.validate(adminCustomerIdSchema, 'params'), controller.deleteCustomer);
 router.patch(
   '/:customerId/status',
   middleware.validate(adminCustomerIdSchema, 'params'),

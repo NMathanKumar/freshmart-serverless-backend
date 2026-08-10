@@ -31,4 +31,9 @@ const updateStatus = utils.asyncHandler(async (req, res) => {
   response.success(res, { message: `Customer status updated to '${customer.status}'`, data: customer });
 });
 
-module.exports = { createCustomer, getCustomer, listCustomers, updateCustomer, updateStatus };
+const deleteCustomer = utils.asyncHandler(async (req, res) => {
+  await adminCustomerService.deleteCustomer(req.params.customerId);
+  response.success(res, { message: 'Customer deleted successfully' });
+});
+
+module.exports = { createCustomer, deleteCustomer, getCustomer, listCustomers, updateCustomer, updateStatus };

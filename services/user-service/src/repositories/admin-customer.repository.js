@@ -1,4 +1,4 @@
-const { GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { DeleteCommand, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { aws, constants } = require('@freshmart/service-shared');
 
 const ORDER_STATUSES = Object.values(constants.ORDER_STATUS);
@@ -303,7 +303,18 @@ const createAdminCustomerRepository = ({ client = aws.documentClient, tables } =
     return normalizeCustomer(result.Attributes || {}, []);
   };
 
-  return { createCustomer, findById, list, updateCustomer, updateStatus };
+  const deleteCustomer = async (customerId) => {
+    const tableNames = resolveTables(tables);
+    await client.send(
+      new DeleteCommand({
+        TableName: tableNames.userProfiles,
+        Key: { pk: `USER#${customerId}`, sk: 'PROFILE' },
+      })
+    );
+    return true;
+  };
+
+  return { createCustomer, deleteCustomer, findById, list, updateCustomer, updateStatus };
 };
 
 const repository = createAdminCustomerRepository();
