@@ -1,5 +1,5 @@
 const createServiceApp = require('@freshmart/service-shared').createServiceApp;
-const routes = require('./routes');
+const routes = require('./routes/index.js');
 const adminOrderRoutes = require('./routes/admin-order.routes');
 const fulfillmentRoutes = require('./routes/fulfillment.routes');
 

@@ -4,8 +4,9 @@ import type { ApiEnvelope, ProductSummary } from '../contracts/domain.js';
 export class CatalogClient {
   constructor(private readonly client: ApiClient) {}
 
-  listProducts(params: { category?: string; cursor?: string; limit?: number } = {}) {
+  listProducts(params: { category?: string; cursor?: string; limit?: number } = {}, config?: any) {
     return this.client.request<ApiEnvelope<ProductSummary[]>>({
+      ...config,
       method: 'GET',
       url: '/v1/products',
       params

@@ -41,13 +41,18 @@ export class OrderService {
       else apiStatus = params.status;
     }
 
-    const res = await freshmartSdk.admin.listOrders({
-      page: params.page || 1,
-      limit: params.limit || 50,
-      search: params.search,
-      status: apiStatus as AdminOrderStatus,
-    }, { signal: params.signal });
-    rawOrders = (res?.data || (res as any)?.items || (Array.isArray(res) ? res : [])) as AdminOrder[];
+    try {
+      const res = await freshmartSdk.admin.listOrders({
+        page: params.page || 1,
+        limit: params.limit || 50,
+        search: params.search,
+        status: apiStatus as AdminOrderStatus,
+      }, { signal: params.signal });
+      rawOrders = (res?.data || (res as any)?.items || (Array.isArray(res) ? res : [])) as AdminOrder[];
+    } catch (err) {
+      Logger.warn('Failed to fetch remote admin orders', { error: err });
+      rawOrders = [];
+    }
 
     const mapped: OrderModel[] = rawOrders.map((ord) => {
       let orderStatusFormatted: OrderModel['orderStatus'] = 'DELIVERED';

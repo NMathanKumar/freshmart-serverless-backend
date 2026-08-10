@@ -36,11 +36,12 @@ export interface InventoryAdjustmentPayload {
 export class InventoryClient {
   constructor(private readonly client: ApiClient) {}
 
-  listInventory(page = 1, limit = 100, warehouseId?: string) {
+  listInventory(page = 1, limit = 100, warehouseId?: string, config?: any) {
     return this.client.request<ApiEnvelope<InventorySummary[]>>({
+      ...config,
       method: 'GET',
       url: '/v1/inventory',
-      params: { page, limit, ...(warehouseId ? { warehouseId } : {}) }
+      params: { page, limit, warehouse: warehouseId }
     });
   }
 

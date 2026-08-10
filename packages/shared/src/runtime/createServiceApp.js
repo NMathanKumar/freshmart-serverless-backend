@@ -46,6 +46,7 @@ const createServiceApp = (options = {}) => {
       max: config.rateLimit.max,
       standardHeaders: true,
       [rateLimitLegacyHeaderKey]: false,
+      keyGenerator: (req) => req.headers['x-forwarded-for'] || req.ip || '127.0.0.1',
     })
   );
 

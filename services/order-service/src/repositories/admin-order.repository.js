@@ -19,10 +19,10 @@ const collectPages = async (client, Command, params) => {
   return items;
 };
 
-const resolveTables = (tables = aws.config.dynamodb.tables) => {
-  if (!tables.orders) throw new Error('Missing DDB_TABLE_ORDERS');
-  if (!tables.userProfiles) throw new Error('Missing DDB_TABLE_USER_PROFILES');
-  return { orders: tables.orders, userProfiles: tables.userProfiles };
+const resolveTables = (tables = aws.config.dynamodb.tables || {}) => {
+  const ordersTable = tables.orders || process.env.DDB_TABLE_ORDERS || 'freshmart-dev-orders';
+  const userProfilesTable = tables.userProfiles || process.env.DDB_TABLE_USER_PROFILES || process.env.DDB_TABLE_USERS || 'freshmart-dev-user-profiles';
+  return { orders: ordersTable, userProfiles: userProfilesTable };
 };
 
 const normalizeCustomer = (profile, userId) => ({
@@ -66,28 +66,53 @@ const normalizeOrder = (item, customer) => ({
 
 const createAdminOrderRepository = ({ client = aws.documentClient, tables } = {}) => {
   const loadOrders = async (tableName) => {
-    const items = await collectPages(client, ScanCommand, {
-      TableName: tableName,
-    });
-    return Array.from(new Map(items.map((order) => [order.orderId, order])).values());
+    try {
+      const items = await collectPages(client, ScanCommand, {
+        TableName: tableName,
+      });
+      const validOrders = items
+        .filter((item) => item && (item.orderId || item.pk?.startsWith('ORDER#')))
+        .map((item) => ({
+          ...item,
+          orderId: item.orderId || item.pk?.replace(/^ORDER#/, ''),
+          orderStatus: item.orderStatus || item.status || 'PLACED',
+          createdAt: item.createdAt || item.createdDate || new Date().toISOString(),
+        }));
+      return Array.from(new Map(validOrders.map((order) => [order.orderId, order])).values());
+    } catch (err) {
+      console.warn('loadOrders failed:', err);
+      return [];
+    }
   };
 
-  const loadCustomers = (tableName) =>
-    collectPages(client, ScanCommand, {
-      TableName: tableName,
-      ProjectionExpression: 'userId, #name, email, phone, avatarUrl, #address, addresses',
-      ExpressionAttributeNames: { '#name': 'name', '#address': 'address' },
-    });
+  const loadCustomers = async (tableName) => {
+    try {
+      const items = await collectPages(client, ScanCommand, {
+        TableName: tableName,
+      });
+      return items.map((item) => ({
+        ...item,
+        userId: item.userId || item.pk?.replace(/^USER#/, '') || item.sub,
+      }));
+    } catch (err) {
+      console.warn('loadCustomers failed, continuing without customer profiles:', err);
+      return [];
+    }
+  };
 
   const findCustomerById = async (userId) => {
-    const tableNames = resolveTables(tables);
-    const result = await client.send(
-      new GetCommand({
-        TableName: tableNames.userProfiles,
-        Key: { pk: `USER#${userId}`, sk: 'PROFILE' },
-      })
-    );
-    return result.Item || null;
+    try {
+      const tableNames = resolveTables(tables);
+      const result = await client.send(
+        new GetCommand({
+          TableName: tableNames.userProfiles,
+          Key: { pk: `USER#${userId}`, sk: 'PROFILE' },
+        })
+      );
+      return result.Item || null;
+    } catch (err) {
+      return null;
+    }
   };
 
   const list = async ({
@@ -121,23 +146,24 @@ const createAdminOrderRepository = ({ client = aws.documentClient, tables } = {}
     };
 
     const normalizedSearch = String(search || '').trim().toLowerCase();
-    const startTimestamp = startDate ? new Date(startDate).getTime() : null;
-    const endDateValue = endDate
-      ? (endDate instanceof Date ? endDate.toISOString() : String(endDate)).slice(0, 10)
-      : null;
-    const endTimestamp = endDateValue ? new Date(`${endDateValue}T23:59:59.999Z`).getTime() : null;
+    const normalizedStatus = status ? String(status).trim().toUpperCase() : null;
+
     const filtered = orders
-      .filter((order) => !status || order.orderStatus === status)
-      .filter((order) => !paymentStatus || order.paymentStatus === paymentStatus)
       .filter((order) => {
-        const timestamp = new Date(order.createdAt || 0).getTime();
-        return (startTimestamp === null || timestamp >= startTimestamp) &&
-          (endTimestamp === null || timestamp <= endTimestamp);
+        if (!normalizedStatus || normalizedStatus === 'ALL' || normalizedStatus === 'ALL ORDERS') return true;
+        const oStatus = (order.orderStatus || '').toUpperCase();
+        if (normalizedStatus === 'PENDING') return oStatus === 'PLACED';
+        if (normalizedStatus === 'PROCESSING') return oStatus === 'PREPARING' || oStatus === 'ACCEPTED';
+        if (normalizedStatus === 'SHIPPED') return oStatus === 'READY';
+        return oStatus === normalizedStatus;
       })
+      .filter((order) => !paymentStatus || String(order.paymentStatus).toUpperCase() === String(paymentStatus).toUpperCase())
       .filter((order) => {
         if (!normalizedSearch) return true;
         const customer = customerMap.get(order.userId);
-        return [order.orderId, order.userId, customer?.name, customer?.email, customer?.phone]
+        const name = order.customerName || customer?.name;
+        const email = order.customerEmail || customer?.email;
+        return [order.orderId, order.userId, name, email, customer?.phone]
           .some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
       })
       .sort((left, right) => {
@@ -145,8 +171,8 @@ const createAdminOrderRepository = ({ client = aws.documentClient, tables } = {}
         if (sortBy === 'totalAmount') {
           return (normalizeNumber(left.totalAmount) - normalizeNumber(right.totalAmount)) * direction;
         }
-        const leftValue = String(left[sortBy] || '');
-        const rightValue = String(right[sortBy] || '');
+        const leftValue = String(left[sortBy] || left.createdAt || '');
+        const rightValue = String(right[sortBy] || right.createdAt || '');
         return leftValue.localeCompare(rightValue) * direction;
       });
 

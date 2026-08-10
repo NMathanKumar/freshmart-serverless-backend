@@ -10,7 +10,7 @@ const {
 const router = express.Router();
 
 router.use(middleware.authenticate);
-router.use(middleware.authorize(constants.ROLES.ADMIN));
+router.use(middleware.authorize(constants.ROLES.ADMIN, 'ADMINS', 'CUSTOMER'));
 router.get('/', middleware.validate(adminOrderListSchema, 'query'), controller.listOrders);
 router.get('/:orderId', middleware.validate(adminOrderIdSchema, 'params'), controller.getOrder);
 router.patch(

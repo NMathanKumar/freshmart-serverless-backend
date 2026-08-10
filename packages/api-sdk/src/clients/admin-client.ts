@@ -50,14 +50,16 @@ export class AdminClient {
     });
   }
 
-  listOrders(params: AdminOrderListParams = {}) {
+  listOrders(params: AdminOrderListParams = {}, config?: any) {
     return this.client.request<AdminOrderListResponse>({
+      ...config,
       method: 'GET',
       url: '/v1/admin/orders',
       params
     }).catch(async (err) => {
       if (err?.statusCode === 404 || err?.response?.status === 404) {
         return this.client.request<AdminOrderListResponse>({
+          ...config,
           method: 'GET',
           url: '/api/v1/admin/orders',
           params
@@ -118,14 +120,16 @@ export class AdminClient {
     });
   }
 
-  listCustomers(params: AdminCustomerListParams = {}) {
+  listCustomers(params: AdminCustomerListParams = {}, config?: any) {
     return this.client.request<AdminCustomerListResponse>({
+      ...config,
       method: 'GET',
       url: '/v1/admin/customers',
       params
     }).catch(async (err) => {
       if (err?.statusCode === 404 || err?.response?.status === 404) {
         return this.client.request<AdminCustomerListResponse>({
+          ...config,
           method: 'GET',
           url: '/api/v1/admin/customers',
           params
@@ -187,24 +191,27 @@ export class AdminClient {
   }
 
   // --- Analytics ---
-  getAnalyticsDashboard(params: Record<string, unknown> = {}) {
+  getAnalyticsDashboard(params: Record<string, unknown> = {}, config?: any) {
     return this.client.request<ApiEnvelope<Record<string, unknown>>>({
+      ...config,
       method: 'GET',
       url: '/v1/admin/analytics/dashboard',
       params
     });
   }
 
-  getRevenueAnalytics(params: Record<string, unknown> = {}) {
+  getRevenueAnalytics(params: Record<string, unknown> = {}, config?: any) {
     return this.client.request<ApiEnvelope<Record<string, unknown>>>({
+      ...config,
       method: 'GET',
       url: '/v1/admin/analytics/revenue',
       params
     });
   }
 
-  getOrderAnalytics(params: Record<string, unknown> = {}) {
+  getOrderAnalytics(params: Record<string, unknown> = {}, config?: any) {
     return this.client.request<ApiEnvelope<Record<string, unknown>>>({
+      ...config,
       method: 'GET',
       url: '/v1/admin/analytics/orders',
       params
