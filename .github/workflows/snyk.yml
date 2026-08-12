@@ -50,8 +50,7 @@ jobs:
         continue-on-error: true
         run: |
           npx snyk monitor \
-            --all-projects \
-            --project-name=freshmart-serverless-backend
+            --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
