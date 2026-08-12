@@ -1,0 +1,129 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Catalog Service",
+    "version": "1.0.0",
+    "description": "Catalog Service API for FreshMart."
+  },
+  "servers": [
+    {
+      "url": "https://api.freshmart.example"
+    }
+  ],
+  "paths": {
+    "/api/v1/catalog/products": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List catalog",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Create or update catalog",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upserted"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/products/{productId}": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Get catalog by identifier",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "errors": {}
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC7807 problem response",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    }
+  }
+}

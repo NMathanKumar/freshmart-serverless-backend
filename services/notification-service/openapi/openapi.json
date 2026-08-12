@@ -1,0 +1,131 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Notification Service",
+    "version": "1.0.0",
+    "description": "Notification Service API for FreshMart."
+  },
+  "servers": [
+    {
+      "url": "https://api.freshmart.example"
+    }
+  ],
+  "paths": {
+    "/api/v1/notifications/{recipientUserId}": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "List notifications for a user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Create a notification",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/{notificationId}/read": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark a notification as read",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Read"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "errors": {}
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC7807 problem response",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    }
+  }
+}

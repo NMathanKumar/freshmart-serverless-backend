@@ -1,0 +1,656 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "User Service",
+    "version": "1.0.0",
+    "description": "User Service API for FreshMart."
+  },
+  "servers": [
+    {
+      "url": "https://api.freshmart.example"
+    }
+  ],
+  "paths": {
+    "/api/v1/users/profile": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get the current profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create or update the current profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/users/addresses": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Add an address to the current profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/customers": {
+      "get": {
+        "tags": [
+          "Admin Customers"
+        ],
+        "summary": "List and filter customers for administrators",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Alias for pageSize (legacy)"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "$ref": "#/components/schemas/AdminCustomerStatus"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortBy",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "registrationDate",
+                "updatedAt",
+                "name",
+                "email",
+                "orderCount",
+                "totalSpending",
+                "lastOrderDate"
+              ],
+              "default": "registrationDate"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortOrder",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated customers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/customers/{customerId}": {
+      "get": {
+        "tags": [
+          "Admin Customers"
+        ],
+        "summary": "Get an administrator customer view",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/customers/{customerId}/status": {
+      "patch": {
+        "tags": [
+          "Admin Customers"
+        ],
+        "summary": "Update customer account status when supported by the profile domain",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/AdminCustomerStatus"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "errors": {}
+        }
+      },
+      "AdminCustomerStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "BLOCKED"
+        ]
+      },
+      "AdminCustomer": {
+        "type": "object",
+        "required": [
+          "customerId",
+          "name",
+          "email",
+          "phone",
+          "avatarUrl",
+          "registrationDate",
+          "updatedAt",
+          "status",
+          "defaultAddress",
+          "addresses",
+          "orderCount",
+          "totalSpending",
+          "lastOrderDate"
+        ],
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "registrationDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminCustomerStatus"
+              }
+            ],
+            "nullable": true
+          },
+          "defaultAddress": {
+            "nullable": true
+          },
+          "addresses": {
+            "type": "array",
+            "items": {}
+          },
+          "orderCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalSpending": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lastOrderDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/AdminCustomerStatistics"
+          },
+          "orderSummary": {
+            "$ref": "#/components/schemas/AdminCustomerOrderSummary"
+          },
+          "recentOrders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCustomerRecentOrder"
+            }
+          }
+        }
+      },
+      "AdminCustomerStatistics": {
+        "type": "object",
+        "required": [
+          "orderCount",
+          "totalSpending",
+          "lastOrderDate",
+          "paidOrderCount"
+        ],
+        "properties": {
+          "orderCount": {
+            "type": "integer"
+          },
+          "totalSpending": {
+            "type": "number"
+          },
+          "lastOrderDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paidOrderCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminCustomerOrderSummary": {
+        "type": "object",
+        "required": [
+          "total",
+          "paid",
+          "pending",
+          "cancelled"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "paid": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "integer"
+          },
+          "cancelled": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminCustomerRecentOrder": {
+        "type": "object",
+        "required": [
+          "orderId",
+          "orderStatus",
+          "paymentStatus",
+          "totalAmount",
+          "createdAt"
+        ],
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "orderStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AdminCustomerSummary": {
+        "type": "object",
+        "required": [
+          "totalCustomers",
+          "activeCustomers",
+          "inactiveCustomers",
+          "newCustomers"
+        ],
+        "properties": {
+          "totalCustomers": {
+            "type": "integer"
+          },
+          "activeCustomers": {
+            "type": "integer"
+          },
+          "inactiveCustomers": {
+            "type": "integer"
+          },
+          "newCustomers": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminCustomerEnvelope": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "timestamp"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminCustomer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AdminCustomerListEnvelope": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "meta",
+          "timestamp"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCustomer"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages",
+              "summary"
+            ],
+            "properties": {
+              "page": {
+                "type": "integer"
+              },
+              "pageSize": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              },
+              "totalPages": {
+                "type": "integer"
+              },
+              "summary": {
+                "$ref": "#/components/schemas/AdminCustomerSummary"
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC7807 problem response",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    }
+  }
+}

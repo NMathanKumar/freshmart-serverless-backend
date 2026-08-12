@@ -60,4 +60,5 @@ tfplan*
 !package.json
 !tsconfig*.json
 !components.json
+!**/openapi/openapi.json
 frontend-legacy-backup/

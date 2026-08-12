@@ -1,0 +1,712 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Admin Service",
+    "version": "1.0.0",
+    "description": "Admin Service API for FreshMart."
+  },
+  "servers": [
+    {
+      "url": "https://api.freshmart.example"
+    }
+  ],
+  "paths": {
+    "/v1/admin/categories": {
+      "get": {
+        "tags": [
+          "Admin Categories"
+        ],
+        "summary": "List categories",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categories"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Categories"
+        ],
+        "summary": "Create category",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/categories/{categoryId}": {
+      "get": {
+        "tags": [
+          "Admin Categories"
+        ],
+        "summary": "Get category",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Categories"
+        ],
+        "summary": "Update category",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Categories"
+        ],
+        "summary": "Delete category",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/reviews": {
+      "get": {
+        "tags": [
+          "Admin Reviews"
+        ],
+        "summary": "List reviews",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reviews"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/reviews/{reviewId}": {
+      "get": {
+        "tags": [
+          "Admin Reviews"
+        ],
+        "summary": "Get review",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Review"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin Reviews"
+        ],
+        "summary": "Moderate review",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Moderated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Reviews"
+        ],
+        "summary": "Delete review",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/coupons": {
+      "get": {
+        "tags": [
+          "Admin Coupons"
+        ],
+        "summary": "List coupons",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coupons"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Coupons"
+        ],
+        "summary": "Create coupon",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/coupons/{couponId}": {
+      "get": {
+        "tags": [
+          "Admin Coupons"
+        ],
+        "summary": "Get coupon",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coupon"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Coupons"
+        ],
+        "summary": "Update coupon",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Coupons"
+        ],
+        "summary": "Delete coupon",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/coupons/{couponId}/status": {
+      "patch": {
+        "tags": [
+          "Admin Coupons"
+        ],
+        "summary": "Update coupon status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/suppliers": {
+      "get": {
+        "tags": [
+          "Admin Suppliers"
+        ],
+        "summary": "List suppliers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suppliers"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Suppliers"
+        ],
+        "summary": "Create supplier",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/suppliers/{supplierId}": {
+      "get": {
+        "tags": [
+          "Admin Suppliers"
+        ],
+        "summary": "Get supplier",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supplier"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Suppliers"
+        ],
+        "summary": "Update supplier",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Suppliers"
+        ],
+        "summary": "Delete supplier",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/purchase-orders": {
+      "get": {
+        "tags": [
+          "Admin Purchase Orders"
+        ],
+        "summary": "List POs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "POs"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Purchase Orders"
+        ],
+        "summary": "Create PO",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/purchase-orders/{purchaseOrderId}": {
+      "get": {
+        "tags": [
+          "Admin Purchase Orders"
+        ],
+        "summary": "Get PO",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PO"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Purchase Orders"
+        ],
+        "summary": "Update PO",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/purchase-orders/{purchaseOrderId}/receive": {
+      "post": {
+        "tags": [
+          "Admin Purchase Orders"
+        ],
+        "summary": "Receive PO",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Received"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/purchase-orders/{purchaseOrderId}/cancel": {
+      "post": {
+        "tags": [
+          "Admin Purchase Orders"
+        ],
+        "summary": "Cancel PO",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/deliveries": {
+      "get": {
+        "tags": [
+          "Admin Deliveries"
+        ],
+        "summary": "List deliveries",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deliveries"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Deliveries"
+        ],
+        "summary": "Create delivery",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/deliveries/{deliveryId}": {
+      "get": {
+        "tags": [
+          "Admin Deliveries"
+        ],
+        "summary": "Get delivery",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delivery"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/deliveries/{deliveryId}/status": {
+      "patch": {
+        "tags": [
+          "Admin Deliveries"
+        ],
+        "summary": "Update delivery status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/deliveries/{deliveryId}/assign": {
+      "post": {
+        "tags": [
+          "Admin Deliveries"
+        ],
+        "summary": "Assign driver",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assigned"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/v1/admin/deliveries/{deliveryId}/cancel": {
+      "post": {
+        "tags": [
+          "Admin Deliveries"
+        ],
+        "summary": "Cancel delivery",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "errors": {}
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC7807 problem response",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    }
+  }
+}
